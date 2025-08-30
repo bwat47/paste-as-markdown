@@ -1,35 +1,43 @@
-import TurndownService from 'turndown';
-// turndown-plugin-gfm ships without types
-
-import { gfm } from 'turndown-plugin-gfm';
+import TurndownService from '@joplin/turndown';
+import { gfm } from '@joplin/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
-import { applyAllRules } from './turndownRules';
+import { applyCustomRules } from './turndownRules';
 
 let singletonService: TurndownService | null = null;
 let currentIncludeImages: boolean | null = null;
 
-function createTurndownService(includeImages: boolean): TurndownService {
-    // Use centralized TURNDOWN_OPTIONS directly (no per-file overrides to avoid divergence)
+function createTurndownServiceSync(): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
-
-    // Enable GitHub Flavored Markdown features
     service.use(gfm);
-
-    // Apply all custom conversion rules
-    applyAllRules(service, { includeImages });
-
+    applyCustomRules(service);
     return service;
 }
 
 function getService(includeImages: boolean): TurndownService {
     // Recreate service if includeImages setting changed
     if (!singletonService || currentIncludeImages !== includeImages) {
-        singletonService = createTurndownService(includeImages);
+        singletonService = createTurndownServiceSync();
         currentIncludeImages = includeImages;
     }
     return singletonService;
 }
 
 export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
-    return getService(includeImages).turndown(html);
+    let input = html;
+    try {
+        const ParserCtor = (globalThis as unknown as { DOMParser?: { new (): DOMParser } }).DOMParser;
+        if (ParserCtor) {
+            const parser = new ParserCtor();
+            const doc = parser.parseFromString(html, 'text/html');
+            // Remove style & script blocks explicitly
+            doc.querySelectorAll('style,script').forEach((el) => el.remove());
+            if (!includeImages) doc.querySelectorAll('img').forEach((img) => img.remove());
+            input = doc.body.innerHTML;
+        } else if (!includeImages) {
+            input = html.replace(/<img[^>]*>/gi, '');
+        }
+    } catch {
+        if (!includeImages) input = html.replace(/<img[^>]*>/gi, '');
+    }
+    return getService(includeImages).turndown(input);
 }
