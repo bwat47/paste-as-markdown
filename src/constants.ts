@@ -8,6 +8,8 @@ export const TURNDOWN_OPTIONS = {
     bulletListMarker: '-',
     emDelimiter: '*',
     strongDelimiter: '**',
+    br: '\n', // Convert <br> to newline instead of double space
+    linkStyle: 'inlined',
 } as const;
 
 export const SHORTCUTS = {
