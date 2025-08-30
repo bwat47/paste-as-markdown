@@ -45,6 +45,26 @@ export const linkRules: TurndownRule[] = [
         replacement: () => '',
     },
     {
+        name: 'dropEmptyHeadingSpans',
+        description: 'Remove empty span anchors used only for in-page navigation (e.g., <span id="section"></span>)',
+        filter: (node: HTMLElement) => {
+            if (!node || node.nodeName !== 'SPAN') return false;
+            const span = node as HTMLSpanElement;
+            // Must have id or anchor-like class
+            const id = span.getAttribute('id') || '';
+            const cls = span.className || '';
+            const isAnchorish = !!id || /anchor|permalink|heading|section/i.test(cls);
+            if (!isAnchorish) return false;
+            // If it contains any non-whitespace text after NBSP normalization, keep it
+            const text = (span.textContent || '').replace(/\u00a0/g, ' ').trim();
+            if (text.length > 0) return false;
+            // If it contains non-image child elements with text, keep it (unlikely)
+            if (Array.from(span.children).some((c) => /\S/.test(c.textContent || ''))) return false;
+            return true;
+        },
+        replacement: () => '',
+    },
+    {
         name: 'flattenAnchorContent',
         description: 'Flatten complex nested content inside anchor tags to simple text links',
         filter: (node: HTMLElement) => {
@@ -77,15 +97,23 @@ export const linkRules: TurndownRule[] = [
 export const codeRules: TurndownRule[] = [
     {
         name: 'preserveCodeBlocks',
-        description: 'Handle pre/code blocks with syntax highlighting preservation',
-        filter: (node: HTMLElement) => {
-            return node.nodeName === 'PRE' && !!node.querySelector('code');
-        },
-        replacement: (content: string, node: HTMLElement) => {
+        description: 'Handle <pre> (with or without nested <code>) preserving raw text and language class',
+        filter: (node: HTMLElement) => node.nodeName === 'PRE',
+        replacement: (_content: string, node: HTMLElement) => {
+            // Support either <pre><code class="language-xxx">...</code></pre> or bare <pre>...</pre>
             const codeElement = node.querySelector('code');
-            const language = codeElement?.className.match(/(?:language-|lang-)(\w+)/)?.[1] || '';
-            const cleanContent = content.replace(/^\n+|\n+$/g, '');
-            return `\n\n\`\`\`${language}\n${cleanContent}\n\`\`\`\n\n`;
+            const languageSource = codeElement || node; // try nested code first, else pre itself
+            const className = languageSource.className || '';
+            const language = className.match(/(?:language-|lang-)([a-z0-9+_-]+)/i)?.[1] || '';
+            // Use raw textContent to avoid prior escaping performed on child nodes
+            const raw = (codeElement ? codeElement.textContent : node.textContent) || '';
+            // Normalize line endings and trim leading/trailing blank lines while preserving internal indentation
+            const normalized = raw.replace(/\r\n?/g, '\n').replace(/^[\n]+|[\n]+$/g, '');
+            // Determine required fence length (one longer than any run of backticks in content)
+            const backtickRuns: string[] = normalized.match(/`+/g) || [];
+            const longestBackticks = backtickRuns.reduce<number>((m, s) => Math.max(m, s.length), 0);
+            const fence = '`'.repeat(Math.max(3, longestBackticks + 1)); // at least standard ```
+            return `\n\n${fence}${language ? language : ''}\n${normalized}\n${fence}\n\n`;
         },
     },
     {
@@ -95,8 +123,10 @@ export const codeRules: TurndownRule[] = [
             return node.nodeName === 'CODE' && !node.parentElement?.matches('pre');
         },
         replacement: (content: string) => {
-            const backtickCount = (content.match(/`+/g) || []).length;
-            const fence = '`'.repeat(Math.max(1, backtickCount + 1));
+            // Use longest sequence length instead of number of groups to choose a safe wrapper
+            const runs: string[] = content.match(/`+/g) || [];
+            const longest = runs.reduce<number>((m, s) => Math.max(m, s.length), 0);
+            const fence = '`'.repeat(Math.max(1, longest + 1));
             return `${fence}${content}${fence}`;
         },
     },
