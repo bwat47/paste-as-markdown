@@ -1,8 +1,67 @@
 import joplin from 'api';
+import { COMMANDS, SHORTCUTS } from './constants';
+import { handlePasteAsMarkdown } from './pasteHandler';
+import { showToast } from './utils';
+import { MenuItemLocation, ToastType } from 'api/types';
 
 joplin.plugins.register({
-	onStart: async function() {
-		// eslint-disable-next-line no-console
-		console.info('Hello world. Test plugin started!');
-	},
+    onStart: async () => {
+        // Register command
+        await joplin.commands.register({
+            name: COMMANDS.PASTE_AS_MARKDOWN,
+            label: 'Paste as Markdown',
+            iconName: 'fas fa-paste',
+            execute: async () => {
+                try {
+                    await handlePasteAsMarkdown();
+                } catch (err: unknown) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    console.error('[paste-as-markdown] Error:', err);
+                    await showToast('Paste as Markdown failed: ' + message, ToastType.Error);
+                }
+            },
+        });
+
+        // Add menu item with accelerator in Edit menu for discoverability
+        try {
+            await joplin.views.menus.create(
+                'pasteAsMarkdownMenu',
+                'Paste as Markdown',
+                [
+                    {
+                        commandName: COMMANDS.PASTE_AS_MARKDOWN,
+                        accelerator: SHORTCUTS.PASTE_AS_MARKDOWN,
+                    },
+                ],
+                MenuItemLocation.Edit
+            );
+        } catch (err) {
+            console.warn('[paste-as-markdown] Failed to create menu item', err);
+        }
+
+        // Context menu filtering - only add in markdown editor
+        joplin.workspace.filterEditorContextMenu(async (menu) => {
+            let isMarkdown = false;
+            try {
+                await joplin.commands.execute('editor.execCommand', {
+                    name: 'getCursor',
+                });
+                isMarkdown = true;
+            } catch {
+                isMarkdown = false;
+            }
+            if (!isMarkdown) return menu;
+            const exists = menu.items.some((i) => i.commandName === COMMANDS.PASTE_AS_MARKDOWN);
+            if (!exists) {
+                menu.items.push({
+                    commandName: COMMANDS.PASTE_AS_MARKDOWN,
+                    label: 'Paste as Markdown',
+                    accelerator: SHORTCUTS.PASTE_AS_MARKDOWN,
+                });
+            }
+            return menu;
+        });
+
+        console.info('[paste-as-markdown] Plugin started');
+    },
 });
