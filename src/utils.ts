@@ -1,6 +1,7 @@
 import joplin from 'api';
 import { ToastType } from 'api/types';
 import { TOAST_DURATION } from './constants';
+import type { PasteOptions } from './types';
 
 export async function showToast(message: string, type: ToastType = ToastType.Info, duration = TOAST_DURATION) {
     try {
@@ -21,4 +22,11 @@ export function hasMeaningfulHtml(html: string | null | undefined): boolean {
         .trim();
     // If after stripping we still have tags beyond a bare div/span/p wrapper, consider meaningful
     return /<([a-z0-9]+)(\s|>)/i.test(cleaned) && cleaned.length > 0;
+}
+
+export function validatePasteSettings(settings: unknown): PasteOptions {
+    const s = (settings || {}) as Partial<PasteOptions>;
+    return {
+        includeImages: typeof s.includeImages === 'boolean' ? s.includeImages : true,
+    };
 }

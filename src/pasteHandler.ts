@@ -1,8 +1,9 @@
 import joplin from 'api';
 import { convertHtmlToMarkdown } from './markdownConverter';
-import { showToast, hasMeaningfulHtml } from './utils';
+import { showToast, hasMeaningfulHtml, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
 import type { ConversionResult } from './types';
+import { SETTINGS } from './constants';
 
 async function readClipboardHtml(): Promise<string | null> {
     try {
@@ -42,6 +43,12 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
 }
 
 export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
+    // Get user setting
+    const rawSettings = {
+        includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
+    };
+    const options = validatePasteSettings(rawSettings);
+
     // Read HTML (will be null if unavailable)
 
     const html = await readClipboardHtml();
@@ -57,9 +64,12 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
     }
 
     try {
-        const markdown = convertHtmlToMarkdown(html!);
+        const markdown = convertHtmlToMarkdown(html!, options.includeImages);
         await insertMarkdownAtCursor(markdown);
-        await showToast('Pasted as Markdown', ToastType.Success);
+
+        const message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
+        await showToast(message, ToastType.Success);
+
         return { markdown, success: true };
     } catch (err) {
         console.error('[paste-as-markdown] Conversion failed, attempting plain text fallback', err);

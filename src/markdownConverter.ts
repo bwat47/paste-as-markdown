@@ -6,8 +6,9 @@ import { TURNDOWN_OPTIONS } from './constants';
 import { applyAllRules } from './turndownRules';
 
 let singletonService: TurndownService | null = null;
+let currentIncludeImages: boolean | null = null;
 
-function createTurndownService(): TurndownService {
+function createTurndownService(includeImages: boolean): TurndownService {
     const service = new TurndownService({
         ...TURNDOWN_OPTIONS,
         linkStyle: 'inlined',
@@ -18,18 +19,20 @@ function createTurndownService(): TurndownService {
     service.use(gfm);
 
     // Apply all custom conversion rules
-    applyAllRules(service);
+    applyAllRules(service, { includeImages });
 
     return service;
 }
 
-function getService(): TurndownService {
-    if (!singletonService) {
-        singletonService = createTurndownService();
+function getService(includeImages: boolean): TurndownService {
+    // Recreate service if includeImages setting changed
+    if (!singletonService || currentIncludeImages !== includeImages) {
+        singletonService = createTurndownService(includeImages);
+        currentIncludeImages = includeImages;
     }
     return singletonService;
 }
 
-export function convertHtmlToMarkdown(html: string): string {
-    return getService().turndown(html);
+export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
+    return getService(includeImages).turndown(html);
 }

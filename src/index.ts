@@ -1,8 +1,8 @@
 import joplin from 'api';
-import { COMMANDS, SHORTCUTS } from './constants';
+import { COMMANDS, SHORTCUTS, SETTINGS } from './constants';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import { showToast } from './utils';
-import { MenuItemLocation, ToastType } from 'api/types';
+import { MenuItemLocation, ToastType, SettingItemType } from 'api/types';
 
 joplin.plugins.register({
     onStart: async () => {
@@ -19,6 +19,24 @@ joplin.plugins.register({
                     console.error('[paste-as-markdown] Error:', err);
                     await showToast('Paste as Markdown failed: ' + message, ToastType.Error);
                 }
+            },
+        });
+
+        // Register settings
+        await joplin.settings.registerSection('pasteAsMarkdown', {
+            label: 'Paste as Markdown',
+            iconName: 'fas fa-paste',
+        });
+
+        await joplin.settings.registerSettings({
+            [SETTINGS.INCLUDE_IMAGES]: {
+                value: true,
+                type: SettingItemType.Bool,
+                section: 'pasteAsMarkdown',
+                public: true,
+                label: 'Include images',
+                description:
+                    'If enabled, images from HTML will be converted to markdown image syntax. If disabled, images will be removed entirely.',
             },
         });
 

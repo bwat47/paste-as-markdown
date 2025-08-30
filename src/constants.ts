@@ -12,6 +12,10 @@ export const TURNDOWN_OPTIONS = {
     linkStyle: 'inlined',
 } as const;
 
+export const SETTINGS = {
+    INCLUDE_IMAGES: 'includeImages',
+} as const;
+
 export const SHORTCUTS = {
     PASTE_AS_MARKDOWN: 'Ctrl+Alt+V',
 } as const;

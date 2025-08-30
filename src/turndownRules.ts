@@ -144,6 +144,16 @@ export const cleanupRules: TurndownRule[] = [
     },
 ];
 
+// Image removal
+export const imageRules: TurndownRule[] = [
+    {
+        name: 'dropImages',
+        description: 'Remove all image elements when image inclusion is disabled',
+        filter: 'img',
+        replacement: () => '',
+    },
+];
+
 // All rules combined for easy application
 export const allRules: TurndownRule[] = [...linkRules, ...codeRules, ...blockRules, ...cleanupRules];
 
@@ -166,6 +176,14 @@ export function applyRules(service: TurndownService, rules: TurndownRule[]): voi
 /**
  * Apply all rules to a TurndownService instance
  */
-export function applyAllRules(service: TurndownService): void {
-    applyRules(service, allRules);
+export function applyAllRules(service: TurndownService, options?: { includeImages?: boolean }): void {
+    applyRules(service, linkRules);
+    applyRules(service, codeRules);
+    applyRules(service, blockRules);
+    applyRules(service, cleanupRules);
+
+    // Only drop images if includeImages is explicitly false
+    if (options?.includeImages === false) {
+        applyRules(service, imageRules);
+    }
 }
