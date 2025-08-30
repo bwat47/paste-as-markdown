@@ -57,7 +57,10 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
     if (!hasHtml) {
         // Fallback to plain text
         const text = await readClipboardText();
-        if (!text) throw new Error('Clipboard is empty');
+        if (!text) {
+            await showToast('Clipboard is empty', ToastType.Info);
+            return { markdown: '', success: false, plainTextFallback: true, warnings: ['Clipboard empty'] };
+        }
         await insertMarkdownAtCursor(text);
         await showToast('Pasted plain text (no HTML found)', ToastType.Info);
         return { markdown: text, success: true, plainTextFallback: true };
