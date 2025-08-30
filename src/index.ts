@@ -24,16 +24,13 @@ joplin.plugins.register({
 
         // Add menu item with accelerator in Edit menu for discoverability
         try {
-            await joplin.views.menus.create(
+            await joplin.views.menuItems.create(
                 'pasteAsMarkdownMenu',
-                'Paste as Markdown',
-                [
-                    {
-                        commandName: COMMANDS.PASTE_AS_MARKDOWN,
-                        accelerator: SHORTCUTS.PASTE_AS_MARKDOWN,
-                    },
-                ],
-                MenuItemLocation.Edit
+                COMMANDS.PASTE_AS_MARKDOWN,
+                MenuItemLocation.Edit,
+                {
+                    accelerator: SHORTCUTS.PASTE_AS_MARKDOWN,
+                }
             );
         } catch (err) {
             console.warn('[paste-as-markdown] Failed to create menu item', err);
