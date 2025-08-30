@@ -1,0 +1,16 @@
+{
+	"manifest_version": 1,
+	"id": "com.bwat47.paste-as-markdown",
+	"app_min_version": "3.3",
+	"version": "1.0.0",
+	"name": "Paste as Markdown",
+	"description": "Paste HTML formatted text as markdown",
+	"author": "bwat47",
+	"homepage_url": "https://github.com/bwat47/paste-as-markdown",
+	"repository_url": "https://github.com/bwat47/paste-as-markdown",
+	"keywords": [],
+	"categories": [],
+	"screenshots": [],
+	"icons": {},
+	"promo_tile": {}
+}
