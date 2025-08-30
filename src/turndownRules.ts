@@ -116,9 +116,15 @@ export const blockRules: TurndownRule[] = [
                 )
             );
             const hasBlockStyling = div.style.display === 'block' || div.className.includes('block');
+            // Detect div that contains only an <img> (common pattern for inline-block image containers)
+            const imageOnly = div.children.length === 1 && div.children[0].nodeName === 'IMG';
+            // Treat divs with non-zero margin as block-level separators (e.g., Outlook / email clients use margin: 1em 0)
+            const styleAttr = div.getAttribute('style') || '';
+            const hasNonZeroMargin = /margin\s*:\s*(?!0(?:[;\s]|$))/i.test(styleAttr);
 
-            if (hasBlockChildren || hasBlockStyling) {
-                return content.trim() ? `\n\n${content}\n\n` : content;
+            if (hasBlockChildren || hasBlockStyling || imageOnly || hasNonZeroMargin) {
+                const trimmed = content.trim();
+                return trimmed ? `\n\n${trimmed}\n\n` : content;
             }
             return content;
         },
