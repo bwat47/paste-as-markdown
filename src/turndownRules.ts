@@ -28,6 +28,9 @@ export interface TurndownRule {
 }
 
 // Link handling rules
+// IMPORTANT: Rule order is intentional.
+// dropEmptyAnchors precedes flattenAnchorContent to ensure empty heading/permalink anchors are removed
+// before any flattening. Keep removal rules before transformation rules to avoid regressions.
 export const linkRules: TurndownRule[] = [
     {
         name: 'dropEmptyAnchors',
@@ -60,8 +63,12 @@ export const linkRules: TurndownRule[] = [
                 .replace(/\s+/g, ' ')
                 .trim();
             const safeText = text || href;
+            // Truncate excessively long generated link labels to keep markdown readable
+            const MAX_LINK_TEXT = 120;
+            const displayText =
+                safeText.length > MAX_LINK_TEXT ? safeText.slice(0, MAX_LINK_TEXT - 1).trimEnd() + '…' : safeText;
             const titlePart = titleAttr ? ` "${titleAttr.replace(/"/g, '\\"')}"` : '';
-            return `[${safeText}](${href}${titlePart})`;
+            return `[${displayText}](${href}${titlePart})`;
         },
     },
 ];

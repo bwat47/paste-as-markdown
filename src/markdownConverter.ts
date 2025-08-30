@@ -9,11 +9,8 @@ let singletonService: TurndownService | null = null;
 let currentIncludeImages: boolean | null = null;
 
 function createTurndownService(includeImages: boolean): TurndownService {
-    const service = new TurndownService({
-        ...TURNDOWN_OPTIONS,
-        linkStyle: 'inlined',
-        br: '\n',
-    });
+    // Use centralized TURNDOWN_OPTIONS directly (no per-file overrides to avoid divergence)
+    const service = new TurndownService(TURNDOWN_OPTIONS);
 
     // Enable GitHub Flavored Markdown features
     service.use(gfm);

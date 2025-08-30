@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { COMMANDS, SHORTCUTS, SETTINGS } from './constants';
+import { COMMANDS, SHORTCUTS, SETTINGS, SETTINGS_SECTION } from './constants';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import { showToast } from './utils';
 import { MenuItemLocation, ToastType, SettingItemType } from 'api/types';
@@ -23,7 +23,7 @@ joplin.plugins.register({
         });
 
         // Register settings
-        await joplin.settings.registerSection('pasteAsMarkdown', {
+        await joplin.settings.registerSection(SETTINGS_SECTION, {
             label: 'Paste as Markdown',
             iconName: 'fas fa-paste',
         });
@@ -32,7 +32,7 @@ joplin.plugins.register({
             [SETTINGS.INCLUDE_IMAGES]: {
                 value: true,
                 type: SettingItemType.Bool,
-                section: 'pasteAsMarkdown',
+                section: SETTINGS_SECTION,
                 public: true,
                 label: 'Include images',
                 description:

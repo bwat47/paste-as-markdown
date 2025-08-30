@@ -16,6 +16,9 @@ export const SETTINGS = {
     INCLUDE_IMAGES: 'includeImages',
 } as const;
 
+// Settings section identifiers
+export const SETTINGS_SECTION = 'pasteAsMarkdown' as const;
+
 export const SHORTCUTS = {
     PASTE_AS_MARKDOWN: 'Ctrl+Alt+V',
 } as const;

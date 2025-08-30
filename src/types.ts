@@ -1,4 +1,3 @@
-// export interface PasteOptions
 // Reserved for future user-configurable options
 
 export interface ConversionResult {
