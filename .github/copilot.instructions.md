@@ -392,7 +392,6 @@ async function withTimeout<T>(
 ### Testing
 
 - Create unit tests to cover primary functionality
-- Test files should live next to the file they are testing.
 - Watch it fail - Ensure the test actually tests something
 - Write minimal code - Just enough to make the test pass
 - Refactor - Improve code while keeping tests green
