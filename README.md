@@ -5,7 +5,11 @@
 
 A Joplin plugin that allows you to paste HTML formatted text as markdown in the markdown editor.
 
-The plugin uses Joplin's modified version of Turndown to convert HTML to markdown, so the results should be very similar to what you get when pasting HTML formatted text inside Joplin's rich text editor.
+The plugin uses Joplin's modified version of Turndown to convert HTML to markdown, so the results should be very similar to what you get when pasting HTML formatted text inside Joplin's rich text editor. 
+
+Useful for scenarios where you can't use the joplin web clipper (e.g. copying text from an email client) and/or where you don't want to edit the note with the rich text editor (to avoid changes to existing markdown formatting by the rich text editor).
+
+![paste-as-markdown](https://github.com/user-attachments/assets/93772e33-6717-42c7-8430-5760b278dc71)
 
 ## How to use
 
