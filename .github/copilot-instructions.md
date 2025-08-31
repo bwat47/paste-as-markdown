@@ -195,7 +195,7 @@ if (!validateResourceId(id)) {
 #### Documentation Standards
 
 - Use JSDoc for complex functions
-- Comment architectural decisions (e.g., why JSDOM over regex)
+- Comment architectural decisions (e.g., why DOM parsing over regex)
 - Document regex patterns with examples
 - Explain non-obvious business logic
 
