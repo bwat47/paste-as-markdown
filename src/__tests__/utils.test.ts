@@ -147,7 +147,7 @@ describe('utils', () => {
             );
 
             await expect(showToast('Test message')).resolves.not.toThrow();
-            expect(consoleSpy).toHaveBeenCalledWith('[paste-as-markdown] Failed to show toast:', expect.any(Error));
+            expect(consoleSpy).toHaveBeenCalledWith('[paste-as-markdown]', 'Failed to show toast:', expect.any(Error));
 
             consoleSpy.mockRestore();
         });

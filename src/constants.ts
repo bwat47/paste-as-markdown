@@ -25,3 +25,5 @@ export const SHORTCUTS = {
 } as const;
 
 export const TOAST_DURATION = 4000; // ms
+
+export const LOG_PREFIX = '[paste-as-markdown]';

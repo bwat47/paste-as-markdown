@@ -3,7 +3,7 @@ import { convertHtmlToMarkdown } from './markdownConverter';
 import { showToast, hasMeaningfulHtml, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
 import type { ConversionResult } from './types';
-import { SETTINGS } from './constants';
+import { SETTINGS, LOG_PREFIX } from './constants';
 
 async function readClipboardHtml(): Promise<string | null> {
     try {
@@ -17,7 +17,7 @@ async function readClipboardText(): Promise<string> {
     try {
         return await joplin.clipboard.readText();
     } catch (err) {
-        console.error('[paste-as-markdown] Failed to read text clipboard:', err);
+        console.error(LOG_PREFIX, 'Failed to read text clipboard:', err);
         throw new Error('Unable to access clipboard text');
     }
 }
@@ -39,7 +39,7 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
         }
     }
 
-    console.error('[paste-as-markdown] Failed to insert markdown', lastError);
+    console.error(LOG_PREFIX, 'Failed to insert markdown', lastError);
     throw new Error('Unable to insert markdown into editor');
 }
 
@@ -76,7 +76,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
 
         return { markdown, success: true };
     } catch (err) {
-        console.error('[paste-as-markdown] Conversion failed, attempting plain text fallback', err);
+        console.error(LOG_PREFIX, 'Conversion failed, attempting plain text fallback', err);
         const text = await readClipboardText();
         if (text) {
             await insertMarkdownAtCursor(text);

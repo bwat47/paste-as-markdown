@@ -1,6 +1,6 @@
 import TurndownService from '@joplin/turndown';
+import { LOG_PREFIX } from './constants';
 
-const LOG_PREFIX = '[paste-as-markdown]';
 const ENABLE_INSERT_FIX = true;
 
 /**

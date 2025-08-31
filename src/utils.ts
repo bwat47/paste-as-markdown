@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { ToastType } from 'api/types';
-import { TOAST_DURATION } from './constants';
+import { TOAST_DURATION, LOG_PREFIX } from './constants';
 import type { PasteOptions } from './types';
 
 // Precompiled regex constants (avoid recreation per call)
@@ -36,7 +36,7 @@ export async function showToast(message: string, type: ToastType = ToastType.Inf
     try {
         await joplin.views.dialogs.showToast({ message, type, duration });
     } catch (err) {
-        console.warn('[paste-as-markdown] Failed to show toast:', err);
+        console.warn(LOG_PREFIX, 'Failed to show toast:', err);
     }
 }
 
