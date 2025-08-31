@@ -58,6 +58,10 @@ joplin.plugins.register({
         joplin.workspace.filterEditorContextMenu(async (menu) => {
             let isMarkdown = false;
             try {
+                // To determine if the user is in the Markdown editor, we try to execute
+                // a command that is only supported by that editor. If it succeeds, we
+                // know it's the Markdown editor. If it throws, it's probably the
+                // Rich Text editor.
                 await joplin.commands.execute('editor.execCommand', {
                     name: 'getCursor',
                 });

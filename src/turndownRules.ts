@@ -42,6 +42,9 @@ export function applyCustomRules(service: TurndownService): void {
             const rule = rules[i];
             if (rule.filter && typeof rule.filter === 'function') {
                 const filterStr = rule.filter.toString();
+                // This is a bit of a hack, but it's the most reliable way to identify
+                // the rule that handles underlined text, which we need to modify.
+                // We're looking for the function that checks for `text-decoration: underline`.
                 if (filterStr.includes('text-decoration') && filterStr.includes('underline')) {
                     const originalFilter = rule.filter;
                     rule.filter = function (node: HTMLElement, options?: unknown) {

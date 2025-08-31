@@ -9,9 +9,11 @@ const RE_META = /<meta[\s\S]*?>/gi;
 const RE_STYLE = /<style[\s\S]*?<\/style>/gi;
 const RE_SCRIPT = /<script[\s\S]*?<\/script>/gi;
 const RE_LINK = /<link[\s\S]*?>/gi;
-// Meaningful tags: any tag that's not a trivial wrapper / structural boilerplate
+// Matches any HTML tag that is NOT a common, simple formatting or structural tag.
+// This helps us quickly identify if the HTML has more than just basic wrappers.
 const RE_MEANINGFUL_TAG = /<(?!\/?(div|span|p|html|body|head|meta|title|br)\b)[a-z0-9]+(?:\s|>|\/)/i;
-// Inline formatting / style attributes indicating significance
+// Looks for inline style attributes that suggest meaningful formatting was applied,
+// rather than just default browser styles.
 const RE_FORMATTING_STYLE =
     /style\s*=\s*["'][^"']*(?:font-weight|font-style|text-decoration|color|background|border|margin|padding)[^"']*["']/i;
 // Semantic classes / ids

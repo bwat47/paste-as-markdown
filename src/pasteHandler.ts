@@ -23,7 +23,8 @@ async function readClipboardText(): Promise<string> {
 }
 
 async function insertMarkdownAtCursor(markdown: string): Promise<void> {
-    // Try commands with args signature (CodeMirror)
+    // First, try 'insertText'. If that fails, fall back to 'replaceSelection'.
+    // This provides compatibility with different editor implementations in Joplin.
     const attempts = [
         { name: 'insertText', args: [markdown] },
         { name: 'replaceSelection', args: [markdown] },
