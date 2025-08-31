@@ -21,35 +21,46 @@ export function applyCustomRules(service: TurndownService): void {
     // which causes Joplin's insert rule to match them before the link rule can process them
 
     // Access the rules array and find the insert rule
-    interface RuleType {
-        filter?: string | ((node: HTMLElement, options?: unknown) => boolean);
-        replacement?: (content: string, node?: HTMLElement, options?: unknown) => string;
-    }
-    const rules = (service as unknown as { rules: { array: RuleType[] } }).rules.array;
+    try {
+        const serviceWithRules = service as unknown as {
+            rules: {
+                array: Array<{
+                    filter?: string | ((node: HTMLElement, options?: unknown) => boolean);
+                    replacement?: (content: string, node?: HTMLElement, options?: unknown) => string;
+                }>;
+            };
+        };
 
-    // Find the insert rule by looking for the specific filter pattern
-    for (let i = 0; i < rules.length; i++) {
-        const rule = rules[i];
-        if (rule.filter && typeof rule.filter === 'function') {
-            const filterStr = rule.filter.toString();
-            // Check if this is the insert rule by looking for the specific text-decoration logic
-            if (filterStr.includes('text-decoration') && filterStr.includes('underline')) {
-                // Replace the filter function to exclude anchor elements
-                const originalFilter = rule.filter;
-                rule.filter = function (node: HTMLElement, options?: unknown) {
-                    // Don't process anchor tags with href/id/name as insert elements
-                    if (
-                        node.nodeName === 'A' &&
-                        (node.getAttribute('href') || node.getAttribute('name') || node.getAttribute('id'))
-                    ) {
-                        return false;
-                    }
+        const rules = serviceWithRules.rules?.array;
+        if (!rules || !Array.isArray(rules)) {
+            console.warn('[paste-as-markdown] Could not access Turndown rules for insert filter fix');
+            return;
+        }
 
-                    // Use the original filter logic for other elements
-                    return originalFilter.call(this, node, options);
-                };
-                break;
+        // Find and modify the insert rule
+        for (let i = 0; i < rules.length; i++) {
+            const rule = rules[i];
+            if (rule.filter && typeof rule.filter === 'function') {
+                const filterStr = rule.filter.toString();
+                if (filterStr.includes('text-decoration') && filterStr.includes('underline')) {
+                    const originalFilter = rule.filter;
+                    rule.filter = function (node: HTMLElement, options?: unknown) {
+                        // Don't process anchor tags as insert elements
+                        if (
+                            node.nodeName === 'A' &&
+                            (node.getAttribute('href') || node.getAttribute('name') || node.getAttribute('id'))
+                        ) {
+                            return false;
+                        }
+                        return originalFilter.call(this, node, options);
+                    };
+                    console.debug('[paste-as-markdown] Applied insert rule fix for anchor elements');
+                    break;
+                }
             }
         }
+    } catch (error) {
+        console.warn('[paste-as-markdown] Failed to apply insert rule fix:', error);
+        // Continue without the fix - not critical for basic functionality
     }
 }
