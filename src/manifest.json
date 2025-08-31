@@ -8,7 +8,7 @@
     "author": "bwat47",
     "homepage_url": "https://github.com/bwat47/paste-as-markdown",
     "repository_url": "https://github.com/bwat47/paste-as-markdown",
-    "keywords": ["Copy", "Paste", "HTML", "Text", "Images"],
+    "keywords": ["Copy", "Paste", "HTML", "Text", "Images", "Markdown"],
     "categories": ["productivity"],
     "screenshots": [
         { "src": "images/paste-as-markdown1.png", "label": "paste as markdown example 1" },
