@@ -38,6 +38,28 @@ export async function showToast(message: string, type: ToastType = ToastType.Inf
     }
 }
 
+/**
+ * Checks if an individual image is meaningful (not a tracking pixel or tiny icon)
+ */
+function isMeaningfulImage(imgHtml: string): boolean {
+    const w = Number(RE_WIDTH.exec(imgHtml)?.[1] || '0');
+    const h = Number(RE_HEIGHT.exec(imgHtml)?.[1] || '0');
+
+    // If dimensions missing, assume meaningful
+    if (w === 0 && h === 0) return true;
+
+    // Filter out tracking pixels and tiny icons
+    return w >= MIN_IMG_DIMENSION && h >= MIN_IMG_DIMENSION;
+}
+
+/**
+ * Checks if HTML contains any meaningful images (not tracking pixels)
+ */
+function hasMeaningfulImages(html: string): boolean {
+    const images = html.match(RE_IMG_TAG_GLOBAL);
+    return images ? images.some(isMeaningfulImage) : false;
+}
+
 export function hasMeaningfulHtml(html: string | null | undefined): boolean {
     if (!html) return false;
 
@@ -80,18 +102,8 @@ export function hasMeaningfulHtml(html: string | null | undefined): boolean {
     // Data URL image (likely pasted inline image)
     if (RE_DATA_URL.test(html)) return true;
 
-    // Check for a non-tiny image (ignoring tracking pixels)
-    const images = html.match(RE_IMG_TAG_GLOBAL);
-    if (images) {
-        for (const img of images) {
-            const w = Number(RE_WIDTH.exec(img)?.[1] || '0');
-            const h = Number(RE_HEIGHT.exec(img)?.[1] || '0');
-            // If dimensions missing, assume meaningful; else require above tiny threshold.
-            if ((w === 0 && h === 0) || (w >= MIN_IMG_DIMENSION && h >= MIN_IMG_DIMENSION)) {
-                return true;
-            }
-        }
-    }
+    // Check for meaningful images (not tracking pixels)
+    if (hasMeaningfulImages(html)) return true;
 
     // Final structural meaningful tag check on cleaned content.
     return RE_MEANINGFUL_TAG.test(cleaned);
