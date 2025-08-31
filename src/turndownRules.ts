@@ -1,19 +1,28 @@
 import TurndownService from '@joplin/turndown';
 
+const LOG_PREFIX = '[paste-as-markdown]';
+const ENABLE_INSERT_FIX = true;
+
 /**
  * Apply custom rule adjustments to fix specific conversion issues
  */
 export function applyCustomRules(service: TurndownService): void {
-    // Remove permalink anchors (GitHub-style anchor links that are not useful in markdown)
+    // Remove permalink anchors (GitHub-style <a class="anchor" href="#...">)
     service.addRule('removePermalinkAnchors', {
         filter: function (node: HTMLElement) {
-            return (
-                node.nodeName === 'A' && node.getAttribute('class')?.includes('anchor') && !node.textContent?.trim() // No meaningful text content
-            );
+            if (node.nodeName !== 'A') return false;
+            const cls = node.getAttribute('class') || '';
+            const hasAnchorClass = cls.split(/\s+/).includes('anchor');
+            if (!hasAnchorClass) return false;
+            const href = node.getAttribute('href') || '';
+            const id = node.getAttribute('id') || '';
+            const looksLikePermalink = (href.startsWith('#') && href.length > 1) || id.startsWith('user-content-');
+            if (!looksLikePermalink) return false;
+            const text = (node.textContent || '').trim();
+            if (text.length > 0) return false; // Has visible text; keep it
+            return true;
         },
-        replacement: function () {
-            return ''; // Remove completely
-        },
+        replacement: () => '',
     });
 
     // Fix for anchor tags with text-decoration: underline being converted to <ins> instead of links
@@ -21,49 +30,49 @@ export function applyCustomRules(service: TurndownService): void {
     // which causes Joplin's insert rule to match them before the link rule can process them
 
     // Access the rules array and find the insert rule
-    try {
-        const serviceWithRules = service as unknown as {
-            rules: {
-                array: Array<{
-                    filter?: string | ((node: HTMLElement, options?: unknown) => boolean);
-                    replacement?: (content: string, node?: HTMLElement, options?: unknown) => string;
-                }>;
+    if (ENABLE_INSERT_FIX) {
+        try {
+            const serviceWithRules = service as unknown as {
+                rules: {
+                    array: Array<{
+                        filter?: string | ((node: HTMLElement, options?: unknown) => boolean);
+                        replacement?: (content: string, node?: HTMLElement, options?: unknown) => string;
+                    }>;
+                };
             };
-        };
 
-        const rules = serviceWithRules.rules?.array;
-        if (!rules || !Array.isArray(rules)) {
-            console.warn('[paste-as-markdown] Could not access Turndown rules for insert filter fix');
-            return;
-        }
-
-        // Find and modify the insert rule
-        for (let i = 0; i < rules.length; i++) {
-            const rule = rules[i];
-            if (rule.filter && typeof rule.filter === 'function') {
-                const filterStr = rule.filter.toString();
-                // This is a bit of a hack, but it's the most reliable way to identify
-                // the rule that handles underlined text, which we need to modify.
-                // We're looking for the function that checks for `text-decoration: underline`.
-                if (filterStr.includes('text-decoration') && filterStr.includes('underline')) {
-                    const originalFilter = rule.filter;
-                    rule.filter = function (node: HTMLElement, options?: unknown) {
-                        // Don't process anchor tags as insert elements
-                        if (
-                            node.nodeName === 'A' &&
-                            (node.getAttribute('href') || node.getAttribute('name') || node.getAttribute('id'))
-                        ) {
-                            return false;
-                        }
-                        return originalFilter.call(this, node, options);
-                    };
-                    console.debug('[paste-as-markdown] Applied insert rule fix for anchor elements');
-                    break;
+            const rules = serviceWithRules.rules?.array;
+            if (!rules || !Array.isArray(rules)) {
+                console.warn(LOG_PREFIX, 'Could not access Turndown rules for insert filter fix');
+            } else {
+                for (let i = 0; i < rules.length; i++) {
+                    const rule = rules[i];
+                    if (!rule.filter || typeof rule.filter !== 'function') continue;
+                    if ((rule.filter as unknown as { _anchorPatched?: boolean })._anchorPatched) continue; // idempotent
+                    const filterStr = rule.filter.toString().toLowerCase();
+                    if (filterStr.includes('text-decoration') && filterStr.includes('underline')) {
+                        const originalFilter = rule.filter;
+                        const patched = function (this: unknown, node: HTMLElement, options?: unknown) {
+                            if (
+                                node.nodeName === 'A' &&
+                                (node.getAttribute('href') || node.getAttribute('name') || node.getAttribute('id'))
+                            ) {
+                                return false; // let link rule handle it
+                            }
+                            return (
+                                originalFilter as (this: unknown, node: HTMLElement, options?: unknown) => boolean
+                            ).call(this, node, options);
+                        } as typeof rule.filter & { _anchorPatched?: boolean };
+                        patched._anchorPatched = true;
+                        rule.filter = patched;
+                        console.debug(LOG_PREFIX, 'Applied insert rule fix for anchor elements');
+                        break;
+                    }
                 }
             }
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            console.warn(LOG_PREFIX, 'Failed to apply insert rule fix:', msg);
         }
-    } catch (error) {
-        console.warn('[paste-as-markdown] Failed to apply insert rule fix:', error);
-        // Continue without the fix - not critical for basic functionality
     }
 }
