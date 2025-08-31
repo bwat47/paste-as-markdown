@@ -366,6 +366,31 @@ async function withTimeout<T>(
 }
 ```
 
+### DOM Parsing with DOMParser:
+
+```ts
+try {
+    // Use DOMParser if available, as it's more robust for manipulating HTML.
+    // This allows us to cleanly remove elements like <style>, <script>, and <img>.
+    const ParserCtor = (globalThis as unknown as { DOMParser?: { new (): DOMParser } }).DOMParser;
+    if (ParserCtor) {
+        const parser = new ParserCtor();
+        const doc = parser.parseFromString(input, 'text/html');
+        // Remove style & script blocks explicitly
+        doc.querySelectorAll('style,script').forEach((el) => el.remove());
+        if (!includeImages) doc.querySelectorAll('img').forEach((img) => img.remove());
+        input = doc.body.innerHTML;
+    } else if (!includeImages) {
+        // Fallback for environments without DOMParser: simple regex to remove images.
+        input = input.replace(/<img[^>]*>/gi, '');
+    }
+} catch {
+    // If DOMParser fails for any reason, fall back to regex for image removal.
+    if (!includeImages) input = input.replace(/<img[^>]*>/gi, '');
+}
+return getService(includeImages).turndown(input);
+```
+
 ## Build and Development
 
 ### Standardized Scripts
