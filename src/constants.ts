@@ -10,6 +10,7 @@ export const TURNDOWN_OPTIONS = {
     strongDelimiter: '**',
     br: '\n', // Convert <br> to newline instead of double space
     linkStyle: 'inlined',
+    preserveImageTagsWithSize: true, // Keep <img> tags with width/height as HTML instead of converting to markdown
 } as const;
 
 export const SETTINGS = {
