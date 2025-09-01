@@ -8,6 +8,8 @@ jest.mock('../turndownRules', () => ({
 jest.mock('@joplin/turndown', () => {
     const mockService = {
         use: jest.fn(),
+        remove: jest.fn(),
+        addRule: jest.fn(),
         turndown: jest.fn().mockReturnValue('# Mock Output'),
     };
     return {
@@ -57,28 +59,22 @@ describe('markdownConverter', () => {
         });
     });
 
-    test('handles image removal when includeImages is false', async () => {
+    test('removes images via service rule when includeImages is false', async () => {
         const { default: TurndownService } = await import('@joplin/turndown');
         const mockInstance = new TurndownService();
 
-        // Mock DOMParser to simulate image removal
-        const mockDoc = {
-            querySelectorAll: jest.fn().mockReturnValue([{ remove: jest.fn() }]),
-            body: {
-                innerHTML: '<p>Content without images</p>',
-            },
-        };
-
-        const mockDOMParser = {
-            parseFromString: jest.fn().mockReturnValue(mockDoc),
-        };
-
-        (global as unknown as { DOMParser: unknown }).DOMParser = jest.fn(() => mockDOMParser);
-
         convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
 
-        expect(mockDoc.querySelectorAll).toHaveBeenCalledWith('img');
-        expect(mockInstance.turndown).toHaveBeenCalledWith('<p>Content without images</p>');
+        // Expect remove called for script/style and img
+        expect(mockInstance.remove).toHaveBeenCalledWith('script');
+        expect(mockInstance.remove).toHaveBeenCalledWith('style');
+        expect(mockInstance.remove).toHaveBeenCalledWith('img');
+        // High precedence stripping rule should be added
+        expect(mockInstance.addRule).toHaveBeenCalledWith(
+            '__stripImages',
+            expect.objectContaining({ replacement: expect.any(Function) })
+        );
+        expect(mockInstance.turndown).toHaveBeenCalledWith('<p>Test <img src="test.jpg"> content</p>');
     });
 
     // Integration tests based on actual Joplin turndown behavior

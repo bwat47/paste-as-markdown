@@ -3,50 +3,47 @@ import { gfm } from '@joplin/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { applyCustomRules } from './turndownRules';
 
-let singletonService: TurndownService | null = null;
-let currentIncludeImages: boolean | null = null;
+let singletonService: { includeImages: boolean; instance: TurndownService } | null = null;
 
-function createTurndownServiceSync(): TurndownService {
-    const service = new TurndownService(TURNDOWN_OPTIONS);
+function createTurndownServiceSync(includeImages: boolean): TurndownService {
+    // Clone base options so we can tweak image preservation based on setting.
+    // When images are excluded we disable preserveImageTagsWithSize so that sized
+    // <img> elements are not force-kept as raw HTML before removal.
+    const dynamicOptions = includeImages ? TURNDOWN_OPTIONS : { ...TURNDOWN_OPTIONS, preserveImageTagsWithSize: false };
+    const service = new TurndownService(dynamicOptions as typeof TURNDOWN_OPTIONS);
     service.use(gfm);
+    // Remove unwanted element types entirely.
+    service.remove('script');
+    service.remove('style');
+    if (!includeImages) {
+        // service.remove('img') is not sufficient because the built-in image rule matches first.
+        // Add a high-precedence rule that nukes images (including <picture>/<source>) before default rules run.
+        service.addRule('__stripImages', {
+            filter: (node: HTMLElement) => {
+                const name = node.nodeName.toLowerCase();
+                if (name === 'img') return true;
+                // Remove whole <picture> trees by filtering picture & its source children.
+                if (name === 'picture' || name === 'source') return true;
+                return false;
+            },
+            replacement: () => '',
+        });
+        service.remove('img'); // still keep for completeness (handles any late additions)
+    }
     applyCustomRules(service);
     return service;
 }
 
 function getService(includeImages: boolean): TurndownService {
-    // Recreate service if includeImages setting changed
-    if (!singletonService || currentIncludeImages !== includeImages) {
-        singletonService = createTurndownServiceSync();
-        currentIncludeImages = includeImages;
+    if (!singletonService || singletonService.includeImages !== includeImages) {
+        singletonService = { includeImages, instance: createTurndownServiceSync(includeImages) };
     }
-    return singletonService;
+    return singletonService.instance;
 }
 
 export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
-    let input = html;
-
-    // Fix orphaned table fragments (common with Excel clipboard data)
-    input = wrapOrphanedTableElements(input);
-
-    try {
-        // Use DOMParser if available, as it's more robust for manipulating HTML.
-        // This allows us to cleanly remove elements like <style>, <script>, and <img>.
-        const ParserCtor = (globalThis as unknown as { DOMParser?: { new (): DOMParser } }).DOMParser;
-        if (ParserCtor) {
-            const parser = new ParserCtor();
-            const doc = parser.parseFromString(input, 'text/html');
-            // Remove style & script blocks explicitly
-            doc.querySelectorAll('style,script').forEach((el) => el.remove());
-            if (!includeImages) doc.querySelectorAll('img').forEach((img) => img.remove());
-            input = doc.body.innerHTML;
-        } else if (!includeImages) {
-            // Fallback for environments without DOMParser: simple regex to remove images.
-            input = input.replace(/<img[^>]*>/gi, '');
-        }
-    } catch {
-        // If DOMParser fails for any reason, fall back to regex for image removal.
-        if (!includeImages) input = input.replace(/<img[^>]*>/gi, '');
-    }
+    // Wrap orphaned table fragments first; no other preprocessing needed.
+    const input = wrapOrphanedTableElements(html);
     return getService(includeImages).turndown(input);
 }
 
