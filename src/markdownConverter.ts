@@ -84,11 +84,26 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
     // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
     // leading blank lines while leaving internal spacing intact.
     markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
-    // Replace sequences of <br/> lines that Turndown sometimes leaves behind (e.g. span+<br><br>)
-    // with a proper blank line separation. Pattern: a newline followed by one or more <br/> tags
-    // (possibly with whitespace) optionally followed by another newline => becomes two newlines.
-    // This avoids literal '<br/>' artifacts in final markdown.
-    markdown = markdown.replace(/\n(?:<br\s*\/?>(?:\s*)?)+\n?/g, '\n\n');
+    // Convert stray <br> artifacts:
+    // 1. Runs of 2+ <br> become a paragraph break (blank line) -> \n\n
+    // 2. Single <br> becomes a Markdown hard line break (two spaces + newline) -> '  \n'
+    // Order matters: handle multi-breaks first so we don't downgrade them.
+    // Normalize <br> handling with a placeholder approach to robustly distinguish singles vs runs:
+    // 1. Replace all <br> variants with a token
+    // 2. Runs of 2+ tokens -> paragraph break (blank line)
+    // 3. Single token -> hard line break (two spaces + newline)
+    if (/<br\s*\/?/i.test(markdown)) {
+        // Collapse any run of one or more <br> tags (optionally with whitespace) into either:
+        // single -> hard line break (two spaces + newline), multi (>=2) -> paragraph break (blank line).
+        markdown = markdown.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (run) => {
+            const count = (run.match(/<br/i) || []).length;
+            return count === 1 ? '  \n' : '\n\n';
+        });
+    }
+    // Remove lines that are only whitespace (they appear as artefacts after span/div based email HTML)
+    markdown = markdown.replace(/^\s+$/gm, '');
+    // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines).
+    markdown = markdown.replace(/\n{3,}/g, '\n\n');
     return markdown;
 }
 

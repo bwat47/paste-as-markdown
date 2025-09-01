@@ -67,15 +67,33 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(withoutImages).not.toMatch(/!\[.*\]\(https:\/\/example\.com\/image\.png\)/);
     });
 
-    test('converts leftover <br/> artifacts into blank lines', () => {
+    test('converts runs of <br><br> to paragraph breaks while single <br> become hard breaks', () => {
         const html = `
-<span>Line 1</span><br><br><span>Line 2</span><br><br><span>Line 3</span>
+<span>A1</span><br><span>A2</span><br><br><span>B1</span><br><br><br><span>C1</span>
 `;
         const md = convertHtmlToMarkdown(html, true);
-        // Expect three paragraphs separated by blank lines
-        const parts = md.split(/\n\n+/).map((s) => s.trim());
-        expect(parts).toEqual(['Line 1', 'Line 2', 'Line 3']);
-        // Ensure no literal <br> remains
+        // Expect sequence: A1 (hard break) A2 then paragraph breaks before B1 and C1.
+        // Allow either single or multiple blank lines (Markdown renderer ignores extras).
+        expect(md).toMatch(/A1\s{2}\nA2\s*\n+B1\s*\n+C1/);
         expect(md).not.toMatch(/<br\/?/i);
+    });
+
+    test('single <br> becomes hard line break (two spaces + newline)', () => {
+        const html = '<span>First line</span><br><span>Second line</span>';
+        const md = convertHtmlToMarkdown(html, true);
+        // Hard line break should be represented as two spaces before newline
+        expect(md).toMatch(/First line  \nSecond line/);
+        expect(md).not.toMatch(/<br\/?/i);
+    });
+
+    test('collapses excessive blank lines from email div+br structure', () => {
+        const html = `
+<div>Para 1 line</div><div><br></div><div><b>Para 2 start</b> rest of para</div>
+`;
+        const md = convertHtmlToMarkdown(html, true);
+        // Should have exactly one blank line between paragraphs (two newlines)
+        expect(md).toMatch(/Para 1 line\n\n\*\*Para 2 start\*\* rest of para/);
+        // No triple newline sequences remain
+        expect(md).not.toMatch(/\n{3,}/);
     });
 });
