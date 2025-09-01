@@ -110,4 +110,15 @@ describe('integration: convertHtmlToMarkdown', () => {
         // Turndown converts <br> to a real newline inside code fences; ensure we have a fenced block with two lines, no double blank line inside.
         expect(md).toMatch(/```\nLine 1\nLine 2\n```/);
     });
+
+    test('preserves <br> inside markdown table cells', () => {
+        const html =
+            '<table><thead><tr><th>Col1</th><th>Col2</th></tr></thead><tbody><tr><td>A<br>B</td><td>C</td></tr></tbody></table>';
+        const md = convertHtmlToMarkdown(html, true);
+        // Expect a markdown table where the A<br>B remains inside the cell (not converted to hard/paragraph breaks)
+        // Implementation may keep literal <br> or convert to newline depending on turndown; ensure no paragraph break inserted.
+        // Accept either literal <br> or single hard break representation (two spaces + newline) within the same cell line.
+        // Accept A <br>B with optional spaces before <br>
+        expect(md).toMatch(/\|\s*Col1\s*\|\s*Col2\s*\|[\s\S]*\|\s*A\s*<br>B\s*\|/);
+    });
 });

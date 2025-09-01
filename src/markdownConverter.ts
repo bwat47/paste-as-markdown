@@ -118,17 +118,44 @@ function cleanupBrTagsProtected(markdown: string): string {
         // Odd indices (because of capturing group) represent fenced code blocks; leave untouched.
         if (blockIndex % 2 === 1 || block.startsWith('```')) return block;
 
-        // 2. Further split non-code regions on inline code (`code`) spans.
-        const inlineSplit = block.split(/(`[^`\n]+`)/);
-        const processedInline = inlineSplit.map((segment, segIndex) => {
-            if (segIndex % 2 === 1 || segment.startsWith('`')) return segment; // inline code
-            // Process <br> runs in normal text segments.
-            return segment.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (run) => {
-                const count = (run.match(/<br/i) || []).length;
-                return count === 1 ? '  \n' : '\n\n';
-            });
-        });
-        return processedInline.join('');
+        // 2. Within this non-code block, protect markdown tables: do not modify <br> tags inside table rows.
+        const lines = block.split(/\n/);
+        const out: string[] = [];
+        let insideTable = false;
+        const isTableDelimiterLine = (line: string) =>
+            /^(?:\s*\|)?\s*:?[-]{2,}:?\s*(?:\|\s*:?[-]{2,}:?\s*)+\|?\s*$/.test(line);
+        const isPotentialHeader = (line: string) => /\|/.test(line) && !/^```/.test(line);
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (insideTable) {
+                // End table if line no longer looks like a table row.
+                if (!/\|/.test(line) || line.trim() === '') {
+                    insideTable = false; // fall through to normal processing for this line
+                } else {
+                    out.push(line); // keep table row verbatim
+                    continue;
+                }
+            }
+            if (!insideTable && isPotentialHeader(line) && i + 1 < lines.length && isTableDelimiterLine(lines[i + 1])) {
+                insideTable = true;
+                out.push(line); // header line
+                continue;
+            }
+            // Normal (non-table) line: we still must protect inline code spans.
+            const processed = line
+                .split(/(`[^`\n]+`)/)
+                .map((segment, segIndex) => {
+                    if (segIndex % 2 === 1 || segment.startsWith('`')) return segment; // inline code span
+                    return segment.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (run) => {
+                        const count = (run.match(/<br/i) || []).length;
+                        return count === 1 ? '  \n' : '\n\n';
+                    });
+                })
+                .join('');
+            out.push(processed);
+        }
+        return out.join('\n');
     });
 
     return processedFenced.join('');
