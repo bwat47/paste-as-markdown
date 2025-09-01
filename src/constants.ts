@@ -8,7 +8,7 @@ export const TURNDOWN_OPTIONS = {
     bulletListMarker: '-',
     emDelimiter: '*',
     strongDelimiter: '**',
-    br: '\n', // Convert <br> to newline instead of double space
+    br: '  ', //two spaces to ensure <br> converts correctly, see: https://github.com/laurent22/joplin/commit/ac66332a4eb83d8829fbd6cc68a11ef3053c41de
     linkStyle: 'inlined',
     preserveImageTagsWithSize: true, // Keep <img> tags with width/height as HTML instead of converting to markdown
     preserveNestedTables: true,
