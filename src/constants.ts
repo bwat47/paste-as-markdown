@@ -11,6 +11,7 @@ export const TURNDOWN_OPTIONS = {
     br: '\n', // Convert <br> to newline instead of double space
     linkStyle: 'inlined',
     preserveImageTagsWithSize: true, // Keep <img> tags with width/height as HTML instead of converting to markdown
+    preserveNestedTables: true,
 } as const;
 
 export const SETTINGS = {
