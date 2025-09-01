@@ -124,15 +124,15 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('removes standalone &nbsp; placeholder paragraph from Outlook HTML', () => {
         const html = `<!--StartFragment-->
-<p class=MsoNormal><span style='font-size:11.0pt;color:black'>Hi Josiah,<o:p></o:p></span></p>
+<p class=MsoNormal><span style='font-size:11.0pt;color:black'>Test paragraph 1,<o:p></o:p></span></p>
 <p class=MsoNormal><span style='font-size:11.0pt;color:black'><o:p>&nbsp;</o:p></span></p>
-<p class=MsoNormal><span style='font-size:11.0pt;color:black'>I'm talking about the CustomReportsENG.xml file, not the .xsd file.<o:p></o:p></span></p>
+<p class=MsoNormal><span style='font-size:11.0pt;color:black'>Test paragraph 2<o:p></o:p></span></p>
 <!--EndFragment-->`;
         const md = convertHtmlToMarkdown(html, true).trim();
         // Should not contain a line that's just &nbsp;
         expect(md).not.toMatch(/^&nbsp;$/m);
         // Should have a blank line separating paragraphs
-        expect(md).toMatch(/Hi Josiah,\n\nI'm talking about the CustomReportsENG\.xml file/);
+        expect(md).toMatch(/Test paragraph 1,\n\nTest paragraph 2/);
     });
 
     test('does not strip NBSP inside inline code', () => {
