@@ -50,4 +50,20 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toMatch(/\[Example\]\(https:\/\/example\.org\/path\?q=1\)/);
         expect(md).not.toMatch(/x\.png/);
     });
+    test('removes image-only anchor wrappers when images are excluded', () => {
+        const html = `
+<div>
+    <a href="https://example.com/image.png">
+        <img src="https://example.com/image.png" alt="Hero" />
+    </a>
+</div>
+`;
+        const withImages = convertHtmlToMarkdown(html, true);
+        expect(withImages).toMatch(
+            /\[!\[.*\]\(https:\/\/example\.com\/image\.png\)\]\(https:\/\/example\.com\/image\.png\)/
+        );
+        const withoutImages = convertHtmlToMarkdown(html, false);
+        expect(withoutImages).not.toMatch(/\[\]\(https:\/\/example\.com\/image\.png\)/);
+        expect(withoutImages).not.toMatch(/!\[.*\]\(https:\/\/example\.com\/image\.png\)/);
+    });
 });
