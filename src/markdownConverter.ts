@@ -93,8 +93,17 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
     // 2. Runs of 2+ tokens -> paragraph break (blank line)
     // 3. Single token -> hard line break (two spaces + newline)
     markdown = cleanupBrTagsProtected(markdown);
-    // Remove lines that are only whitespace (they appear as artefacts after span/div based email HTML)
-    markdown = markdown.replace(/^\s+$/gm, '');
+    markdown = protectAndRemoveNbspOnlyLines(markdown);
+    // Remove lines that are only whitespace (artefacts after span/div based email HTML) but skip inside fenced code blocks.
+    {
+        const fences: string[] = [];
+        markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
+            const i = fences.push(m) - 1;
+            return `__FENCE_PLACEHOLDER_${i}__`;
+        });
+        markdown = markdown.replace(/^\s+$/gm, '');
+        markdown = markdown.replace(/__FENCE_PLACEHOLDER_(\d+)__/g, (_, d) => fences[Number(d)]);
+    }
     // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines).
     markdown = markdown.replace(/\n{3,}/g, '\n\n');
     return markdown;
@@ -159,6 +168,30 @@ function cleanupBrTagsProtected(markdown: string): string {
     });
 
     return processedFenced.join('');
+}
+
+/**
+ * Removes standalone NBSP-only lines produced by rich email clients (e.g. Outlook placeholder
+ * paragraphs like <p><o:p>&nbsp;</o:p></p>) while preserving code:
+ *  - Fenced code blocks (temporarily extracted and restored unchanged)
+ *  - Inline code spans (any line containing backticks is left untouched)
+ *
+ * NBSP patterns removed when they are the only content on a line: &nbsp; | &#160; | \u00A0
+ */
+function protectAndRemoveNbspOnlyLines(markdown: string): string {
+    if (!/(?:&nbsp;|&#160;|\u00A0)/.test(markdown)) return markdown;
+    const fences: string[] = [];
+    markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
+        const idx = fences.push(m) - 1;
+        return `__CODE_FENCE_${idx}__`;
+    });
+    const lines = markdown.split(/\n/).filter((line) => {
+        if (line.includes('`')) return true; // don't touch lines with inline code
+        return !/^(?:\s*(?:&nbsp;|&#160;|\u00A0)\s*)+$/.test(line);
+    });
+    markdown = lines.join('\n');
+    markdown = markdown.replace(/__CODE_FENCE_(\d+)__/g, (_, d) => fences[Number(d)]);
+    return markdown;
 }
 
 /**

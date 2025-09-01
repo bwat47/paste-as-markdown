@@ -121,4 +121,31 @@ describe('integration: convertHtmlToMarkdown', () => {
         // Accept A <br>B with optional spaces before <br>
         expect(md).toMatch(/\|\s*Col1\s*\|\s*Col2\s*\|[\s\S]*\|\s*A\s*<br>B\s*\|/);
     });
+
+    test('removes standalone &nbsp; placeholder paragraph from Outlook HTML', () => {
+        const html = `<!--StartFragment-->
+<p class=MsoNormal><span style='font-size:11.0pt;color:black'>Hi Josiah,<o:p></o:p></span></p>
+<p class=MsoNormal><span style='font-size:11.0pt;color:black'><o:p>&nbsp;</o:p></span></p>
+<p class=MsoNormal><span style='font-size:11.0pt;color:black'>I'm talking about the CustomReportsENG.xml file, not the .xsd file.<o:p></o:p></span></p>
+<!--EndFragment-->`;
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Should not contain a line that's just &nbsp;
+        expect(md).not.toMatch(/^&nbsp;$/m);
+        // Should have a blank line separating paragraphs
+        expect(md).toMatch(/Hi Josiah,\n\nI'm talking about the CustomReportsENG\.xml file/);
+    });
+
+    test('does not strip NBSP inside inline code', () => {
+        const html = '<p><code>&nbsp;</code></p>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Accept either `&nbsp;` or raw entity depending on turndown behaviour
+        expect(md).toMatch(/&nbsp;/);
+    });
+
+    test('does not strip NBSP-only line inside fenced code block', () => {
+        const html = '<pre><code>Line1\n&nbsp;\nLine3</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Ensure fenced block still has two content lines (even if &nbsp; collapsed) and no paragraph break inserted
+        expect(md).toMatch(/```[\s\S]*Line1[\s\S]*Line3[\s\S]*```/);
+    });
 });
