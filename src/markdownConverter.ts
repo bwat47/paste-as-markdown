@@ -14,6 +14,38 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     service.remove('script');
     service.remove('style');
     if (!includeImages) {
+        // Remove links that only wrapped images (and now would become empty []() links).
+        try {
+            interface MinimalRule {
+                filter?: (node: HTMLElement) => boolean;
+                replacement?: (content: string, node: HTMLElement) => string;
+            }
+            const internal = service as unknown as { rules?: { array?: MinimalRule[] } };
+            const rulesArray = internal.rules?.array;
+            if (Array.isArray(rulesArray)) {
+                rulesArray.unshift({
+                    filter: function (node: HTMLElement) {
+                        if (node.nodeName !== 'A') return false;
+                        // If all element children are image-related and all text nodes are whitespace, remove.
+                        let sawElement = false;
+                        for (const child of Array.from(node.childNodes)) {
+                            if (child.nodeType === 1) {
+                                sawElement = true;
+                                const name = (child as HTMLElement).nodeName;
+                                if (name !== 'IMG' && name !== 'PICTURE' && name !== 'SOURCE') return false;
+                            } else if (child.nodeType === 3) {
+                                if ((child.textContent || '').trim() !== '') return false;
+                            }
+                        }
+                        // Only treat as removable if it actually had an image element child at some point.
+                        return sawElement;
+                    },
+                    replacement: () => '',
+                });
+            }
+        } catch {
+            // Non-fatal; if we can't inject rule we fall back to possible empty []() artifact.
+        }
         // service.remove('img') is not sufficient because the built-in image rule matches first.
         // Add a high-precedence rule that nukes images (including <picture>/<source>) before default rules run.
         service.addRule('__stripImages', {
