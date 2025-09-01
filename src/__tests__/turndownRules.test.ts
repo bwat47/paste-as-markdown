@@ -80,6 +80,55 @@ describe('turndownRules', () => {
             expect(replacement('Some Heading', headingLink)).toBe('Some Heading');
         });
 
+        test('cleanHeadingAnchors additional scenarios', () => {
+            applyCustomRules(mockService as unknown as import('@joplin/turndown').default);
+            const ruleCall = mockService.addRule.mock.calls.find((call) => call[0] === 'cleanHeadingAnchors');
+            expect(ruleCall).toBeDefined();
+            const { filter, replacement } = ruleCall[1] as {
+                filter: (node: unknown) => boolean | undefined;
+                replacement: (content: string, node: unknown) => string;
+            };
+
+            interface TestNode {
+                nodeName: string;
+                getAttribute: (k: string) => string | null;
+                textContent: string;
+                parentElement: { nodeName: string } | null;
+            }
+            const mkNode = (
+                nodeName: string,
+                attrs: Record<string, string | null>,
+                text: string,
+                parent: { nodeName: string } | null
+            ): TestNode => ({
+                nodeName,
+                getAttribute: (k: string) => attrs[k] ?? null,
+                textContent: text,
+                parentElement: parent,
+            });
+
+            const heading = { nodeName: 'H3' };
+            // Inline partial link inside heading
+            const inlineLink = mkNode('A', { href: '/ref' }, 'ref', heading);
+            expect(filter(inlineLink)).toBe(true);
+            expect(replacement('ref', inlineLink)).toBe('ref');
+
+            // Anchor with class anchor and text (not empty permalink) inside heading => unwrap
+            const textAnchor = mkNode('A', { class: 'anchor', href: '#section' }, 'Section', heading);
+            expect(filter(textAnchor)).toBe(true);
+            expect(replacement('Section', textAnchor)).toBe('Section');
+
+            // Non-heading link should not match
+            const para = { nodeName: 'P' };
+            const normalLink = mkNode('A', { href: 'https://example.com' }, 'Example', para);
+            expect(filter(normalLink)).toBe(false);
+
+            // Empty permalink anchor inside heading still removed
+            const emptyPermalink = mkNode('A', { class: 'anchor', href: '#abc' }, '', heading);
+            expect(filter(emptyPermalink)).toBe(true);
+            expect(replacement('', emptyPermalink)).toBe('');
+        });
+
         test('handles service without proper rules structure gracefully', () => {
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
             const serviceWithoutRules = {
@@ -127,6 +176,32 @@ describe('turndownRules', () => {
                 '[paste-as-markdown]',
                 'Applied insert rule fix for anchor elements'
             );
+            consoleSpy.mockRestore();
+        });
+
+        test('insert rule patch is idempotent', () => {
+            const consoleSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+            const mockInsertRule = { filter: jest.fn(), replacement: jest.fn() };
+            Object.defineProperty(mockInsertRule.filter, 'toString', {
+                value: () => 'function(node){ return getStyleProp(node, "text-decoration") === "underline"; }',
+            });
+            const serviceWithRules = {
+                addRule: jest.fn(),
+                rules: { array: [mockInsertRule] },
+            } as unknown as import('@joplin/turndown').default;
+            applyCustomRules(serviceWithRules);
+            applyCustomRules(serviceWithRules);
+            // Only one debug log
+            expect(
+                consoleSpy.mock.calls.filter((c) => c[1] === 'Applied insert rule fix for anchor elements').length
+            ).toBe(1);
+            // Filter patched flag present (accessing internal rules via cast)
+            type RuleFn = (node: unknown, options?: unknown) => boolean;
+            const internal = serviceWithRules as unknown as {
+                rules: { array: Array<{ filter: RuleFn & { _anchorPatched?: boolean } }> };
+            };
+            const patched = internal.rules.array[0].filter as { _anchorPatched?: boolean };
+            expect(patched._anchorPatched).toBe(true);
             consoleSpy.mockRestore();
         });
     });

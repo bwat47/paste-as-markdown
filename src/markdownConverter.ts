@@ -55,8 +55,10 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
 /**
  * Wraps orphaned table elements (col, tr, td, etc.) in a proper table structure.
  * This fixes Excel clipboard data that often contains table fragments without the <table> wrapper.
+ *
+ * @internal Exposed for unit testing.
  */
-function wrapOrphanedTableElements(html: string): string {
+export function wrapOrphanedTableElements(html: string): string {
     const trimmed = html.trim();
 
     // Check if we have table-related elements but no table wrapper
