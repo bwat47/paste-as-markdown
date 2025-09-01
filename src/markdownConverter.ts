@@ -44,7 +44,12 @@ function getService(includeImages: boolean): TurndownService {
 export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
     // Wrap orphaned table fragments first; no other preprocessing needed.
     const input = wrapOrphanedTableElements(html);
-    return getService(includeImages).turndown(input);
+    let markdown = getService(includeImages).turndown(input);
+    // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>). For
+    // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
+    // leading blank lines while leaving internal spacing intact.
+    markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
+    return markdown;
 }
 
 /**
