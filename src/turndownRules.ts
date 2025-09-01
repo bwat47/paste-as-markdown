@@ -21,6 +21,8 @@ export function __resetInsertRuleLogGuards() {
  * styling. @joplin/turndown's built-in insert rule matches these before the link rule can process
  * them, resulting in empty <ins></ins> tags in the markdown output.
  *
+ * See: https://github.com/laurent22/joplin/issues/13107
+ *
  * SOLUTION: Patch the existing insert rule to exclude anchor elements, allowing the
  * link rule to handle them properly.
  *
