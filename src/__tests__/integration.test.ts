@@ -66,4 +66,16 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(withoutImages).not.toMatch(/\[\]\(https:\/\/example\.com\/image\.png\)/);
         expect(withoutImages).not.toMatch(/!\[.*\]\(https:\/\/example\.com\/image\.png\)/);
     });
+
+    test('converts leftover <br/> artifacts into blank lines', () => {
+        const html = `
+<span>Line 1</span><br><br><span>Line 2</span><br><br><span>Line 3</span>
+`;
+        const md = convertHtmlToMarkdown(html, true);
+        // Expect three paragraphs separated by blank lines
+        const parts = md.split(/\n\n+/).map((s) => s.trim());
+        expect(parts).toEqual(['Line 1', 'Line 2', 'Line 3']);
+        // Ensure no literal <br> remains
+        expect(md).not.toMatch(/<br\/?/i);
+    });
 });

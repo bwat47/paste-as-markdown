@@ -84,6 +84,11 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
     // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
     // leading blank lines while leaving internal spacing intact.
     markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
+    // Replace sequences of <br/> lines that Turndown sometimes leaves behind (e.g. span+<br><br>)
+    // with a proper blank line separation. Pattern: a newline followed by one or more <br/> tags
+    // (possibly with whitespace) optionally followed by another newline => becomes two newlines.
+    // This avoids literal '<br/>' artifacts in final markdown.
+    markdown = markdown.replace(/\n(?:<br\s*\/?>(?:\s*)?)+\n?/g, '\n\n');
     return markdown;
 }
 
