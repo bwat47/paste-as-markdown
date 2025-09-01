@@ -18,45 +18,66 @@ describe('turndownRules', () => {
     });
 
     describe('applyCustomRules', () => {
-        test('adds removePermalinkAnchors rule', () => {
+        test('adds cleanHeadingAnchors rule', () => {
             applyCustomRules(mockService as unknown as import('@joplin/turndown').default);
 
-            expect(mockService.addRule).toHaveBeenCalledWith('removePermalinkAnchors', {
+            expect(mockService.addRule).toHaveBeenCalledWith('cleanHeadingAnchors', {
                 filter: expect.any(Function),
                 replacement: expect.any(Function),
             });
         });
 
-        test('removePermalinkAnchors rule correctly identifies permalink anchors', () => {
+        test('cleanHeadingAnchors rule handles permalink anchors and heading links', () => {
             applyCustomRules(mockService as unknown as import('@joplin/turndown').default);
 
-            const ruleCall = mockService.addRule.mock.calls.find((call) => call[0] === 'removePermalinkAnchors');
+            const ruleCall = mockService.addRule.mock.calls.find((call) => call[0] === 'cleanHeadingAnchors');
             expect(ruleCall).toBeDefined();
 
             const { filter, replacement } = ruleCall[1] as {
                 filter: (node: unknown) => boolean | undefined;
-                replacement: () => string;
+                replacement: (content: string, node: unknown) => string;
             };
 
-            const mkNode = (attrs: Record<string, string | null>, text: string) => ({
+            interface TestNode {
+                nodeName: string;
+                getAttribute: (k: string) => string | null;
+                textContent: string;
+                children: unknown[];
+                parentElement: { nodeName: string } | null;
+            }
+            const mkNode = (attrs: Record<string, string | null>, text: string): TestNode => ({
                 nodeName: 'A',
                 getAttribute: (k: string) => attrs[k] ?? null,
                 textContent: text,
                 children: [],
+                parentElement: null,
             });
 
             const permalinkAnchor = mkNode({ class: 'anchor', href: '#heading' }, '');
             const userContentAnchor = mkNode({ class: 'anchor', id: 'user-content-heading' }, '');
             const anchorWithText = mkNode({ class: 'anchor', href: '#heading' }, 'Title');
             const nonPermalinkAnchor = mkNode({ class: 'anchor', href: 'https://example.com' }, '');
-            const nonAnchor = { nodeName: 'DIV', getAttribute: () => null, textContent: '', children: [] };
+            const nonAnchor: TestNode = {
+                nodeName: 'DIV',
+                getAttribute: () => null,
+                textContent: '',
+                children: [],
+                parentElement: null,
+            };
+
+            // Heading wrapper link
+            const heading: { nodeName: string } = { nodeName: 'H2' };
+            const headingLink = mkNode({ href: 'https://example.com' }, 'Some Heading');
+            headingLink.parentElement = heading;
 
             expect(filter(permalinkAnchor)).toBe(true);
             expect(filter(userContentAnchor)).toBe(true);
             expect(filter(anchorWithText)).toBe(false);
             expect(filter(nonPermalinkAnchor)).toBe(false);
             expect(filter(nonAnchor)).toBe(false);
-            expect(replacement()).toBe('');
+            expect(filter(headingLink)).toBe(true); // unwrap case
+            expect(replacement('', permalinkAnchor)).toBe('');
+            expect(replacement('Some Heading', headingLink)).toBe('Some Heading');
         });
 
         test('handles service without proper rules structure gracefully', () => {
@@ -65,7 +86,7 @@ describe('turndownRules', () => {
                 addRule: jest.fn(),
             } as unknown as import('@joplin/turndown').default;
             expect(() => applyCustomRules(serviceWithoutRules)).not.toThrow();
-            expect(serviceWithoutRules.addRule).toHaveBeenCalledWith('removePermalinkAnchors', expect.any(Object));
+            expect(serviceWithoutRules.addRule).toHaveBeenCalledWith('cleanHeadingAnchors', expect.any(Object));
             expect(consoleSpy).toHaveBeenCalledWith(
                 '[paste-as-markdown]',
                 'Could not access Turndown rules for insert filter fix'

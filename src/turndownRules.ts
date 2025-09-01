@@ -7,22 +7,40 @@ const ENABLE_INSERT_FIX = true;
  * Apply custom rule adjustments to fix specific conversion issues
  */
 export function applyCustomRules(service: TurndownService): void {
-    // Remove permalink anchors (GitHub-style <a class="anchor" href="#...">)
-    service.addRule('removePermalinkAnchors', {
+    // Consolidated rule:
+    // 1. Remove empty permalink anchors (GitHub-style <a class="anchor" href="#..."></a>)
+    // 2. Unwrap (keep text of) links that appear inside headings (so heading text isn't a link)
+    service.addRule('cleanHeadingAnchors', {
         filter: function (node: HTMLElement) {
             if (node.nodeName !== 'A') return false;
+            const parent = node.parentElement;
             const cls = node.getAttribute('class') || '';
             const hasAnchorClass = cls.split(/\s+/).includes('anchor');
-            if (!hasAnchorClass) return false;
-            const href = node.getAttribute('href') || '';
-            const id = node.getAttribute('id') || '';
-            const looksLikePermalink = (href.startsWith('#') && href.length > 1) || id.startsWith('user-content-');
-            if (!looksLikePermalink) return false;
+            const href = (node.getAttribute('href') || '').trim();
+            const id = (node.getAttribute('id') || '').trim();
             const text = (node.textContent || '').trim();
-            if (text.length > 0) return false; // Has visible text; keep it
-            return true;
+            const isPermalink =
+                hasAnchorClass &&
+                ((href.startsWith('#') && href.length > 1) || id.startsWith('user-content-')) &&
+                text.length === 0;
+            if (isPermalink) return true; // remove entirely
+            const insideHeading = !!parent && /^H[1-6]$/.test(parent.nodeName);
+            if (insideHeading) return true; // unwrap
+            return false;
         },
-        replacement: () => '',
+        replacement: function (content: string, node: HTMLElement) {
+            // Re-run minimal permalink check to decide between removal vs unwrap
+            const cls = node.getAttribute('class') || '';
+            const hasAnchorClass = cls.split(/\s+/).includes('anchor');
+            const href = (node.getAttribute('href') || '').trim();
+            const id = (node.getAttribute('id') || '').trim();
+            const text = (node.textContent || '').trim();
+            const isPermalink =
+                hasAnchorClass &&
+                ((href.startsWith('#') && href.length > 1) || id.startsWith('user-content-')) &&
+                text.length === 0;
+            return isPermalink ? '' : content;
+        },
     });
 
     // Fix for anchor tags with text-decoration: underline being converted to <ins> instead of links
