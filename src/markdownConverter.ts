@@ -14,7 +14,16 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     service.remove('script');
     service.remove('style');
     if (!includeImages) {
-        // Remove links that only wrapped images (and now would become empty []() links).
+        // HACK: Inject high-priority rule to remove image-only links before they become empty []() markdown.
+        //
+        // PROBLEM: When images are disabled, <a href="..."><img src="..."></a> becomes [](...)
+        // because Joplin's built-in link rule processes the <a> before we can remove image-only links.
+        //
+        // SOLUTION: Inject our rule at the BEGINNING of the rules array so it runs first.
+        // This prevents the built-in link rule from creating empty markdown links.
+        //
+        // NOTE: This accesses Turndown's internal rules array structure. If Joplin updates
+        // their Turndown version and this breaks, the fallback is harmless empty links.
         try {
             interface MinimalRule {
                 filter?: (node: HTMLElement) => boolean;
