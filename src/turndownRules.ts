@@ -4,6 +4,16 @@ import { LOG_PREFIX } from './constants';
 // Exported to allow external toggling (e.g., tests or future settings-driven behavior)
 export const ENABLE_INSERT_FIX = true;
 
+// One-time log guards to avoid console spam when patch conditions repeat across multiple pastes/tests.
+let loggedInsertAccessWarn = false;
+let loggedInsertNotFoundDebug = false;
+
+// Test helper: reset log guards (not exported in build unless tests import directly)
+export function __resetInsertRuleLogGuards() {
+    loggedInsertAccessWarn = false;
+    loggedInsertNotFoundDebug = false;
+}
+
 /**
  * GitHub Anchor Insert Rule Fix
  *
@@ -92,7 +102,10 @@ function patchInsertRuleForAnchors(service: TurndownService): void {
     try {
         const insertRule = findInsertRule(service);
         if (!insertRule) {
-            console.debug(LOG_PREFIX, 'Insert rule not found, skipping patch');
+            if (!loggedInsertNotFoundDebug) {
+                console.debug(LOG_PREFIX, 'Insert rule not found, skipping patch');
+                loggedInsertNotFoundDebug = true;
+            }
             return;
         }
 
@@ -117,7 +130,10 @@ function findInsertRule(service: TurndownService): TurndownRule | null {
     const rules = serviceInternal.rules?.array;
 
     if (!rules || !Array.isArray(rules)) {
-        console.warn(LOG_PREFIX, 'Could not access Turndown rules for insert filter fix');
+        if (!loggedInsertAccessWarn) {
+            console.warn(LOG_PREFIX, 'Could not access Turndown rules for insert filter fix');
+            loggedInsertAccessWarn = true;
+        }
         return null;
     }
 

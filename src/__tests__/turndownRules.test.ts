@@ -129,7 +129,9 @@ describe('turndownRules', () => {
             expect(replacement('', emptyPermalink)).toBe('');
         });
 
-        test('handles service without proper rules structure gracefully', () => {
+        test('handles service without proper rules structure gracefully', async () => {
+            const { __resetInsertRuleLogGuards } = await import('../turndownRules');
+            __resetInsertRuleLogGuards();
             const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
             const serviceWithoutRules = {
                 addRule: jest.fn(),
@@ -140,6 +142,15 @@ describe('turndownRules', () => {
                 '[paste-as-markdown]',
                 'Could not access Turndown rules for insert filter fix'
             );
+            // Subsequent call should not re-log the warning
+            applyCustomRules(serviceWithoutRules);
+            expect(
+                consoleSpy.mock.calls.filter(
+                    (c) =>
+                        c[0] === '[paste-as-markdown]' &&
+                        c[1] === 'Could not access Turndown rules for insert filter fix'
+                ).length
+            ).toBe(1);
             consoleSpy.mockRestore();
         });
 
