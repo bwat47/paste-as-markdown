@@ -3,8 +3,6 @@ import { gfm } from '@joplin/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { applyCustomRules } from './turndownRules';
 
-let singletonService: { includeImages: boolean; instance: TurndownService } | null = null;
-
 function createTurndownServiceSync(includeImages: boolean): TurndownService {
     // Clone base options so we can tweak image preservation based on setting.
     // When images are excluded we disable preserveImageTagsWithSize so that sized
@@ -34,17 +32,13 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     return service;
 }
 
-function getService(includeImages: boolean): TurndownService {
-    if (!singletonService || singletonService.includeImages !== includeImages) {
-        singletonService = { includeImages, instance: createTurndownServiceSync(includeImages) };
-    }
-    return singletonService.instance;
-}
-
 export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
     // Wrap orphaned table fragments first; no other preprocessing needed.
     const input = wrapOrphanedTableElements(html);
-    let markdown = getService(includeImages).turndown(input);
+    // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
+    // and this guarantees option/rule changes always apply without stale caching.
+    const service = createTurndownServiceSync(includeImages);
+    let markdown = service.turndown(input);
     // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>). For
     // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
     // leading blank lines while leaving internal spacing intact.
