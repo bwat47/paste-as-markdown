@@ -96,4 +96,18 @@ describe('integration: convertHtmlToMarkdown', () => {
         // No triple newline sequences remain
         expect(md).not.toMatch(/\n{3,}/);
     });
+
+    test('preserves <br> literal inside inline code', () => {
+        const html = '<p>Example: <code>&lt;br&gt;</code> tag</p>';
+        const md = convertHtmlToMarkdown(html, true);
+        // The code span should still contain &lt;br&gt; (not converted to hard break or removed)
+        expect(md).toMatch(/`<br>` tag/);
+    });
+
+    test('does not treat <br> inside fenced code block as hard/paragraph break outside code', () => {
+        const html = '<pre><code>Line 1<br>Line 2</code></pre>';
+        const md = convertHtmlToMarkdown(html, true);
+        // Turndown converts <br> to a real newline inside code fences; ensure we have a fenced block with two lines, no double blank line inside.
+        expect(md).toMatch(/```\nLine 1\nLine 2\n```/);
+    });
 });

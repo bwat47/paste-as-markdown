@@ -92,19 +92,46 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
     // 1. Replace all <br> variants with a token
     // 2. Runs of 2+ tokens -> paragraph break (blank line)
     // 3. Single token -> hard line break (two spaces + newline)
-    if (/<br\s*\/?/i.test(markdown)) {
-        // Collapse any run of one or more <br> tags (optionally with whitespace) into either:
-        // single -> hard line break (two spaces + newline), multi (>=2) -> paragraph break (blank line).
-        markdown = markdown.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (run) => {
-            const count = (run.match(/<br/i) || []).length;
-            return count === 1 ? '  \n' : '\n\n';
-        });
-    }
+    markdown = cleanupBrTagsProtected(markdown);
     // Remove lines that are only whitespace (they appear as artefacts after span/div based email HTML)
     markdown = markdown.replace(/^\s+$/gm, '');
     // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines).
     markdown = markdown.replace(/\n{3,}/g, '\n\n');
     return markdown;
+}
+
+/**
+ * Replace <br> sequences outside of code spans and fenced code blocks while preserving
+ * literal <br> tags that appear inside code (where they are usually intentional HTML examples).
+ *
+ * Rules (applied only to non-code regions):
+ *  - Single <br> -> hard line break (two spaces + newline)
+ *  - Run of 2+ consecutive <br> (optionally separated by whitespace) -> paragraph break (blank line) '\n\n'
+ */
+function cleanupBrTagsProtected(markdown: string): string {
+    if (!/<br\s*\/?/i.test(markdown)) return markdown;
+
+    // 1. Split on fenced code blocks (``` ... ```). The capturing group keeps the delimiters.
+    const fencedSplit = markdown.split(/(```[\s\S]*?```)/);
+
+    const processedFenced = fencedSplit.map((block, blockIndex) => {
+        // Odd indices (because of capturing group) represent fenced code blocks; leave untouched.
+        if (blockIndex % 2 === 1 || block.startsWith('```')) return block;
+
+        // 2. Further split non-code regions on inline code (`code`) spans.
+        const inlineSplit = block.split(/(`[^`\n]+`)/);
+        const processedInline = inlineSplit.map((segment, segIndex) => {
+            if (segIndex % 2 === 1 || segment.startsWith('`')) return segment; // inline code
+            // Process <br> runs in normal text segments.
+            return segment.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (run) => {
+                const count = (run.match(/<br/i) || []).length;
+                return count === 1 ? '  \n' : '\n\n';
+            });
+        });
+        return processedInline.join('');
+    });
+
+    return processedFenced.join('');
 }
 
 /**
