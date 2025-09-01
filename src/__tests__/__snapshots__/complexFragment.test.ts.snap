@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`complex fragment snapshot email/table/image fragment (images on/off) 1`] = `
+{
+  "withImages": "**Report Summary**
+
+| Item | Count |
+| --- | --- |
+| Apples  <br>Green | 12  |
+| Oranges | 7   |
+
+[<img src="https://example.com/chart.png" alt="Chart" width="400" height="200">](https://example.com)
+
+Footer note with \`<br>\` example.",
+  "withoutImages": "**Report Summary**
+
+| Item | Count |
+| --- | --- |
+| Apples  <br>Green | 12  |
+| Oranges | 7   |
+
+Footer note with \`<br>\` example.",
+}
+`;
