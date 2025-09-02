@@ -1,7 +1,6 @@
 import TurndownService from '@joplin/turndown';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
-import { applyCustomRules } from './turndownRules';
 import { processHtml } from './htmlProcessor';
 import type { PasteOptions } from './types';
 
@@ -17,7 +16,6 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     service.remove('style');
 
     // Apply any remaining custom rules (most have been moved to DOM preprocessing)
-    applyCustomRules();
     return service;
 }
 
@@ -54,31 +52,15 @@ function cleanupMarkdown(markdown: string): string {
     // 2. Single <br> becomes a Markdown hard line break (two spaces + newline) -> '  \n'
     markdown = cleanupBrTagsProtected(markdown);
 
-    // Remove NBSP-only lines produced by rich email clients
-    markdown = protectAndRemoveNbspOnlyLines(markdown);
-
-    // Remove lines that are only whitespace (artifacts after span/div based email HTML) but skip inside fenced code blocks.
-    {
-        const fences: string[] = [];
-        markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
-            const i = fences.push(m) - 1;
-            return `__FENCE_PLACEHOLDER_${i}__`;
-        });
-        markdown = markdown.replace(/^\s+$/gm, '');
-        markdown = markdown.replace(/__FENCE_PLACEHOLDER_(\d+)__/g, (_, d) => fences[Number(d)]);
-    }
-
-    // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines),
-    // but do NOT alter spacing inside fenced code blocks where intentional vertical spacing may matter.
-    {
-        const fences: string[] = [];
-        markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
-            const idx = fences.push(m) - 1;
-            return `__NLC_FENCE_${idx}__`;
-        });
-        markdown = markdown.replace(/\n{3,}/g, '\n\n');
-        markdown = markdown.replace(/__NLC_FENCE_(\d+)__/g, (_, d) => fences[Number(d)]);
-    }
+    // Remove lines that are only whitespace (artifacts after span/div based email HTML) and
+    // collapse 3+ newlines to a single blank line while preserving fenced code blocks.
+    markdown = withFencedCodeProtection(markdown, (segment) => {
+        // remove whitespace-only lines
+        segment = segment.replace(/^\s+$/gm, '');
+        // collapse excessive vertical spacing
+        segment = segment.replace(/\n{3,}/g, '\n\n');
+        return segment;
+    });
 
     return markdown;
 }
@@ -152,20 +134,15 @@ function cleanupBrTagsProtected(markdown: string): string {
  *
  * NBSP patterns removed when they are the only content on a line: &nbsp; | &#160; | \u00A0
  */
-function protectAndRemoveNbspOnlyLines(markdown: string): string {
-    if (!/(?:&nbsp;|&#160;|\u00A0)/.test(markdown)) return markdown;
+// Utility to protect fenced code blocks while applying a transformation to non-code segments
+function withFencedCodeProtection(markdown: string, transform: (segment: string) => string): string {
     const fences: string[] = [];
-    markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
+    const protectedMd = markdown.replace(/```[\s\S]*?```/g, (m) => {
         const idx = fences.push(m) - 1;
-        return `__CODE_FENCE_${idx}__`;
+        return `__FENCE_BLOCK_${idx}__`;
     });
-    const lines = markdown.split(/\n/).filter((line) => {
-        if (line.includes('`')) return true; // don't touch lines with inline code
-        return !/^(?:\s*(?:&nbsp;|&#160;|\u00A0)\s*)+$/.test(line);
-    });
-    markdown = lines.join('\n');
-    markdown = markdown.replace(/__CODE_FENCE_(\d+)__/g, (_, d) => fences[Number(d)]);
-    return markdown;
+    const transformed = transform(protectedMd);
+    return transformed.replace(/__FENCE_BLOCK_(\d+)__/g, (_, d) => fences[Number(d)]);
 }
 
 /**

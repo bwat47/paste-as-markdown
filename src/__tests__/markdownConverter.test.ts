@@ -1,9 +1,6 @@
 import { describe, test, expect, jest } from '@jest/globals';
 
-// Mock the dependencies
-jest.mock('../turndownRules', () => ({
-    applyCustomRules: jest.fn(),
-}));
+// No custom turndown rules module after refactor
 
 jest.mock('@joplin/turndown', () => {
     const mockService = {
@@ -44,20 +41,7 @@ describe('markdownConverter', () => {
         expect(result).toBe('# Mock Output');
     });
 
-    test('applies custom turndown rules', () => {
-        // Clear the module cache and re-import to get fresh mock
-        jest.resetModules();
-        const mockApplyCustomRules = jest.fn();
-        jest.doMock('../turndownRules', () => ({
-            applyCustomRules: mockApplyCustomRules,
-        }));
-
-        // Re-import the module with fresh mocks
-        return import('../markdownConverter').then((module) => {
-            module.convertHtmlToMarkdown('<p>Test</p>');
-            expect(mockApplyCustomRules).toHaveBeenCalled();
-        });
-    });
+    // Removed test for custom turndown rules (module deleted)
 
     test('processes HTML through DOM preprocessing when includeImages is false', async () => {
         const { default: TurndownService } = await import('@joplin/turndown');
