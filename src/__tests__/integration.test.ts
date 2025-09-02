@@ -148,4 +148,21 @@ describe('integration: convertHtmlToMarkdown', () => {
         // Ensure fenced block still has two content lines (even if &nbsp; collapsed) and no paragraph break inserted
         expect(md).toMatch(/```[\s\S]*Line1[\s\S]*Line3[\s\S]*```/);
     });
+
+    test('newline collapsing skips inside fenced code blocks', () => {
+        const html = '<pre><code>Line1\n\n\nLine2\n\n\n\nLine3</code></pre><p>After</p><p>More</p>';
+        const md = convertHtmlToMarkdown(html, true);
+        // Inside fence keep 3+ newlines (at least one triple) intact
+        const fenceMatch = md.match(/```[\s\S]*```/);
+        expect(fenceMatch).toBeTruthy();
+        if (fenceMatch) {
+            // Expect original triple newline sequence still present
+            expect(fenceMatch[0]).toMatch(/Line1\n\n\nLine2/);
+        }
+        // Outside fence sequences collapsed to a single blank line between paragraphs
+        expect(md).toMatch(/Line3[\s\S]*After\n\nMore/);
+        // Ensure no 3+ newline runs remain outside fences
+        const outside = md.replace(/```[\s\S]*?```/g, '');
+        expect(outside).not.toMatch(/\n{3,}/);
+    });
 });

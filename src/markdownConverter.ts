@@ -104,8 +104,17 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
         markdown = markdown.replace(/^\s+$/gm, '');
         markdown = markdown.replace(/__FENCE_PLACEHOLDER_(\d+)__/g, (_, d) => fences[Number(d)]);
     }
-    // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines).
-    markdown = markdown.replace(/\n{3,}/g, '\n\n');
+    // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines),
+    // but do NOT alter spacing inside fenced code blocks where intentional vertical spacing may matter.
+    {
+        const fences: string[] = [];
+        markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
+            const idx = fences.push(m) - 1;
+            return `__NLC_FENCE_${idx}__`;
+        });
+        markdown = markdown.replace(/\n{3,}/g, '\n\n');
+        markdown = markdown.replace(/__NLC_FENCE_(\d+)__/g, (_, d) => fences[Number(d)]);
+    }
     return markdown;
 }
 
