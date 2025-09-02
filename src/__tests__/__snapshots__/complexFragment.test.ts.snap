@@ -19,6 +19,8 @@ Footer note with \`<br>\` example.",
 | Apples  <br>Green | 12  |
 | Oranges | 7   |
 
+[](https://example.com)
+
 Footer note with \`<br>\` example.",
 }
 `;

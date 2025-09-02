@@ -2,99 +2,58 @@ import TurndownService from '@joplin/turndown';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { applyCustomRules } from './turndownRules';
+import { processHtml } from './htmlProcessor';
+import type { PasteOptions } from './types';
 
 function createTurndownServiceSync(includeImages: boolean): TurndownService {
-    // Clone base options so we can tweak image preservation based on setting.
-    // When images are excluded we disable preserveImageTagsWithSize so that sized
-    // <img> elements are not force-kept as raw HTML before removal.
+    // Much simpler now that DOM pre-processing handles most cleanup.
+    // Images and unwanted elements are already removed by htmlProcessor.
     const dynamicOptions = includeImages ? TURNDOWN_OPTIONS : { ...TURNDOWN_OPTIONS, preserveImageTagsWithSize: false };
     const service = new TurndownService(dynamicOptions as typeof TURNDOWN_OPTIONS);
     service.use(gfm);
-    // Remove unwanted element types entirely.
-    service.remove('script');
-    service.remove('style');
-    if (!includeImages) {
-        // HACK: Inject high-priority rule to remove image-only links before they become empty []() markdown.
-        //
-        // PROBLEM: When images are disabled, <a href="..."><img src="..."></a> becomes [](...)
-        // because Joplin's built-in link rule processes the <a> before we can remove image-only links.
-        //
-        // SOLUTION: Inject our rule at the BEGINNING of the rules array so it runs first.
-        // This prevents the built-in link rule from creating empty markdown links.
-        //
-        // NOTE: This accesses Turndown's internal rules array structure. If Joplin updates
-        // their Turndown version and this breaks, the fallback is harmless empty links.
-        try {
-            interface MinimalRule {
-                filter?: (node: HTMLElement) => boolean;
-                replacement?: (content: string, node: HTMLElement) => string;
-            }
-            const internal = service as unknown as { rules?: { array?: MinimalRule[] } };
-            const rulesArray = internal.rules?.array;
-            if (Array.isArray(rulesArray)) {
-                rulesArray.unshift({
-                    filter: function (node: HTMLElement) {
-                        if (node.nodeName !== 'A') return false;
-                        // If all element children are image-related and all text nodes are whitespace, remove.
-                        let sawElement = false;
-                        for (const child of Array.from(node.childNodes)) {
-                            if (child.nodeType === 1) {
-                                sawElement = true;
-                                const name = (child as HTMLElement).nodeName;
-                                if (name !== 'IMG' && name !== 'PICTURE' && name !== 'SOURCE') return false;
-                            } else if (child.nodeType === 3) {
-                                if ((child.textContent || '').trim() !== '') return false;
-                            }
-                        }
-                        // Only treat as removable if it actually had an image element child at some point.
-                        return sawElement;
-                    },
-                    replacement: () => '',
-                });
-            }
-        } catch {
-            // Non-fatal; if we can't inject rule we fall back to possible empty []() artifact.
-        }
-        // service.remove('img') is not sufficient because the built-in image rule matches first.
-        // Add a high-precedence rule that nukes images (including <picture>/<source>) before default rules run.
-        service.addRule('__stripImages', {
-            filter: (node: HTMLElement) => {
-                const name = node.nodeName.toLowerCase();
-                if (name === 'img') return true;
-                // Remove whole <picture> trees by filtering picture & its source children.
-                if (name === 'picture' || name === 'source') return true;
-                return false;
-            },
-            replacement: () => '',
-        });
-        service.remove('img'); // still keep for completeness (handles any late additions)
-    }
+
+    // Apply any remaining custom rules (most have been moved to DOM preprocessing)
     applyCustomRules(service);
     return service;
 }
 
 export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
-    // Wrap orphaned table fragments first; no other preprocessing needed.
-    const input = wrapOrphanedTableElements(html);
+    // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
+    let input = wrapOrphanedTableElements(html);
+
+    // Apply DOM-based preprocessing to clean and sanitize the HTML
+    const options: PasteOptions = { includeImages };
+    input = processHtml(input, options);
+
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     // and this guarantees option/rule changes always apply without stale caching.
     const service = createTurndownServiceSync(includeImages);
     let markdown = service.turndown(input);
+
+    // Post-process the markdown for final cleanup
+    markdown = cleanupMarkdown(markdown);
+
+    return markdown;
+}
+
+/**
+ * Final markdown cleanup operations that can't be easily done during DOM preprocessing
+ */
+function cleanupMarkdown(markdown: string): string {
     // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>). For
     // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
     // leading blank lines while leaving internal spacing intact.
     markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
+
     // Convert stray <br> artifacts:
     // 1. Runs of 2+ <br> become a paragraph break (blank line) -> \n\n
     // 2. Single <br> becomes a Markdown hard line break (two spaces + newline) -> '  \n'
-    // Order matters: handle multi-breaks first so we don't downgrade them.
-    // Normalize <br> handling with a placeholder approach to robustly distinguish singles vs runs:
-    // 1. Replace all <br> variants with a token
-    // 2. Runs of 2+ tokens -> paragraph break (blank line)
-    // 3. Single token -> hard line break (two spaces + newline)
     markdown = cleanupBrTagsProtected(markdown);
+
+    // Remove NBSP-only lines produced by rich email clients
     markdown = protectAndRemoveNbspOnlyLines(markdown);
-    // Remove lines that are only whitespace (artefacts after span/div based email HTML) but skip inside fenced code blocks.
+
+    // Remove lines that are only whitespace (artifacts after span/div based email HTML) but skip inside fenced code blocks.
     {
         const fences: string[] = [];
         markdown = markdown.replace(/```[\s\S]*?```/g, (m) => {
@@ -104,6 +63,7 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
         markdown = markdown.replace(/^\s+$/gm, '');
         markdown = markdown.replace(/__FENCE_PLACEHOLDER_(\d+)__/g, (_, d) => fences[Number(d)]);
     }
+
     // Collapse any remaining sequences of 3+ newlines down to a single blank line delimiter (two newlines),
     // but do NOT alter spacing inside fenced code blocks where intentional vertical spacing may matter.
     {
@@ -115,6 +75,7 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
         markdown = markdown.replace(/\n{3,}/g, '\n\n');
         markdown = markdown.replace(/__NLC_FENCE_(\d+)__/g, (_, d) => fences[Number(d)]);
     }
+
     return markdown;
 }
 

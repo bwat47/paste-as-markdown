@@ -23,12 +23,11 @@ export function __resetInsertRuleLogGuards() {
  *
  * See: https://github.com/laurent22/joplin/issues/13107
  *
- * SOLUTION: Patch the existing insert rule to exclude anchor elements, allowing the
- * link rule to handle them properly.
+ * SOLUTION: This is now primarily handled by DOM preprocessing in htmlProcessor.ts which removes
+ * the text-decoration: underline styling before Turndown sees it. This rule patch remains as
+ * a fallback for edge cases.
  *
- * This approach was chosen after trying:
- * - Post-processing removal (failed: removed <ins> from code blocks)
- * - Pre-processing HTML cleanup (failed to prevent issue from ocurring)
+ * NOTE: Most anchor/heading cleaning is now done in htmlProcessor.ts during DOM preprocessing.
  */
 
 interface TurndownRule {
@@ -47,53 +46,19 @@ interface TurndownServiceInternal {
 }
 
 /**
- * Analyze an anchor element to determine permalink / heading context.
- */
-function analyzeAnchor(node: HTMLElement): { isPermalink: boolean; insideHeading: boolean } {
-    const parent = node.parentElement;
-    const clsRaw = node.getAttribute('class') || '';
-    const classes = clsRaw ? clsRaw.split(/\s+/).filter(Boolean) : [];
-    const hasAnchorClass = classes.includes('anchor');
-    const href = (node.getAttribute('href') || '').trim();
-    const id = (node.getAttribute('id') || '').trim();
-    const text = (node.textContent || '').trim();
-    const isPermalink =
-        hasAnchorClass &&
-        ((href.startsWith('#') && href.length > 1) || id.startsWith('user-content-')) &&
-        text.length === 0;
-    const insideHeading = !!parent && /^H[1-6]$/.test(parent.nodeName);
-    return { isPermalink, insideHeading };
-}
-
-/**
- * Apply custom rule adjustments to fix specific conversion issues
+ * Apply custom rule adjustments to fix specific conversion issues.
+ * Most logic has been moved to DOM preprocessing in htmlProcessor.ts.
+ * This now only handles fallback scenarios.
  */
 export function applyCustomRules(service: TurndownService): void {
-    addCleanHeadingAnchorsRule(service);
+    // Fallback insert rule patch in case DOM preprocessing missed something
     patchInsertRuleForAnchors(service);
-}
-
-/**
- * Adds rule to clean GitHub-style permalink anchors and unwrap heading links
- */
-function addCleanHeadingAnchorsRule(service: TurndownService): void {
-    service.addRule('cleanHeadingAnchors', {
-        filter: function (node: HTMLElement) {
-            if (node.nodeName !== 'A') return false;
-            const { isPermalink, insideHeading } = analyzeAnchor(node);
-            return isPermalink || insideHeading;
-        },
-        replacement: function (content: string, node: HTMLElement) {
-            // Decide between removal (permalink) vs unwrap (inside heading or normal link)
-            const { isPermalink } = analyzeAnchor(node);
-            return isPermalink ? '' : content;
-        },
-    });
 }
 
 /**
  * Patches Joplin's built-in insert rule to prevent anchor elements from being
  * converted to <ins> tags due to text-decoration: underline styling.
+ * This is now a fallback - primary fix is in htmlProcessor.ts DOM preprocessing.
  */
 function patchInsertRuleForAnchors(service: TurndownService): void {
     if (!ENABLE_INSERT_FIX) {
