@@ -27,6 +27,7 @@ export function processHtml(html: string, options: PasteOptions): string {
     fixJoplinInsertRuleBug(body);
     applySemanticTransformations(body);
     cleanHeadingAnchors(body);
+    removeStyleAttributes(body); // Remove style attributes that can cause CSS parsing errors
     normalizeWhitespaceCharacters(body);
     removeEmptyElements(body);
 
@@ -247,6 +248,17 @@ function unwrapElement(element: HTMLElement): void {
 
     // Remove the now-empty element
     parent.removeChild(element);
+}
+
+/**
+ * Remove all style attributes to prevent CSS parsing errors in Turndown
+ * Since we're converting to Markdown, inline styles aren't needed anyway
+ */
+function removeStyleAttributes(body: HTMLElement): void {
+    const elementsWithStyle = body.querySelectorAll('[style]');
+    elementsWithStyle.forEach((element) => {
+        element.removeAttribute('style');
+    });
 }
 
 /**

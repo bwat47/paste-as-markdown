@@ -12,6 +12,10 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     const service = new TurndownService(dynamicOptions as typeof TURNDOWN_OPTIONS);
     service.use(gfm);
 
+    // Remove problematic elements that can cause CSS parsing errors
+    service.remove('script');
+    service.remove('style');
+
     // Apply any remaining custom rules (most have been moved to DOM preprocessing)
     applyCustomRules(service);
     return service;

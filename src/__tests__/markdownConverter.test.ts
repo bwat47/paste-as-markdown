@@ -66,9 +66,9 @@ describe('markdownConverter', () => {
         convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
 
         // After DOM preprocessing refactor, images are removed before reaching Turndown
-        // So the service should not receive any remove calls or special image rules
-        expect(mockInstance.remove).not.toHaveBeenCalledWith('script');
-        expect(mockInstance.remove).not.toHaveBeenCalledWith('style');
+        // Service should remove problematic elements but not need image-specific rules
+        expect(mockInstance.remove).toHaveBeenCalledWith('script');
+        expect(mockInstance.remove).toHaveBeenCalledWith('style');
         expect(mockInstance.remove).not.toHaveBeenCalledWith('img');
         expect(mockInstance.addRule).not.toHaveBeenCalledWith('__stripImages', expect.any(Object));
 
