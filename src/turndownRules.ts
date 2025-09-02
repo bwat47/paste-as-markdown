@@ -2,7 +2,7 @@ import TurndownService from '@joplin/turndown';
 import { LOG_PREFIX } from './constants';
 
 // Exported to allow external toggling (e.g., tests or future settings-driven behavior)
-export const ENABLE_INSERT_FIX = true;
+export const ENABLE_INSERT_FIX = false;
 
 // One-time log guards to avoid console spam when patch conditions repeat across multiple pastes/tests.
 let loggedInsertAccessWarn = false;

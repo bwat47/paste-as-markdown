@@ -7,59 +7,29 @@ import { LOG_PREFIX } from './constants';
  * and post-processing regex operations.
  */
 export function processHtml(html: string, options: PasteOptions): string {
-    try {
-        // Use DOMParser to create a proper DOM structure for manipulation
-        const ParserCtor = (globalThis as unknown as { DOMParser?: { new (): DOMParser } }).DOMParser;
-        if (!ParserCtor) {
-            console.warn(LOG_PREFIX, 'DOMParser not available, falling back to basic processing');
-            return basicHtmlProcessing(html, options);
-        }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const body = doc.body;
 
-        const parser = new ParserCtor();
-        const doc = parser.parseFromString(html, 'text/html');
-        const body = doc.body;
-
-        if (!body) {
-            console.warn(LOG_PREFIX, 'No body element found in parsed HTML');
-            return html;
-        }
-
-        // Apply all DOM transformations
-        removeScriptAndStyleElements(body);
-
-        if (!options.includeImages) {
-            removeImageElements(body);
-        }
-
-        fixJoplinInsertRuleBug(body);
-        applySemanticTransformations(body);
-        cleanHeadingAnchors(body);
-        removeEmptyElements(body);
-
-        return body.innerHTML;
-    } catch (error) {
-        console.warn(LOG_PREFIX, 'DOM processing failed, falling back to basic processing:', error);
-        return basicHtmlProcessing(html, options);
+    if (!body) {
+        console.warn(LOG_PREFIX, 'No body element found in parsed HTML');
+        return html;
     }
-}
 
-/**
- * Fallback processing for environments without DOMParser
- */
-function basicHtmlProcessing(html: string, options: PasteOptions): string {
-    let processed = html;
+    // Apply all DOM transformations
+    removeScriptAndStyleElements(body);
 
-    // Basic script/style removal
-    processed = processed.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
-    processed = processed.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
-
-    // Basic image removal if disabled
     if (!options.includeImages) {
-        processed = processed.replace(/<img[^>]*>/gi, '');
-        processed = processed.replace(/<picture[^>]*>[\s\S]*?<\/picture>/gi, '');
+        removeImageElements(body);
+        removeEmptyAnchors(body);
     }
 
-    return processed;
+    fixJoplinInsertRuleBug(body);
+    applySemanticTransformations(body);
+    cleanHeadingAnchors(body);
+    removeEmptyElements(body);
+
+    return body.innerHTML;
 }
 
 /**
@@ -77,6 +47,24 @@ function removeImageElements(body: HTMLElement): void {
     // Remove img, picture, and source elements
     const imageElements = body.querySelectorAll('img, picture, source');
     imageElements.forEach((el) => el.remove());
+}
+
+/**
+ * Remove anchor elements that become empty after image removal
+ */
+function removeEmptyAnchors(body: HTMLElement): void {
+    const anchors = body.querySelectorAll('a[href]');
+    anchors.forEach((anchor) => {
+        const textContent = anchor.textContent?.trim() || '';
+        const hasNonImageChildren = Array.from(anchor.children).some(
+            (child) => !['img', 'picture', 'source'].includes(child.tagName.toLowerCase())
+        );
+
+        // Remove anchors that have no text content and no non-image children
+        if (textContent.length === 0 && !hasNonImageChildren) {
+            anchor.remove();
+        }
+    });
 }
 
 /**
@@ -262,54 +250,36 @@ function unwrapElement(element: HTMLElement): void {
 
 /**
  * Remove elements that contain only whitespace and have no meaningful child elements
+ * Inspired by Obsidian paste-reformatter plugin's cleaner approach
  */
 function removeEmptyElements(body: HTMLElement): void {
-    // Elements that are considered meaningful even when empty
-    const meaningfulElements = new Set([
-        'img',
-        'br',
-        'hr',
-        'input',
-        'area',
-        'base',
-        'col',
-        'embed',
-        'link',
-        'meta',
-        'param',
-        'source',
-        'track',
-        'wbr',
-    ]);
+    // Use a simpler approach: repeatedly find and remove empty elements until none remain
+    // This handles nested empty structures naturally
+    let removedSomething = true;
+    while (removedSomething) {
+        removedSomething = false;
+        const elements = body.querySelectorAll('*');
 
-    // Process elements from bottom-up to handle nested empty elements
-    const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_ELEMENT, null);
-
-    const elements: HTMLElement[] = [];
-    let node = walker.nextNode();
-    while (node) {
-        elements.push(node as HTMLElement);
-        node = walker.nextNode();
+        for (const element of Array.from(elements)) {
+            const htmlElement = element as HTMLElement;
+            if (isElementEmpty(htmlElement)) {
+                // Only remove if it's not providing meaningful spacing
+                if (!isSpacingElement(htmlElement)) {
+                    htmlElement.remove();
+                    removedSomething = true;
+                }
+            }
+        }
     }
-
-    // Process in reverse order (deepest first)
-    elements.reverse().forEach((element) => {
-        if (meaningfulElements.has(element.tagName.toLowerCase())) {
-            return; // Skip meaningful elements
-        }
-
-        if (isEmptyElement(element)) {
-            element.remove();
-        }
-    });
 }
 
 /**
- * Check if an element is effectively empty (only whitespace, no meaningful children)
+ * Check if an element is effectively empty using a recursive approach
+ * Based on the cleaner pattern from the Obsidian plugin
  */
-function isEmptyElement(element: HTMLElement): boolean {
-    // Elements that are considered meaningful even when empty
-    const meaningfulElements = new Set([
+function isElementEmpty(element: HTMLElement): boolean {
+    // Elements that are always meaningful, even when empty
+    const alwaysMeaningful = new Set([
         'img',
         'br',
         'hr',
@@ -324,20 +294,182 @@ function isEmptyElement(element: HTMLElement): boolean {
         'source',
         'track',
         'wbr',
+        'code', // Code elements preserve whitespace semantically
+        'pre', // Preformatted text preserves whitespace
     ]);
 
-    // Check if element has meaningful child elements
+    if (alwaysMeaningful.has(element.tagName.toLowerCase())) {
+        return false;
+    }
+
+    // Check if element has non-whitespace text content
+    const textContent = element.textContent || '';
+    if (textContent.trim().length > 0) {
+        return false;
+    }
+
+    // Check if all child elements are also empty
     const children = Array.from(element.children) as HTMLElement[];
-    for (const child of children) {
-        if (meaningfulElements.has(child.tagName.toLowerCase())) {
-            return false;
-        }
-        if (!isEmptyElement(child)) {
-            return false;
+    return children.every((child) => isElementEmpty(child));
+}
+
+/**
+ * Simplified check for elements that provide meaningful spacing between content
+ * Much cleaner than the previous complex adjacency detection
+ */
+function isSpacingElement(element: HTMLElement): boolean {
+    // Only consider inline elements for spacing preservation
+    const inlineElements = new Set([
+        'span',
+        'a',
+        'em',
+        'strong',
+        'code',
+        'i',
+        'b',
+        'u',
+        's',
+        'sub',
+        'sup',
+        'small',
+        'mark',
+    ]);
+
+    if (!inlineElements.has(element.tagName.toLowerCase())) {
+        return false;
+    }
+
+    const textContent = element.textContent || '';
+
+    // Must contain only whitespace to be a spacing element
+    if (textContent.trim().length > 0) {
+        return false;
+    }
+
+    // Must actually contain some whitespace (not completely empty)
+    if (textContent.length === 0) {
+        return false;
+    }
+
+    // Simple heuristic: if the element is between non-whitespace content, preserve it
+    return hasContentContext(element);
+}
+
+/**
+ * Context detection - check if element is positioned between meaningful content
+ * Handles both direct siblings and parent-level context for nested cases
+ */
+function hasContentContext(element: HTMLElement): boolean {
+    // Check if element provides spacing in its immediate context
+    if (hasLocalSpacingContext(element)) {
+        return true;
+    }
+
+    // For nested inline elements, check if the parent would benefit from this spacing
+    // e.g., <span>text<span> </span></span><a>link</a> - the inner span provides spacing between text and link
+    const parent = element.parentElement;
+    if (parent && isInlineParent(parent)) {
+        return hasLocalSpacingContext(parent);
+    }
+
+    return false;
+}
+
+/**
+ * Check if element provides spacing in its local context (either within parent or parent's context)
+ */
+function hasLocalSpacingContext(element: HTMLElement): boolean {
+    const parent = element.parentElement;
+    if (!parent) return false;
+
+    const siblings = Array.from(parent.childNodes);
+    const elementIndex = siblings.indexOf(element);
+
+    // Check for meaningful content before this element
+    const hasContentBefore = siblings
+        .slice(0, elementIndex)
+        .some(
+            (node) =>
+                (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
+                (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).textContent?.trim())
+        );
+
+    // Check for meaningful content after this element
+    const hasContentAfter = siblings
+        .slice(elementIndex + 1)
+        .some(
+            (node) =>
+                (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
+                (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).textContent?.trim())
+        );
+
+    // Standard case: content before and after
+    if (hasContentBefore && hasContentAfter) {
+        return true;
+    }
+
+    // Special case for elements at boundaries that still provide meaningful spacing
+    // e.g., <span>text<span> </span></span> - the inner span provides trailing spacing
+    if (hasContentBefore && !hasContentAfter) {
+        // Check if parent has content after it (for trailing spacing)
+        const grandParent = parent.parentElement;
+        if (grandParent) {
+            const parentSiblings = Array.from(grandParent.childNodes);
+            const parentIndex = parentSiblings.indexOf(parent);
+            const hasParentContentAfter = parentSiblings
+                .slice(parentIndex + 1)
+                .some(
+                    (node) =>
+                        (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
+                        (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).textContent?.trim())
+                );
+            if (hasParentContentAfter) {
+                return true;
+            }
         }
     }
 
-    // Check if element has meaningful text content
-    const textContent = element.textContent || '';
-    return textContent.trim().length === 0;
+    // Special case for leading spacing
+    if (!hasContentBefore && hasContentAfter) {
+        // Check if parent has content before it (for leading spacing)
+        const grandParent = parent.parentElement;
+        if (grandParent) {
+            const parentSiblings = Array.from(grandParent.childNodes);
+            const parentIndex = parentSiblings.indexOf(parent);
+            const hasParentContentBefore = parentSiblings
+                .slice(0, parentIndex)
+                .some(
+                    (node) =>
+                        (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
+                        (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).textContent?.trim())
+                );
+            if (hasParentContentBefore) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+/**
+ * Check if parent is an inline element that could be providing spacing context
+ */
+function isInlineParent(element: HTMLElement): boolean {
+    const inlineElements = new Set([
+        'span',
+        'a',
+        'em',
+        'strong',
+        'code',
+        'i',
+        'b',
+        'u',
+        's',
+        'sub',
+        'sup',
+        'small',
+        'mark',
+    ]);
+    return inlineElements.has(element.tagName.toLowerCase());
 }
