@@ -17,7 +17,7 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     service.remove('style');
 
     // Apply any remaining custom rules (most have been moved to DOM preprocessing)
-    applyCustomRules(service);
+    applyCustomRules();
     return service;
 }
 

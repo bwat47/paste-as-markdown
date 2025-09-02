@@ -46,6 +46,7 @@
     "dependencies": {
         "@joplin/turndown": "^4.0.81",
         "@joplin/turndown-plugin-gfm": "^1.0.63",
-        "jsdom": "^26.1.0"
+    "jsdom": "^26.1.0",
+    "dompurify": "^3.1.6"
     }
 }

@@ -1,5 +1,6 @@
 import type { PasteOptions } from './types';
 import { LOG_PREFIX } from './constants';
+import createDOMPurify from 'dompurify';
 
 /**
  * DOM-based HTML preprocessing for cleaning and sanitizing HTML before Turndown conversion.
@@ -7,40 +8,86 @@ import { LOG_PREFIX } from './constants';
  * and post-processing regex operations.
  */
 export function processHtml(html: string, options: PasteOptions): string {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const body = doc.body;
+    // Safety wrapper: if DOM APIs unavailable, return original.
+    if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return html;
+    try {
+        // 1. Sanitize first with DOMPurify (drops scripts, event handlers, dangerous URIs, optionally images)
+        const purifier = createDOMPurify(window as unknown as typeof window);
+        const allowedTagsBase = [
+            'a',
+            'p',
+            'div',
+            'span',
+            'strong',
+            'em',
+            'b',
+            'i',
+            'u',
+            's',
+            'code',
+            'pre',
+            'ul',
+            'ol',
+            'li',
+            'blockquote',
+            'hr',
+            'br',
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'table',
+            'thead',
+            'tbody',
+            'tr',
+            'th',
+            'td',
+        ];
+        const allowedTags = options.includeImages ? [...allowedTagsBase, 'img', 'picture', 'source'] : allowedTagsBase;
+        const allowedAttrsBase = ['href', 'name', 'id', 'title', 'colspan', 'rowspan', 'align'];
+        const allowedImgAttrs = ['src', 'alt', 'width', 'height', 'title'];
+        const allowedAttrs = options.includeImages ? [...allowedAttrsBase, ...allowedImgAttrs] : allowedAttrsBase;
+        const sanitized = purifier.sanitize(html, {
+            ALLOWED_TAGS: allowedTags,
+            ALLOWED_ATTR: allowedAttrs,
+            // Disallow style attributes entirely so Turndown isn't tripped by complex shorthands
+            FORBID_ATTR: ['style'],
+            KEEP_CONTENT: true,
+        }) as string;
 
-    if (!body) {
-        console.warn(LOG_PREFIX, 'No body element found in parsed HTML');
+        // 2. Parse sanitized HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(sanitized, 'text/html');
+        const body = doc.body;
+        if (!body) return html;
+
+        // 3. Post-sanitization semantic adjustments (things DOMPurify doesn't do)
+        if (!options.includeImages) {
+            removeImageElements(body); // ensures picture/source variants removed if left
+            removeEmptyAnchors(body); // handles image-only anchors that became empty
+        }
+        // Convert styled spans to <strong>/<em> BEFORE further pruning
+        applySemanticTransformations(body);
+        // Clean heading anchors & unwrap heading links
+        cleanHeadingAnchors(body);
+        // Normalize NBSP variants (leaving code/pre untouched)
+        normalizeWhitespaceCharacters(body);
+        // Prune now-empty wrappers introduced by sanitation
+        removeEmptyElements(body);
+
+        return body.innerHTML;
+    } catch (err) {
+        console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
         return html;
     }
-
-    // Apply all DOM transformations
-    removeScriptAndStyleElements(body);
-
-    if (!options.includeImages) {
-        removeImageElements(body);
-        removeEmptyAnchors(body);
-    }
-
-    fixJoplinInsertRuleBug(body);
-    applySemanticTransformations(body);
-    cleanHeadingAnchors(body);
-    removeStyleAttributes(body); // Remove style attributes that can cause CSS parsing errors
-    normalizeWhitespaceCharacters(body);
-    removeEmptyElements(body);
-
-    return body.innerHTML;
 }
 
 /**
  * Remove script and style elements entirely as they should never be converted
  */
-function removeScriptAndStyleElements(body: HTMLElement): void {
-    const scriptElements = body.querySelectorAll('script, style');
-    scriptElements.forEach((el) => el.remove());
-}
+// (Removed) removeScriptAndStyleElements: DOMPurify already strips script/style elements.
 
 /**
  * Remove all image-related elements when images are disabled
@@ -73,26 +120,7 @@ function removeEmptyAnchors(body: HTMLElement): void {
  * Fix the Joplin insert rule bug by removing text-decoration: underline from anchor elements.
  * This prevents the insert rule from matching anchor elements and creating empty <ins> tags.
  */
-function fixJoplinInsertRuleBug(body: HTMLElement): void {
-    const anchors = body.querySelectorAll('a');
-    anchors.forEach((anchor) => {
-        const style = anchor.style;
-        if (style && style.textDecoration === 'underline') {
-            style.removeProperty('text-decoration');
-        }
-
-        // Also handle inline style attribute
-        const styleAttr = anchor.getAttribute('style');
-        if (styleAttr && styleAttr.includes('text-decoration')) {
-            const newStyle = styleAttr.replace(/text-decoration\s*:\s*underline\s*;?/gi, '');
-            if (newStyle.trim()) {
-                anchor.setAttribute('style', newStyle);
-            } else {
-                anchor.removeAttribute('style');
-            }
-        }
-    });
-}
+// (Removed) fixJoplinInsertRuleBug: style attributes are stripped; underline styling no longer reaches Turndown.
 
 /**
  * Convert CSS-styled spans to proper semantic HTML elements
@@ -254,12 +282,7 @@ function unwrapElement(element: HTMLElement): void {
  * Remove all style attributes to prevent CSS parsing errors in Turndown
  * Since we're converting to Markdown, inline styles aren't needed anyway
  */
-function removeStyleAttributes(body: HTMLElement): void {
-    const elementsWithStyle = body.querySelectorAll('[style]');
-    elementsWithStyle.forEach((element) => {
-        element.removeAttribute('style');
-    });
-}
+// (Removed) removeStyleAttributes: DOMPurify forbids style attributes via FORBID_ATTR.
 
 /**
  * Normalize whitespace characters to ensure proper rendering in markdown
