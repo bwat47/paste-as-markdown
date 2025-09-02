@@ -27,6 +27,7 @@ export function processHtml(html: string, options: PasteOptions): string {
     fixJoplinInsertRuleBug(body);
     applySemanticTransformations(body);
     cleanHeadingAnchors(body);
+    normalizeWhitespaceCharacters(body);
     removeEmptyElements(body);
 
     return body.innerHTML;
@@ -249,6 +250,53 @@ function unwrapElement(element: HTMLElement): void {
 }
 
 /**
+ * Normalize whitespace characters to ensure proper rendering in markdown
+ * Convert various NBSP encodings to regular spaces for better markdown compatibility
+ */
+function normalizeWhitespaceCharacters(body: HTMLElement): void {
+    // Walk through all text nodes and normalize whitespace characters
+    const doc = body.ownerDocument;
+    if (!doc) return;
+
+    const walker = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
+
+    const textNodesToUpdate: { node: Text; newText: string }[] = [];
+
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+        const textNode = node as Text;
+        const originalText = textNode.textContent || '';
+
+        // Skip normalization inside code elements to preserve semantic whitespace
+        const parentElement = textNode.parentElement;
+        if (
+            parentElement &&
+            (parentElement.tagName.toLowerCase() === 'code' ||
+                parentElement.tagName.toLowerCase() === 'pre' ||
+                parentElement.closest('code, pre'))
+        ) {
+            continue;
+        }
+
+        // Normalize various NBSP representations to regular spaces
+        // This handles UTF-8 encoded NBSP (Â ) and Unicode NBSP (\u00A0)
+        const normalizedText = originalText
+            .replace(/Â\s/g, ' ') // UTF-8 encoded NBSP + space -> regular space
+            .replace(/\u00A0/g, ' ') // Unicode NBSP -> regular space
+            .replace(/&nbsp;/g, ' '); // HTML entity -> regular space
+
+        if (normalizedText !== originalText) {
+            textNodesToUpdate.push({ node: textNode, newText: normalizedText });
+        }
+    }
+
+    // Apply the updates (done separately to avoid modifying while iterating)
+    textNodesToUpdate.forEach(({ node, newText }) => {
+        node.textContent = newText;
+    });
+}
+
+/**
  * Remove elements that contain only whitespace and have no meaningful child elements
  * Inspired by Obsidian paste-reformatter plugin's cleaner approach
  */
@@ -386,22 +434,30 @@ function hasLocalSpacingContext(element: HTMLElement): boolean {
     const elementIndex = siblings.indexOf(element);
 
     // Check for meaningful content before this element
-    const hasContentBefore = siblings
-        .slice(0, elementIndex)
-        .some(
-            (node) =>
-                (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
-                (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).textContent?.trim())
-        );
+    const hasContentBefore = siblings.slice(0, elementIndex).some((node) => {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+            return true;
+        }
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const elem = node as HTMLElement;
+            // Check if element has meaningful content or contains images
+            return elem.textContent?.trim() || elem.querySelector('img, picture, source');
+        }
+        return false;
+    });
 
     // Check for meaningful content after this element
-    const hasContentAfter = siblings
-        .slice(elementIndex + 1)
-        .some(
-            (node) =>
-                (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) ||
-                (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).textContent?.trim())
-        );
+    const hasContentAfter = siblings.slice(elementIndex + 1).some((node) => {
+        if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+            return true;
+        }
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const elem = node as HTMLElement;
+            // Check if element has meaningful content or contains images
+            return elem.textContent?.trim() || elem.querySelector('img, picture, source');
+        }
+        return false;
+    });
 
     // Standard case: content before and after
     if (hasContentBefore && hasContentAfter) {
