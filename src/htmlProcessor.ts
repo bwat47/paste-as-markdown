@@ -1,5 +1,5 @@
 import type { PasteOptions, ResourceConversionMeta } from './types';
-import { LOG_PREFIX } from './constants';
+import { LOG_PREFIX, MAX_IMAGE_BYTES } from './constants';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from './sanitizerConfig';
 
@@ -376,7 +376,7 @@ function standardizeImageElement(img: HTMLImageElement, originalFilename: string
     const existingAlt = (img.getAttribute('alt') || '').trim();
     if (!existingAlt) {
         const base = originalFilename.replace(/\.[a-z0-9]{2,5}$/i, '');
-        img.setAttribute('alt', base);
+        img.setAttribute('alt', sanitizeAltText(base));
     }
     // Remove all non-whitelisted attributes
     const allowed = new Set(['src', 'alt', 'width', 'height']);
@@ -419,16 +419,40 @@ function deriveOriginalFilename(src: string): string {
     }
 }
 
+function sanitizeAltText(raw: string): string {
+    // Remove control chars, trim, collapse internal excessive whitespace, limit length
+    let out = raw.replace(/[\x00-\x1F\x7F]/g, '');
+    out = out.replace(/\s+/g, ' ').trim();
+    if (!out) out = 'image';
+    // Cap to 120 chars to avoid excessive alt text
+    if (out.length > 120) out = out.slice(0, 117) + '...';
+    return out;
+}
+
 async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
     const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
     if (!match) throw new Error('Invalid data URL');
     const mime = match[1].toLowerCase();
     if (!mime.startsWith('image/')) throw new Error('Not image');
-    const b64 = match[2];
-    const binary = atob(b64);
+    let b64 = match[2];
+    // Strip whitespace (defensive) and validate charset
+    b64 = b64.replace(/\s+/g, '');
+    if (/[^A-Za-z0-9+/=]/.test(b64)) throw new Error('Invalid base64 characters');
+    // Basic padding validation
+    if (b64.length % 4 === 1) throw new Error('Malformed base64 length');
+    // Rough size estimate before full decode: each 4 base64 chars -> 3 bytes
+    const estimatedBytes = Math.floor((b64.length * 3) / 4);
+    if (estimatedBytes > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
+    let binary: string;
+    try {
+        binary = atob(b64);
+    } catch {
+        throw new Error('Base64 decode failed');
+    }
     const len = binary.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
     return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}` };
 }
 
@@ -440,9 +464,36 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
     if (!contentType.startsWith('image/')) throw new Error('Not image');
-    const buffer = await resp.arrayBuffer();
+    const contentLengthHeader = resp.headers.get('content-length');
+    if (contentLengthHeader) {
+        const asInt = parseInt(contentLengthHeader, 10);
+        if (!isNaN(asInt) && asInt > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
+    }
+    // Stream & enforce limit
+    const reader = resp.body?.getReader();
+    if (!reader) {
+        const buffer = await resp.arrayBuffer();
+        if (buffer.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
+        const filenameImmediate = deriveFilenameFromUrl(url, extensionForMime(contentType));
+        return { buffer, mime: contentType, filename: filenameImmediate };
+    }
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+            chunks.push(value);
+            received += value.length;
+            if (received > MAX_IMAGE_BYTES) {
+                controller.abort();
+                throw new Error('Image exceeds maximum size');
+            }
+        }
+    }
+    const merged = concatChunks(chunks, received);
     const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
-    return { buffer, mime: contentType, filename };
+    return { buffer: merged, mime: contentType, filename };
 }
 
 function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
@@ -469,6 +520,16 @@ function extensionForMime(mime: string): string {
         'image/vnd.microsoft.icon': 'ico',
     };
     return map[mime] || 'bin';
+}
+
+function concatChunks(chunks: Uint8Array[], totalBytes: number): ArrayBuffer {
+    const out = new Uint8Array(totalBytes);
+    let offset = 0;
+    for (const c of chunks) {
+        out.set(c, offset);
+        offset += c.length;
+    }
+    return out.buffer;
 }
 
 async function createJoplinResource(img: ParsedImageData): Promise<string> {

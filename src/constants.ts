@@ -29,3 +29,6 @@ export const SHORTCUTS = {
 export const TOAST_DURATION = 4000; // ms
 
 export const LOG_PREFIX = '[paste-as-markdown]';
+
+// Hard cap for image resource conversion to avoid excessive memory/disk usage (approx 15MB)
+export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
