@@ -141,6 +141,14 @@ describe('code block normalization & language inference', () => {
         expect(md).not.toMatch(/```python/);
     });
 
+    test('removes empty / folded code block with only styling spans', () => {
+        const html =
+            '<pre class="language-js"><code><span class="token comment"></span><span class="token keyword"></span><span class="token punctuation"></span></code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Should not emit an empty fenced code block
+        expect(md).not.toMatch(/```/);
+    });
+
     test('maps js alias to javascript', () => {
         const html = '<pre class="language-js"><code>console.log(1)</code></pre>';
         const md = convertHtmlToMarkdown(html, true);
