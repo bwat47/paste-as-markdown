@@ -347,6 +347,18 @@ interface ParsedImageData {
 }
 
 async function convertImagesToResources(body: HTMLElement): Promise<string[]> {
+    // Early capability check: if fs-extra isn't available, skip conversion silently (original src retained)
+    let fsExtraAvailable = true;
+    try {
+        // @ts-expect-error joplin global runtime
+        joplin.require('fs-extra');
+    } catch {
+        fsExtraAvailable = false;
+    }
+    if (!fsExtraAvailable) {
+        console.info(LOG_PREFIX, 'fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
+        return [];
+    }
     const imgs = Array.from(body.querySelectorAll('img[src]')).filter((img) => {
         const src = img.getAttribute('src') || '';
         return src && !src.startsWith(':/') && (src.startsWith('data:') || /^https?:\/\//i.test(src));
