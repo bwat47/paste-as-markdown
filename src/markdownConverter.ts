@@ -10,8 +10,14 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     const dynamicOptions = includeImages ? TURNDOWN_OPTIONS : { ...TURNDOWN_OPTIONS, preserveImageTagsWithSize: false };
     const service = new TurndownService(dynamicOptions as typeof TURNDOWN_OPTIONS);
     service.use(gfm);
-    // Scripts/styles already stripped during sanitization; no need to remove via Turndown.
-    // All custom cleanup is now handled in DOM preprocessing.
+    // Defensive removals: DOMPurify normally strips these, but if DOM preprocessing fails and we
+    // fall back to raw HTML we still want them gone.
+    service.remove('script');
+    service.remove('style');
+    if (!includeImages) {
+        // Images should already be excluded by sanitizer; keep for fallback safety.
+        service.remove('img');
+    }
     return service;
 }
 

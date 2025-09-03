@@ -41,19 +41,18 @@ describe('markdownConverter', () => {
         expect(result).toBe('# Mock Output');
     });
 
-    test('processes HTML through DOM preprocessing when includeImages is false', async () => {
+    test('processes HTML through DOM preprocessing when includeImages is false (defensive removals still applied)', async () => {
         const { default: TurndownService } = await import('@joplin/turndown');
         const mockInstance = new TurndownService();
 
         convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
 
-        // After DOM preprocessing refactor, scripts/styles already stripped; we no longer call remove() for them.
-        expect(mockInstance.remove).not.toHaveBeenCalledWith('script');
-        expect(mockInstance.remove).not.toHaveBeenCalledWith('style');
-        expect(mockInstance.remove).not.toHaveBeenCalledWith('img');
+        // Defensive removals now expected even though DOMPurify normally strips these.
+        expect(mockInstance.remove).toHaveBeenCalledWith('script');
+        expect(mockInstance.remove).toHaveBeenCalledWith('style');
+        expect(mockInstance.remove).toHaveBeenCalledWith('img');
+        // No legacy custom image stripping rule added.
         expect(mockInstance.addRule).not.toHaveBeenCalledWith('__stripImages', expect.any(Object));
-
-        // The service should still be called with processed HTML (images removed by DOM preprocessing)
         expect(mockInstance.turndown).toHaveBeenCalled();
     });
 
