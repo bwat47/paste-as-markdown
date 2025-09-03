@@ -15,6 +15,7 @@ export const SANITIZER_ALLOWED_TAGS_BASE = [
     'sub',
     'del',
     'mark',
+    'ins',
     'code',
     'pre',
     'ul',
