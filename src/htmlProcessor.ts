@@ -39,10 +39,17 @@ export async function processHtml(
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body);
 
-        // Image -> resource conversion (sequential) if enabled
+        // Image handling
         let resourceIds: string[] = [];
-        if (options.includeImages && options.convertImagesToResources) {
-            resourceIds = await convertImagesToResources(body);
+        if (options.includeImages) {
+            if (options.convertImagesToResources) {
+                resourceIds = await convertImagesToResources(body);
+                // Standardize any images that were not converted (e.g., SVGs or failures)
+                standardizeRemainingImages(body);
+            } else {
+                // No conversion requested; standardize all included images
+                standardizeRemainingImages(body);
+            }
         }
         return { html: body.innerHTML, resources: { resourcesCreated: resourceIds.length, resourceIds } };
     } catch (err) {
@@ -387,6 +394,29 @@ function standardizeImageElement(img: HTMLImageElement, originalFilename: string
     if (altVal) img.setAttribute('alt', altVal);
     if (widthVal) img.setAttribute('width', widthVal);
     if (heightVal) img.setAttribute('height', heightVal);
+}
+
+function standardizeRemainingImages(body: HTMLElement): void {
+    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
+    imgs.forEach((img) => {
+        // Skip if already standardized to resource form (src starts with :/ and has only whitelisted attrs already processed)
+        // We still re-run to enforce attribute order if not previously processed.
+        const src = img.getAttribute('src') || '';
+        const filename = deriveOriginalFilename(src) || 'image';
+        standardizeImageElement(img, filename);
+    });
+}
+
+function deriveOriginalFilename(src: string): string {
+    if (src.startsWith('data:')) return 'pasted';
+    if (src.startsWith(':/')) return 'resource';
+    try {
+        const u = new URL(src, 'https://placeholder.local'); // base for relative URLs
+        const last = u.pathname.split('/').filter(Boolean).pop() || 'image';
+        return last.split('?')[0].split('#')[0];
+    } catch {
+        return 'image';
+    }
 }
 
 async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {

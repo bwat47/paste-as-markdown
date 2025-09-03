@@ -5,7 +5,7 @@
 
 A Joplin plugin that allows you to paste HTML formatted text as markdown in the markdown editor.
 
-The plugin uses Joplin's modified version of Turndown to convert HTML to markdown, so the results should be very similar to what you get when pasting HTML formatted text inside Joplin's rich text editor. 
+The plugin uses Joplin's modified version of Turndown to convert HTML to markdown, so the results should be similar to what you get when pasting HTML formatted text inside Joplin's rich text editor.
 
 Useful for scenarios where you can't use the joplin web clipper (e.g. copying text from an email client) and/or where you don't want to edit the note with the rich text editor (to avoid changes to existing markdown formatting by the rich text editor).
 
@@ -19,6 +19,19 @@ If you have HTML formatted text in the clipbard, the plugin will convert it to m
 
 If you don't have HTML formatted text in the clipboard, the plugin will fall back to pasting the plain text.
 
+## Features
+
+DOM-based preprocessing - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements (empty permalink anchors, etc...).
+
+Code block normalization - Improved reliability when pasting code blocks.
+
+Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
+
+Table support - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
+
 ## Settings
 
-Include Images - By default, images (external or base64 encoded) are included in the pasted text (same behavior as the rich text editor). If desired, you can un-check include images in the plugin settings so that images are not included in the pasted text.
+Include Images - By default, images (external or base64 encoded) are included in the pasted text. If desired, you can un-check include images in the plugin settings so that images are not included in the pasted text.
+
+> [!NOTE]
+> Pasted images are not automatically converted to Joplin resources.
