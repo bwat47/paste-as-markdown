@@ -49,7 +49,7 @@ export async function processHtml(
                 resourceIds = result.ids;
                 attempted = result.attempted;
                 failed = result.failed;
-                // Standardize any images that were not converted (e.g., SVGs or failures)
+                // Standardize any images that were not converted
                 standardizeRemainingImages(body);
             } else {
                 // No conversion requested; standardize all included images
@@ -384,7 +384,6 @@ async function convertImagesToResources(
             if (src.startsWith('data:')) data = await parseBase64Image(src);
             else if (/^https?:\/\//i.test(src)) data = await downloadExternalImage(src);
             if (!data) continue;
-            // Skip SVGs for now – they are text, small, and often remote badges. Avoid resource conversion complications.
             const id = await createJoplinResource(data);
             img.setAttribute('src', `:/${id}`);
             standardizeImageElement(img as HTMLImageElement, data.filename);
