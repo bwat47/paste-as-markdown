@@ -28,6 +28,119 @@ describe('code block normalization & language inference', () => {
         expect(md).not.toMatch(/```python/);
     });
 
+    // --------------------------------------------------
+    // Additional language inference tests
+    // --------------------------------------------------
+    test('alias: cpp class name produces cpp fence (C++)', () => {
+        const html = '<pre class="language-cpp"><code>int main() {}</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```cpp[\s\S]*int main/);
+    });
+
+    test('alias: cxx -> cpp', () => {
+        const html = '<pre class="language-cxx"><code>int main() {}</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```cpp[\s\S]*int main/);
+    });
+
+    test('alias: mjs -> javascript', () => {
+        const html = '<pre class="language-mjs"><code>export default 1;</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```javascript[\s\S]*export default/);
+    });
+
+    test('alias: cjs -> javascript', () => {
+        const html = '<pre class="language-cjs"><code>module.exports = 1;</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```javascript[\s\S]*module\.exports/);
+    });
+
+    test('alias: yml -> yaml', () => {
+        const html = '<pre class="language-yml"><code>key: value</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```yaml[\s\S]*key: value/);
+    });
+
+    test('alias: golang -> go', () => {
+        const html = '<pre class="language-golang"><code>package main</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```go[\s\S]*package main/);
+    });
+
+    test('alias: kt -> kotlin', () => {
+        const html = '<pre class="language-kt"><code>fun main() {}</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```kotlin[\s\S]*fun main/);
+    });
+
+    test('alias: docker -> dockerfile', () => {
+        const html = '<pre class="language-docker"><code>FROM alpine</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```dockerfile[\s\S]*FROM alpine/);
+    });
+
+    test('pattern: prettyprint lang-rb -> ruby', () => {
+        const html = '<pre class="prettyprint lang-rb"><code>puts :x</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```ruby[\s\S]*puts :x/);
+    });
+
+    test('pattern: hljs-rust -> rust', () => {
+        const html = '<pre><code class="hljs-rust">fn main() {}</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```rust[\s\S]*fn main/);
+    });
+
+    test('pattern: brush:js -> javascript', () => {
+        const html = '<pre class="brush:js"><code>console.log(1)</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```javascript[\s\S]*console\.log/);
+    });
+
+    test('pattern: code-python -> python', () => {
+        const html = '<pre class="code-python"><code>print(\"x\")</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```python[\s\S]*print\("x"\)/);
+    });
+
+    test('wrapper figure.highlight with language-tsx in pre', () => {
+        const html =
+            '<figure class="highlight"><pre class="language-tsx"><code>const x: JSX.Element = &lt;div/&gt;;</code></pre></figure>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Accept tsx (no alias conversion performed for tsx)
+        expect(md).toMatch(/```tsx[\s\S]*const x:/);
+    });
+
+    test('div.sourceCode wrapper with language-ts on inner code', () => {
+        const html = '<div class="sourceCode"><pre><code class="language-ts">let x: number;</code></pre></div>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```typescript[\s\S]*let x:/);
+    });
+
+    test('duplicate hint classes collapse to single normalized language', () => {
+        const html = '<pre class="language-js lang-js highlight-source-javascript"><code>console.log(2)</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Should be only one javascript fence
+        expect(md).toMatch(/```javascript[\s\S]*console\.log/);
+        // Should not retain multiple language markers inside fence line
+        const fenceLine = md.split(/\n/)[0];
+        expect(fenceLine.match(/javascript/g)?.length).toBe(1);
+    });
+
+    test('fallback: no language classes yields fence without language', () => {
+        const html = '<pre><code>plain text only</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Opening fence should be exactly ``` or ``` + optional language but we assert absence of a known language (- not present)
+        expect(md).toMatch(/^```\nplain text only/);
+    });
+
+    test('priority: language-js over hljs-python chooses javascript', () => {
+        const html = '<pre class="language-js"><code class="hljs-python">console.log(3)</code></pre>';
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```javascript[\s\S]*console\.log/);
+        expect(md).not.toMatch(/```python/);
+    });
+
     test('maps js alias to javascript', () => {
         const html = '<pre class="language-js"><code>console.log(1)</code></pre>';
         const md = convertHtmlToMarkdown(html, true);

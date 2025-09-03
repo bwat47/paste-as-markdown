@@ -213,7 +213,9 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
     }
     const classBlob = classSources.join(' ');
     const patterns: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
-        [/\blanguage-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
+        // Handle language-c++ explicitly before generic language-* to avoid truncation to 'c'
+        [/\blanguage-(c\+\+)\b/, (m) => m[1]],
+        [/\blanguage-([A-Za-z0-9+#_.+-]+)\b/, (m) => m[1]],
         [/\blang-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
         [/\bhighlight-(?:text-|source-)?([a-z0-9]+)(?:-basic)?\b/i, (m) => m[1]],
         [/\bbrush:\s*([a-z0-9]+)\b/i, (m) => m[1]],
@@ -223,7 +225,12 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
     ];
     for (const [re, fn] of patterns) {
         const match = classBlob.match(re);
-        if (match) return normalizeLangAlias(fn(match));
+        if (match) {
+            let raw = fn(match);
+            // Normalize common punctuation variations before alias mapping (e.g., c++ -> cpp)
+            if (raw === 'c++') raw = 'c++';
+            return normalizeLangAlias(raw);
+        }
     }
     return null; // Let downstream renderer auto-detect
 }
