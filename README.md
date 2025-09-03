@@ -21,17 +21,18 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 ## Features
 
-DOM-based preprocessing - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements (empty permalink anchors, etc...).
+- Convert images to Joplin resources.
 
-Code block normalization - Improved reliability when pasting code blocks.
+- DOM-based preprocessing - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements (empty permalink anchors, exotic image attributes, etc...).
 
-Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
+- Code block normalization - Improved reliability when pasting code blocks.
 
-Table support - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
+- Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
+
+- Table support - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
 
 ## Settings
 
-Include Images - By default, images (external or base64 encoded) are included in the pasted text. If desired, you can un-check include images in the plugin settings so that images are not included in the pasted text.
+- Include Images - By default, images (external or base64 encoded) are included in the pasted text. If desired, you can un-check include images in the plugin settings so that images are not included in the pasted text.
 
-> [!NOTE]
-> Pasted images are not automatically converted to Joplin resources.
+- Convert images to Joplin resources - If enabled (along with Include images), external (http/https) and base64 encoded images will automatically be converted to Joplin resources.
