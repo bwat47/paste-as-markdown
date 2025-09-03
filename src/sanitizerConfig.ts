@@ -33,7 +33,7 @@ export const SANITIZER_ALLOWED_TAGS_BASE = [
     'td',
 ];
 
-export const SANITIZER_ALLOWED_ATTRS_BASE = ['href', 'name', 'id', 'title', 'colspan', 'rowspan', 'align'];
+export const SANITIZER_ALLOWED_ATTRS_BASE = ['href', 'name', 'id', 'title', 'colspan', 'rowspan', 'align', 'class'];
 
 export const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
 export const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];

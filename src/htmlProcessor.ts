@@ -33,6 +33,7 @@ export function processHtml(html: string, options: PasteOptions): string {
         // We intentionally DO NOT attempt style-based semantic inference. Rely solely on existing <b>/<strong>/<i>/<em> tags.
         cleanHeadingAnchors(body);
         normalizeWhitespaceCharacters(body);
+        normalizeCodeBlocks(body);
 
         return body.innerHTML;
     } catch (err) {
@@ -151,6 +152,131 @@ function unwrapElement(element: HTMLElement): void {
     // Remove the now-empty element
     parent.removeChild(element);
 }
+
+/**
+ * Generic normalization of code blocks copied from various sites (GitHub, GitLab, Bitbucket, Google style, etc.).
+ * Goals:
+ *  - Collapse wrapper divs (e.g. .highlight, .snippet-clipboard-content, .code-wrapper) so only <pre><code> remains
+ *  - Ensure a <code> element exists inside each <pre>
+ *  - Infer language from common class/name patterns and add a standardized class="language-xxx"
+ *  - Decode HTML entities inside HTML code blocks so Markdown fence shows real tags
+ */
+function normalizeCodeBlocks(body: HTMLElement): void {
+    const wrappers = Array.from(
+        body.querySelectorAll(
+            'div.highlight, div.snippet-clipboard-content, div.code, div.sourceCode, figure.highlight, pre'
+        )
+    );
+    wrappers.forEach((wrapper) => {
+        // Identify the <pre>
+        const wrapperEl = wrapper as HTMLElement;
+        const pre: HTMLElement | null =
+            wrapperEl.tagName.toLowerCase() === 'pre'
+                ? wrapperEl
+                : (wrapperEl.querySelector('pre') as HTMLElement | null);
+        if (!pre) return;
+        // Unwrap single-pre wrappers
+        if (pre !== wrapperEl && wrapperEl.parentElement && onlyContains(wrapperEl, pre)) {
+            wrapperEl.parentElement.replaceChild(pre, wrapperEl);
+        }
+        // Ensure <code>
+        let code = pre.querySelector('code');
+        if (!code) {
+            code = pre.ownerDocument.createElement('code');
+            // Move children of pre into code
+            while (pre.firstChild) code.appendChild(pre.firstChild);
+            pre.appendChild(code);
+        }
+        // Flatten GitHub-style token spans: if every non-empty child element is a span.pl-* then replace with plain textContent.
+        if (
+            code.children.length > 0 &&
+            Array.from(code.children).every((el) => el.tagName.toLowerCase() === 'span' && /\bpl-/.test(el.className))
+        ) {
+            const text = code.textContent || '';
+            code.textContent = text; // replaces inner HTML, dropping span markup while preserving decoded characters
+        } else if (code.childElementCount === 1 && code.firstElementChild?.tagName.toLowerCase() === 'span') {
+            // Single-wrapper span case (keep previous behavior)
+            const span = code.firstElementChild as HTMLElement;
+            code.textContent = span.textContent || span.innerText || '';
+        }
+        // Derive language
+        const language = inferLanguage(pre, code);
+        if (language) {
+            // Remove any existing language- or lang- prefixed classes to avoid duplication
+            code.className = code.className
+                .split(/\s+/)
+                .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c))
+                .join(' ');
+            if (!code.classList.contains(`language-${language}`)) code.classList.add(`language-${language}`);
+        }
+    });
+}
+
+function onlyContains(wrapper: Element, child: Element): boolean {
+    const kids = Array.from(wrapper.childNodes).filter(
+        (n) => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim())
+    );
+    return kids.length === 1 && kids[0] === child;
+}
+
+function inferLanguage(pre: HTMLElement, code: HTMLElement): string | null {
+    const classSources: string[] = [];
+    const collect = (el: Element | null) => {
+        if (!el) return;
+        const cls = el.getAttribute('class');
+        if (cls) classSources.push(cls);
+    };
+    collect(pre);
+    collect(code);
+    // also walk up two ancestors for wrapper language hints
+    let parent: Element | null = pre.parentElement;
+    for (let i = 0; i < 2 && parent; i++) {
+        collect(parent);
+        parent = parent.parentElement;
+    }
+    const classBlob = classSources.join(' ');
+    const patterns: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
+        [/language-([A-Za-z0-9+#_-]+)/, (m) => m[1]],
+        [/lang-([A-Za-z0-9+#_-]+)/, (m) => m[1]],
+        [/highlight-(?:text|source)-([a-z0-9]+)(?:-basic)?/i, (m) => m[1]],
+        [/brush:([a-z0-9]+)/i, (m) => m[1]], // SyntaxHighlighter legacy
+    ];
+    for (const [re, fn] of patterns) {
+        const m = classBlob.match(re);
+        if (m) return normalizeLang(fn(m));
+    }
+    // Shebang detection if no explicit class
+    const firstLine = (code.textContent || '').split(/\n/)[0];
+    if (/^#!.*\b(bash|sh)\b/.test(firstLine)) return 'bash';
+    if (/^#!.*\bpython/.test(firstLine)) return 'python';
+    // Heuristic: contains HTML tags typical of examples (script/style/div) -> html
+    const raw = code.innerHTML;
+    if (/<script\b|<style\b|<div\b|<span\b|&lt;script\b/i.test(raw)) return 'html';
+    return null;
+}
+
+function normalizeLang(raw: string): string {
+    const l = raw.toLowerCase();
+    const map: Record<string, string> = {
+        js: 'javascript',
+        jsx: 'jsx',
+        ts: 'typescript',
+        py: 'python',
+        rb: 'ruby',
+        cpp: 'cpp',
+        c: 'c',
+        'c#': 'csharp',
+        sh: 'bash',
+        shell: 'bash',
+        html: 'html',
+        htm: 'html',
+        md: 'markdown',
+    };
+    if (l === 'c++') return 'cpp';
+    return map[l] || l;
+}
+
+// (Removed) decodeBasicEntitiesInCode: superseded by span token flattening using textContent
 
 /**
  * Remove all style attributes to prevent CSS parsing errors in Turndown
