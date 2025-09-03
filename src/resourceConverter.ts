@@ -287,8 +287,8 @@ function truncateForLog(input: string, keep: number = 80): string {
 
 /**
  * If the converted <img> is wrapped in a simple remote <a href="http(s)://..."> whose only child is the image,
- * unwrap it (remove the anchor) so the local resource image is not a misleading clickable external link.
- * We purposefully do NOT reinsert the original link elsewhere to keep output minimal and avoid clutter.
+ * unwrap it (remove the anchor) so the local resource image is not a clickable external link.
+ * We purposefully do NOT reinsert the original link elsewhere to keep output minimal and prevent issues with Rich Markdown plugin.
  */
 function unwrapConvertedImageLink(img: HTMLImageElement): void {
     const parent = img.parentElement;
