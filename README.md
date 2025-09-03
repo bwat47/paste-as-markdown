@@ -21,7 +21,7 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 ## Features
 
-- Convert images to Joplin resources.
+- Image Handling - Include remote/base64 encoded images, convert images to Joplin resources, or remove them entirely.
 
 - DOM-based preprocessing - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements (empty permalink anchors, exotic image attributes, etc...).
 
