@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { convertHtmlToMarkdown } from './markdownConverter';
-import { showToast, hasMeaningfulHtml, validatePasteSettings } from './utils';
+import { showToast, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
 import type { ConversionResult } from './types';
 import { SETTINGS, LOG_PREFIX } from './constants';
@@ -53,9 +53,9 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
     // Read HTML (will be null if unavailable)
 
     const html = await readClipboardHtml();
-    const hasHtml = html && hasMeaningfulHtml(html);
+    const shouldConvert = html && /</.test(html); // basic presence of tag marker
 
-    if (!hasHtml) {
+    if (!shouldConvert) {
         // Fallback to plain text
         const text = await readClipboardText();
         if (!text) {

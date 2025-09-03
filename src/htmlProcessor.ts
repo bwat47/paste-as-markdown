@@ -34,7 +34,6 @@ export function processHtml(html: string, options: PasteOptions): string {
         cleanHeadingAnchors(body);
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body);
-
         return body.innerHTML;
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
@@ -61,9 +60,6 @@ function removeEmptyAnchors(body: HTMLElement): void {
         }
     });
 }
-
-// Historical style-inference utilities removed during refactor (see git history if needed).
-
 /**
  * Clean GitHub-style permalink anchors and heading links.
  * Migrated from turndownRules.ts cleanHeadingAnchors functionality.
@@ -242,8 +238,6 @@ function normalizeLang(raw: string): string {
     if (l === 'c++') return 'cpp';
     return map[l] || l;
 }
-
-// decodeBasicEntitiesInCode removed; span token flattening uses textContent.
 
 /**
  * Normalize whitespace characters to ensure proper rendering in markdown

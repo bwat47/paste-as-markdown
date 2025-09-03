@@ -41,8 +41,6 @@ describe('markdownConverter', () => {
         expect(result).toBe('# Mock Output');
     });
 
-    // Removed test for custom turndown rules (module deleted)
-
     test('processes HTML through DOM preprocessing when includeImages is false', async () => {
         const { default: TurndownService } = await import('@joplin/turndown');
         const mockInstance = new TurndownService();
