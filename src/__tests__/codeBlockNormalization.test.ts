@@ -27,16 +27,19 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```[\s\S]*print\("x"\)[\s\S]*```/);
     });
 
-    test('infers language from shebang (bash)', () => {
+    test('does not infer language from shebang (bash) after heuristic removal', () => {
         const html = '<pre><code>#!/usr/bin/env bash\necho hi</code></pre>';
-        const md = convertHtmlToMarkdown(html, true);
-        expect(md).toMatch(/```bash[\s\S]*echo hi[\s\S]*```/);
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // Should have a fenced block containing the shebang and command; language may be absent
+        expect(md).toMatch(/```[a-z0-9-]*\n#!\/usr\/bin\/env bash[\s\S]*echo hi[\s\S]*```/);
+        expect(md).not.toMatch(/```bash/); // explicit bash no longer auto-added
     });
 
-    test('infers language from shebang (python)', () => {
+    test('does not infer language from shebang (python) after heuristic removal', () => {
         const html = '<pre><code>#!/usr/bin/env python3\nprint(\"x\")</code></pre>';
-        const md = convertHtmlToMarkdown(html, true);
-        expect(md).toMatch(/```python[\s\S]*print\("x"\)[\s\S]*```/);
+        const md = convertHtmlToMarkdown(html, true).trim();
+        expect(md).toMatch(/```[a-z0-9-]*\n#!\/usr\/bin\/env python3[\s\S]*print\(\"x\"\)[\s\S]*```/);
+        expect(md).not.toMatch(/```python/);
     });
 
     test('maps js alias to javascript', () => {

@@ -162,8 +162,8 @@ function normalizeCodeBlocks(body: HTMLElement): void {
             const span = code.firstElementChild as HTMLElement;
             code.textContent = span.textContent || span.innerText || '';
         }
-        // Derive language
-        const language = inferLanguage(pre, code);
+        // Derive language using explicit class-based detection only (no content heuristics).
+        const language = inferLanguageFromClasses(pre, code);
         if (language) {
             // Remove any existing language- or lang- prefixed classes to avoid duplication
             code.className = code.className
@@ -182,7 +182,7 @@ function onlyContains(wrapper: Element, child: Element): boolean {
     return kids.length === 1 && kids[0] === child;
 }
 
-function inferLanguage(pre: HTMLElement, code: HTMLElement): string | null {
+function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string | null {
     const classSources: string[] = [];
     const collect = (el: Element | null) => {
         if (!el) return;
@@ -191,49 +191,59 @@ function inferLanguage(pre: HTMLElement, code: HTMLElement): string | null {
     };
     collect(pre);
     collect(code);
-    // also walk up two ancestors for wrapper language hints
+    // also walk up a few ancestors for wrapper language hints
     let parent: Element | null = pre.parentElement;
-    for (let i = 0; i < 2 && parent; i++) {
+    for (let i = 0; i < 3 && parent; i++) {
         collect(parent);
         parent = parent.parentElement;
     }
     const classBlob = classSources.join(' ');
     const patterns: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
-        [/language-([A-Za-z0-9+#_-]+)/, (m) => m[1]],
-        [/lang-([A-Za-z0-9+#_-]+)/, (m) => m[1]],
-        [/highlight-(?:text|source)-([a-z0-9]+)(?:-basic)?/i, (m) => m[1]],
-        [/brush:([a-z0-9]+)/i, (m) => m[1]], // SyntaxHighlighter legacy
+        [/\blanguage-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
+        [/\blang-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
+        [/\bhighlight-(?:text-|source-)?([a-z0-9]+)(?:-basic)?\b/i, (m) => m[1]],
+        [/\bbrush:\s*([a-z0-9]+)\b/i, (m) => m[1]],
+        [/\bprettyprint\s+lang-([a-z0-9]+)\b/i, (m) => m[1]],
+        [/\bhljs-([a-z0-9]+)\b/i, (m) => m[1]],
+        [/\bcode-([a-z0-9]+)\b/i, (m) => m[1]],
     ];
     for (const [re, fn] of patterns) {
-        const m = classBlob.match(re);
-        if (m) return normalizeLang(fn(m));
+        const match = classBlob.match(re);
+        if (match) return normalizeLangAlias(fn(match));
     }
-    // Shebang detection if no explicit class
-    const firstLine = (code.textContent || '').split(/\n/)[0];
-    if (/^#!.*\b(bash|sh)\b/.test(firstLine)) return 'bash';
-    if (/^#!.*\bpython/.test(firstLine)) return 'python';
-    return null;
+    return null; // Let downstream renderer auto-detect
 }
 
-function normalizeLang(raw: string): string {
+function normalizeLangAlias(raw: string): string {
     const l = raw.toLowerCase();
-    const map: Record<string, string> = {
+    const aliasMap: Record<string, string> = {
         js: 'javascript',
+        mjs: 'javascript',
+        cjs: 'javascript',
         jsx: 'jsx',
         ts: 'typescript',
+        tsx: 'tsx',
         py: 'python',
         rb: 'ruby',
         cpp: 'cpp',
+        cxx: 'cpp',
+        'c++': 'cpp',
         c: 'c',
         'c#': 'csharp',
+        cs: 'csharp',
         sh: 'bash',
         shell: 'bash',
+        zsh: 'bash',
         html: 'html',
         htm: 'html',
         md: 'markdown',
+        yml: 'yaml',
+        rs: 'rust',
+        golang: 'go',
+        kt: 'kotlin',
+        docker: 'dockerfile',
     };
-    if (l === 'c++') return 'cpp';
-    return map[l] || l;
+    return aliasMap[l] || l;
 }
 
 /**
