@@ -132,15 +132,15 @@ function cleanupBrTagsProtected(markdown: string): string {
  */
 // Utility to protect fenced code blocks while applying a transformation to non-code segments
 function withFencedCodeProtection(markdown: string, transform: (segment: string) => string): string {
+    // Extract fences to deterministic tokens; avoids complex negative-lookahead logic.
     const fences: string[] = [];
-    const tokenPrefix = '___PAM_FENCE_'; // Low-collision sentinel prefix
+    const token = (i: number) => `__PAM_FENCE_${i}__`;
     const protectedMd = markdown.replace(/```[\s\S]*?```/g, (m) => {
-        const idx = fences.push(m) - 1;
-        return `${tokenPrefix}${idx}___`;
+        fences.push(m);
+        return token(fences.length - 1);
     });
     const transformed = transform(protectedMd);
-    const restoreRe = new RegExp(`${tokenPrefix}(\\d+)___`, 'g');
-    return transformed.replace(restoreRe, (_, d) => fences[Number(d)]);
+    return fences.reduce((acc, fence, i) => acc.replace(token(i), fence), transformed);
 }
 
 /**

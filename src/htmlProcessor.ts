@@ -244,6 +244,9 @@ function normalizeLang(raw: string): string {
  * Convert various NBSP encodings to regular spaces for better markdown compatibility
  */
 function normalizeWhitespaceCharacters(body: HTMLElement): void {
+    // Fast bail-out: if no NBSP / encoded variants present skip full tree walk.
+    const snapshot = body.innerHTML;
+    if (!/[Â\u00A0]|&nbsp;/.test(snapshot)) return;
     // Walk through all text nodes and normalize whitespace characters
     const doc = body.ownerDocument;
     if (!doc) return;
