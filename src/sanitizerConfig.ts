@@ -16,6 +16,8 @@ export const SANITIZER_ALLOWED_TAGS_BASE = [
     'del',
     'mark',
     'ins',
+    // Keep <input type="checkbox"> so Turndown GFM task list rule can detect task list items.
+    'input',
     'code',
     'pre',
     'ul',
@@ -38,7 +40,20 @@ export const SANITIZER_ALLOWED_TAGS_BASE = [
     'td',
 ];
 
-export const SANITIZER_ALLOWED_ATTRS_BASE = ['href', 'name', 'id', 'title', 'colspan', 'rowspan', 'align', 'class'];
+// Add form-related attributes needed for checkbox detection (type, checked, disabled) for task lists.
+export const SANITIZER_ALLOWED_ATTRS_BASE = [
+    'href',
+    'name',
+    'id',
+    'title',
+    'colspan',
+    'rowspan',
+    'align',
+    'class',
+    'type',
+    'checked',
+    'disabled',
+];
 
 export const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
 export const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];
