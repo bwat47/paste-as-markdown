@@ -11,10 +11,6 @@ export async function showToast(message: string, type: ToastType = ToastType.Inf
     }
 }
 
-/**
- * Checks if an individual image is meaningful (not a tracking pixel or tiny icon)
- */
-
 export function validatePasteSettings(settings: unknown): PasteOptions {
     const s = (settings || {}) as Partial<PasteOptions>;
     return {
