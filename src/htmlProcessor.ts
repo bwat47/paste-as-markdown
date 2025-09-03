@@ -176,6 +176,11 @@ function normalizeCodeBlocks(body: HTMLElement): void {
             const span = code.firstElementChild as HTMLElement;
             code.textContent = span.textContent || span.innerText || '';
         }
+        // If after normalization the code block has no visible text (empty or whitespace), remove the entire pre.
+        if (!code.textContent || code.textContent.replace(/\s+/g, '') === '') {
+            pre.remove();
+            return; // Skip further processing for this block
+        }
         // Derive language using explicit class-based detection only (no content heuristics).
         const language = inferLanguageFromClasses(pre, code);
         if (language) {
