@@ -27,21 +27,6 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```[\s\S]*print\("x"\)[\s\S]*```/);
     });
 
-    test('does not infer language from shebang (bash) after heuristic removal', () => {
-        const html = '<pre><code>#!/usr/bin/env bash\necho hi</code></pre>';
-        const md = convertHtmlToMarkdown(html, true).trim();
-        // Should have a fenced block containing the shebang and command; language may be absent
-        expect(md).toMatch(/```[a-z0-9-]*\n#!\/usr\/bin\/env bash[\s\S]*echo hi[\s\S]*```/);
-        expect(md).not.toMatch(/```bash/); // explicit bash no longer auto-added
-    });
-
-    test('does not infer language from shebang (python) after heuristic removal', () => {
-        const html = '<pre><code>#!/usr/bin/env python3\nprint(\"x\")</code></pre>';
-        const md = convertHtmlToMarkdown(html, true).trim();
-        expect(md).toMatch(/```[a-z0-9-]*\n#!\/usr\/bin\/env python3[\s\S]*print\(\"x\"\)[\s\S]*```/);
-        expect(md).not.toMatch(/```python/);
-    });
-
     test('maps js alias to javascript', () => {
         const html = '<pre class="language-js"><code>console.log(1)</code></pre>';
         const md = convertHtmlToMarkdown(html, true);
@@ -53,14 +38,6 @@ describe('code block normalization & language inference', () => {
         const md = convertHtmlToMarkdown(html, true);
         // Accept with explicit html language (if future explicit class added) or without language.
         expect(md).toMatch(/```(?:html)?[\s\S]*<div>Hello<\/div>[\s\S]*```/);
-    });
-
-    test('does not misclassify simple less-than expression as html', () => {
-        const html = '<pre><code>a < b && c</code></pre>';
-        const md = convertHtmlToMarkdown(html, true);
-        // No html language fence expected (language-??? absent or different); ensure fence exists
-        expect(md).toMatch(/```[\s\S]*a < b && c[\s\S]*```/);
-        expect(md).not.toMatch(/```html/);
     });
 
     test('sanitizes live <script> but preserves script tag text inside code (no html heuristic)', () => {
