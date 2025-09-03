@@ -9,6 +9,8 @@ import { LOG_PREFIX, MAX_IMAGE_BYTES } from './constants';
  *  - Create Joplin resources using a temporary file (sandbox requires a filepath for resource creation)
  *  - Sanitize & normalize resulting <img> tags (attribute whitelist + ordering + alt text fallback)
  *  - Provide metrics (attempted / failed counts) for user feedback
+ *  - Unwrap remote hyperlink wrappers around images once converted to local resources to avoid leaving
+ *    now-misleading outbound links (anchor is removed if it only wraps the image and no other content)
  *
  * Design Choices / Rationale:
  *  - fs-extra capability check: Some environments may not expose fs-extra; in that case we bail out silently
@@ -81,6 +83,7 @@ export async function convertImagesToResources(
             const id = await createJoplinResource(data);
             img.setAttribute('src', `:/${id}`);
             standardizeImageElement(img as HTMLImageElement, data.filename);
+            unwrapConvertedImageLink(img as HTMLImageElement);
             ids.push(id);
         } catch (e) {
             failed++;
@@ -280,6 +283,24 @@ function truncateForLog(input: string, keep: number = 80): string {
     if (input.length <= keep * 2 + 20) return input; // small enough
     const omitted = input.length - keep * 2;
     return `${input.slice(0, keep)}...[${omitted} chars omitted]...${input.slice(-keep)}`;
+}
+
+/**
+ * If the converted <img> is wrapped in a simple remote <a href="http(s)://..."> whose only child is the image,
+ * unwrap it (remove the anchor) so the local resource image is not a misleading clickable external link.
+ * We purposefully do NOT reinsert the original link elsewhere to keep output minimal and avoid clutter.
+ */
+function unwrapConvertedImageLink(img: HTMLImageElement): void {
+    const parent = img.parentElement;
+    if (!parent || parent.tagName.toLowerCase() !== 'a') return;
+    if (parent.childNodes.length !== 1) return; // anchor has other content; skip
+    const href = (parent as HTMLAnchorElement).getAttribute('href') || '';
+    if (!/^https?:\/\//i.test(href)) return; // only remote links
+    if (!img.getAttribute('src')?.startsWith(':/')) return; // only after conversion
+    const grand = parent.parentNode;
+    if (!grand) return;
+    grand.insertBefore(img, parent); // move image out
+    grand.removeChild(parent); // drop anchor
 }
 
 /**
