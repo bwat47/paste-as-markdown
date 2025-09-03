@@ -77,8 +77,17 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
         await insertMarkdownAtCursor(markdown);
 
         let message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
-        if (options.includeImages && options.convertImagesToResources && resources.resourcesCreated > 0) {
-            message += ` (${resources.resourcesCreated} image resource${resources.resourcesCreated === 1 ? '' : 's'} created)`;
+        if (options.includeImages && options.convertImagesToResources) {
+            const created = resources.resourcesCreated;
+            const attempted = resources.attempted ?? created;
+            const failed = resources.failed ?? 0;
+            if (attempted > 0) {
+                if (failed > 0) {
+                    message += ` (converted ${created} of ${attempted} image${attempted === 1 ? '' : 's'})`;
+                } else if (created > 0) {
+                    message += ` (${created} image resource${created === 1 ? '' : 's'} created)`;
+                }
+            }
         }
         await showToast(message, ToastType.Success);
 

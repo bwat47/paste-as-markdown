@@ -41,9 +41,14 @@ export async function processHtml(
 
         // Image handling
         let resourceIds: string[] = [];
+        let attempted = 0;
+        let failed = 0;
         if (options.includeImages) {
             if (options.convertImagesToResources) {
-                resourceIds = await convertImagesToResources(body);
+                const result = await convertImagesToResources(body);
+                resourceIds = result.ids;
+                attempted = result.attempted;
+                failed = result.failed;
                 // Standardize any images that were not converted (e.g., SVGs or failures)
                 standardizeRemainingImages(body);
             } else {
@@ -51,7 +56,10 @@ export async function processHtml(
                 standardizeRemainingImages(body);
             }
         }
-        return { html: body.innerHTML, resources: { resourcesCreated: resourceIds.length, resourceIds } };
+        return {
+            html: body.innerHTML,
+            resources: { resourcesCreated: resourceIds.length, resourceIds, attempted, failed },
+        };
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
         return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
@@ -346,7 +354,9 @@ interface ParsedImageData {
     filename: string;
 }
 
-async function convertImagesToResources(body: HTMLElement): Promise<string[]> {
+async function convertImagesToResources(
+    body: HTMLElement
+): Promise<{ ids: string[]; attempted: number; failed: number }> {
     // Early capability check: if fs-extra isn't available, skip conversion silently (original src retained)
     let fsExtraAvailable = true;
     try {
@@ -357,16 +367,19 @@ async function convertImagesToResources(body: HTMLElement): Promise<string[]> {
     }
     if (!fsExtraAvailable) {
         console.info(LOG_PREFIX, 'fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
-        return [];
+        return { ids: [], attempted: 0, failed: 0 };
     }
     const imgs = Array.from(body.querySelectorAll('img[src]')).filter((img) => {
         const src = img.getAttribute('src') || '';
         return src && !src.startsWith(':/') && (src.startsWith('data:') || /^https?:\/\//i.test(src));
     });
     const ids: string[] = [];
+    let attempted = 0;
+    let failed = 0;
     for (const img of imgs) {
         const src = img.getAttribute('src') || '';
         try {
+            attempted++;
             let data: ParsedImageData | null = null;
             if (src.startsWith('data:')) data = await parseBase64Image(src);
             else if (/^https?:\/\//i.test(src)) data = await downloadExternalImage(src);
@@ -377,10 +390,11 @@ async function convertImagesToResources(body: HTMLElement): Promise<string[]> {
             standardizeImageElement(img as HTMLImageElement, data.filename);
             ids.push(id);
         } catch (e) {
+            failed++;
             console.warn(LOG_PREFIX, 'Failed to convert image to resource', src, e);
         }
     }
-    return ids;
+    return { ids, attempted, failed };
 }
 
 function standardizeImageElement(img: HTMLImageElement, originalFilename: string): void {

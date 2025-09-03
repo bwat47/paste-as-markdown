@@ -15,4 +15,6 @@ export interface PasteOptions {
 export interface ResourceConversionMeta {
     resourcesCreated: number;
     resourceIds: string[];
+    attempted?: number;
+    failed?: number;
 }
