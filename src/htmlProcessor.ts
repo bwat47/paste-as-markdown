@@ -212,9 +212,6 @@ function inferLanguage(pre: HTMLElement, code: HTMLElement): string | null {
     const firstLine = (code.textContent || '').split(/\n/)[0];
     if (/^#!.*\b(bash|sh)\b/.test(firstLine)) return 'bash';
     if (/^#!.*\bpython/.test(firstLine)) return 'python';
-    // Heuristic: classify as html only if escaped tags (&lt;...>) or actual <script>/<style> appear.
-    const raw = code.innerHTML;
-    if (/&lt;\/?[a-zA-Z]+\b/.test(raw) || /<script\b|<style\b/i.test(raw)) return 'html';
     return null;
 }
 

@@ -166,13 +166,13 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(outside).not.toMatch(/\n{3,}/);
     });
 
-    test('GitHub highlighted html code block preserved with language fence', () => {
+    test('GitHub highlighted html code block preserved (language fence optional)', () => {
         const html = `<!--StartFragment--><p>Browser:</p><div class="highlight highlight-text-html-basic"><pre><span>&lt;script src=\"https://unpkg.com/turndown/dist/turndown.js\"&gt;&lt;/script&gt;</span></pre></div><!--EndFragment-->`;
         const md = convertHtmlToMarkdown(html, true).trim();
-        // Expect a fenced code block with html language (```html) and unescaped script tag content
+        // Expect a fenced code block with unescaped script tag content; html language tag may be absent after heuristic removal.
         expect(md).toMatch(/Browser:/);
         expect(md).toMatch(
-            /```html[\s\S]*<script src=\"https:\/\/unpkg.com\/turndown\/dist\/turndown.js\"><\/script>[\s\S]*```/
+            /```(?:html)?[\s\S]*<script src=\"https:\/\/unpkg.com\/turndown\/dist\/turndown.js\"><\/script>[\s\S]*```/
         );
     });
 });

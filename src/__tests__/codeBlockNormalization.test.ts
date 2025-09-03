@@ -45,10 +45,11 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```javascript[\s\S]*console\.log/);
     });
 
-    test('html heuristic triggers for escaped tags', () => {
+    test('escaped tags preserved (no forced html heuristic)', () => {
         const html = '<pre><code>&lt;div&gt;Hello&lt;/div&gt;</code></pre>';
         const md = convertHtmlToMarkdown(html, true);
-        expect(md).toMatch(/```html[\s\S]*<div>Hello<\/div>[\s\S]*```/);
+        // Accept with explicit html language (if future explicit class added) or without language.
+        expect(md).toMatch(/```(?:html)?[\s\S]*<div>Hello<\/div>[\s\S]*```/);
     });
 
     test('does not misclassify simple less-than expression as html', () => {
@@ -59,14 +60,14 @@ describe('code block normalization & language inference', () => {
         expect(md).not.toMatch(/```html/);
     });
 
-    test('sanitizes live <script> but preserves script tag text inside code', () => {
+    test('sanitizes live <script> but preserves script tag text inside code (no html heuristic)', () => {
         const html =
             '<div><script>alert(1)</script></div><pre><code>&lt;script&gt;alert(1)&lt;/script&gt;</code></pre>';
         const md = convertHtmlToMarkdown(html, true);
         // Ensure any alert(1) appears only inside fenced code (capture fenced block then check counts)
         const occurrences = (md.match(/alert\(1\)/g) || []).length;
         expect(occurrences).toBeGreaterThanOrEqual(1);
-        // Should appear within a fenced block containing script tag text
-        expect(md).toMatch(/```html[\s\S]*<script>alert\(1\)<\/script>[\s\S]*```/);
+        // Should appear within a fenced code block (language may be absent now)
+        expect(md).toMatch(/```(?:html)?[\s\S]*<script>alert\(1\)<\/script>[\s\S]*```/);
     });
 });
