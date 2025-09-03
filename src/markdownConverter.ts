@@ -10,12 +10,8 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     const dynamicOptions = includeImages ? TURNDOWN_OPTIONS : { ...TURNDOWN_OPTIONS, preserveImageTagsWithSize: false };
     const service = new TurndownService(dynamicOptions as typeof TURNDOWN_OPTIONS);
     service.use(gfm);
-
-    // Remove problematic elements that can cause CSS parsing errors
-    service.remove('script');
-    service.remove('style');
-
-    // Apply any remaining custom rules (most have been moved to DOM preprocessing)
+    // Scripts/styles already stripped during sanitization; no need to remove via Turndown.
+    // All custom cleanup is now handled in DOM preprocessing.
     return service;
 }
 
@@ -137,12 +133,14 @@ function cleanupBrTagsProtected(markdown: string): string {
 // Utility to protect fenced code blocks while applying a transformation to non-code segments
 function withFencedCodeProtection(markdown: string, transform: (segment: string) => string): string {
     const fences: string[] = [];
+    const tokenPrefix = '___PAM_FENCE_'; // Low-collision sentinel prefix
     const protectedMd = markdown.replace(/```[\s\S]*?```/g, (m) => {
         const idx = fences.push(m) - 1;
-        return `__FENCE_BLOCK_${idx}__`;
+        return `${tokenPrefix}${idx}___`;
     });
     const transformed = transform(protectedMd);
-    return transformed.replace(/__FENCE_BLOCK_(\d+)__/g, (_, d) => fences[Number(d)]);
+    const restoreRe = new RegExp(`${tokenPrefix}(\\d+)___`, 'g');
+    return transformed.replace(restoreRe, (_, d) => fences[Number(d)]);
 }
 
 /**
