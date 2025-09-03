@@ -15,7 +15,7 @@ Useful for scenarios where you can't use the joplin web clipper (e.g. copying te
 
 In the markdown editor, right click and select "Paste as Markdown" (or use the keyboard shortcut, ctrl + alt +v by default).
 
-If you have HTML formatted text in the clipbard, the plugin will convert it to markdown formatting and paste the markdown formatted text.
+If you have HTML formatted text in the clipboard, the plugin will convert it to markdown formatting and paste the markdown formatted text.
 
 If you don't have HTML formatted text in the clipboard, the plugin will fall back to pasting the plain text.
 
