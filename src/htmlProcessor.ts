@@ -30,7 +30,7 @@ export function processHtml(html: string, options: PasteOptions): string {
             // DOMPurify already dropped disallowed image tags if configured, but ensure anchors referencing only images are cleaned.
             removeEmptyAnchors(body);
         }
-        // We intentionally DO NOT attempt style-based semantic inference. Rely solely on existing <b>/<strong>/<i>/<em> tags.
+        // Style-based semantic inference intentionally skipped; rely on existing semantic tags only.
         cleanHeadingAnchors(body);
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body);
@@ -42,12 +42,7 @@ export function processHtml(html: string, options: PasteOptions): string {
     }
 }
 
-/**
- * Remove script and style elements entirely as they should never be converted
- */
-// (Removed) removeScriptAndStyleElements: DOMPurify already strips script/style elements.
-
-// (Removed) removeImageElements: DOMPurify exclusion + no longer needed.
+// DOMPurify already strips scripts/styles and (optionally) images; no extra removal needed here.
 
 /**
  * Remove anchor elements that become empty after image removal
@@ -67,33 +62,7 @@ function removeEmptyAnchors(body: HTMLElement): void {
     });
 }
 
-/**
- * Fix the Joplin insert rule bug by removing text-decoration: underline from anchor elements.
- * This prevents the insert rule from matching anchor elements and creating empty <ins> tags.
- */
-// (Removed) fixJoplinInsertRuleBug: style attributes are stripped; underline styling no longer reaches Turndown.
-
-// (Removed) applySemanticTransformations: style inference intentionally dropped.
-
-/**
- * Safely get computed styles, falling back to inline styles if needed
- */
-// (Removed) getComputedStyleSafely
-
-/**
- * Check if element has bold styling
- */
-// (Removed) isBoldStyle
-
-/**
- * Check if element has italic styling
- */
-// (Removed) isItalicStyle
-
-/**
- * Convert a span element to a semantic element
- */
-// (Removed) convertSpanToElement
+// Historical style-inference utilities removed during refactor (see git history if needed).
 
 /**
  * Clean GitHub-style permalink anchors and heading links.
@@ -163,9 +132,7 @@ function unwrapElement(element: HTMLElement): void {
  */
 function normalizeCodeBlocks(body: HTMLElement): void {
     const wrappers = Array.from(
-        body.querySelectorAll(
-            'div.highlight, div.snippet-clipboard-content, div.code, div.sourceCode, figure.highlight, pre'
-        )
+        body.querySelectorAll('div.highlight, div.snippet-clipboard-content, div.sourceCode, figure.highlight, pre')
     );
     wrappers.forEach((wrapper) => {
         // Identify the <pre>
@@ -249,9 +216,9 @@ function inferLanguage(pre: HTMLElement, code: HTMLElement): string | null {
     const firstLine = (code.textContent || '').split(/\n/)[0];
     if (/^#!.*\b(bash|sh)\b/.test(firstLine)) return 'bash';
     if (/^#!.*\bpython/.test(firstLine)) return 'python';
-    // Heuristic: contains HTML tags typical of examples (script/style/div) -> html
+    // Heuristic: classify as html only if escaped tags (&lt;...>) or actual <script>/<style> appear.
     const raw = code.innerHTML;
-    if (/<script\b|<style\b|<div\b|<span\b|&lt;script\b/i.test(raw)) return 'html';
+    if (/&lt;\/?[a-zA-Z]+\b/.test(raw) || /<script\b|<style\b/i.test(raw)) return 'html';
     return null;
 }
 
@@ -276,13 +243,7 @@ function normalizeLang(raw: string): string {
     return map[l] || l;
 }
 
-// (Removed) decodeBasicEntitiesInCode: superseded by span token flattening using textContent
-
-/**
- * Remove all style attributes to prevent CSS parsing errors in Turndown
- * Since we're converting to Markdown, inline styles aren't needed anyway
- */
-// (Removed) removeStyleAttributes: DOMPurify forbids style attributes via FORBID_ATTR.
+// decodeBasicEntitiesInCode removed; span token flattening uses textContent.
 
 /**
  * Normalize whitespace characters to ensure proper rendering in markdown
@@ -330,37 +291,3 @@ function normalizeWhitespaceCharacters(body: HTMLElement): void {
         node.textContent = newText;
     });
 }
-
-/**
- * Remove elements that contain only whitespace and have no meaningful child elements
- * Inspired by Obsidian paste-reformatter plugin's cleaner approach
- */
-// (Removed) removeEmptyElements: rely on natural DOM text structure.
-
-/**
- * Check if an element is effectively empty using a recursive approach
- * Based on the cleaner pattern from the Obsidian plugin
- */
-// (Removed) isElementEmpty
-
-/**
- * Simplified check for elements that provide meaningful spacing between content
- * Much cleaner than the previous complex adjacency detection
- */
-// (Removed) isSpacingElement
-
-/**
- * Context detection - check if element is positioned between meaningful content
- * Handles both direct siblings and parent-level context for nested cases
- */
-// (Removed) hasContentContext
-
-/**
- * Check if element provides spacing in its local context (either within parent or parent's context)
- */
-// (Removed) hasLocalSpacingContext
-
-/**
- * Check if parent is an inline element that could be providing spacing context
- */
-// (Removed) isInlineParent
