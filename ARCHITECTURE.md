@@ -145,4 +145,4 @@ User paste command →
 
 ## Summary
 
-Refactor consolidates all structural & security concerns into a deterministic DOM preprocessing layer, drastically simplifying Turndown customization and post-processing. Current codebase favors clarity and stability over aggressive fidelity to original styling, aligned with
+Refactor consolidates all structural & security concerns into a deterministic DOM preprocessing layer, drastically simplifying Turndown customization and post-processing. Current codebase favors clarity and stability over aggressive fidelity to original styling.
