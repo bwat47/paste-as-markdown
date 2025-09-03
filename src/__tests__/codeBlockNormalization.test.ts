@@ -20,11 +20,12 @@ describe('code block normalization & language inference', () => {
         expect(md).not.toMatch(/pl-k|pl-s1|pl-c1/);
     });
 
-    test('handles highlight-source- wrapper (may or may not infer language)', () => {
+    test('does not infer language when only wrapper has highlight-source- class (python)', () => {
         const html = '<div class="highlight highlight-source-python"><pre>print(\"x\")</pre></div>';
-        const md = convertHtmlToMarkdown(html, true);
-        // Must at least produce a fenced block containing the code.
-        expect(md).toMatch(/```[\s\S]*print\("x"\)[\s\S]*```/);
+        const md = convertHtmlToMarkdown(html, true).trim();
+        // We currently unwrap the wrapper (dropping its classes) before collecting parent classes, so no python fence.
+        expect(md).toMatch(/```[a-z0-9-]*[\r\n]+print\("x"\)[\s\S]*```/);
+        expect(md).not.toMatch(/```python/);
     });
 
     test('maps js alias to javascript', () => {

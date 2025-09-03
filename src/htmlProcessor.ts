@@ -150,6 +150,20 @@ function normalizeCodeBlocks(body: HTMLElement): void {
             while (pre.firstChild) code.appendChild(pre.firstChild);
             pre.appendChild(code);
         }
+        // Remove non-code UI helper elements (e.g., copy/fullscreen button toolbars) that some forums inject
+        // because Turndown may downgrade a <pre> with mixed children to inline code. Keep only the <code> element.
+        for (const child of Array.from(pre.children)) {
+            if (child !== code) {
+                // Heuristic: known wrapper/button containers or any div/button sibling
+                if (
+                    /codeblock-button-wrapper|copy|fullscreen|toolbar/i.test(child.className) ||
+                    child.tagName === 'DIV' ||
+                    child.tagName === 'BUTTON'
+                ) {
+                    child.remove();
+                }
+            }
+        }
         // Flatten GitHub-style token spans: if every non-empty child element is a span.pl-* then replace with plain textContent.
         if (
             code.children.length > 0 &&
