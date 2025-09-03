@@ -2,7 +2,7 @@ import TurndownService from '@joplin/turndown';
 import { gfm } from '@joplin/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './htmlProcessor';
-import type { PasteOptions } from './types';
+import type { PasteOptions, ResourceConversionMeta } from './types';
 
 function createTurndownServiceSync(includeImages: boolean): TurndownService {
     // Much simpler now that DOM pre-processing handles most cleanup.
@@ -21,13 +21,18 @@ function createTurndownServiceSync(includeImages: boolean): TurndownService {
     return service;
 }
 
-export function convertHtmlToMarkdown(html: string, includeImages: boolean = true): string {
+export async function convertHtmlToMarkdown(
+    html: string,
+    includeImages: boolean = true,
+    convertImagesToResources: boolean = false
+): Promise<{ markdown: string; resources: ResourceConversionMeta }> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     let input = wrapOrphanedTableElements(html);
 
-    // Apply DOM-based preprocessing to clean and sanitize the HTML
-    const options: PasteOptions = { includeImages };
-    input = processHtml(input, options);
+    // Apply DOM-based preprocessing to clean and sanitize the HTML (now async)
+    const options: PasteOptions = { includeImages, convertImagesToResources };
+    const processed = await processHtml(input, options);
+    input = processed.html;
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     // and this guarantees option/rule changes always apply without stale caching.
@@ -37,7 +42,7 @@ export function convertHtmlToMarkdown(html: string, includeImages: boolean = tru
     // Post-process the markdown for final cleanup
     markdown = cleanupMarkdown(markdown);
 
-    return markdown;
+    return { markdown, resources: processed.resources };
 }
 
 /**

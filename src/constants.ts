@@ -16,6 +16,7 @@ export const TURNDOWN_OPTIONS = {
 
 export const SETTINGS = {
     INCLUDE_IMAGES: 'includeImages',
+    CONVERT_IMAGES_TO_RESOURCES: 'convertImagesToResources',
 } as const;
 
 // Settings section identifiers

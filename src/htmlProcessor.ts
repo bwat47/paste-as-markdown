@@ -1,4 +1,4 @@
-import type { PasteOptions } from './types';
+import type { PasteOptions, ResourceConversionMeta } from './types';
 import { LOG_PREFIX } from './constants';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from './sanitizerConfig';
@@ -8,9 +8,13 @@ import { buildSanitizerConfig } from './sanitizerConfig';
  * This centralizes all HTML manipulations that were previously scattered across Turndown rules
  * and post-processing regex operations.
  */
-export function processHtml(html: string, options: PasteOptions): string {
+export async function processHtml(
+    html: string,
+    options: PasteOptions
+): Promise<{ html: string; resources: ResourceConversionMeta }> {
     // Safety wrapper: if DOM APIs unavailable, return original.
-    if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return html;
+    if (typeof window === 'undefined' || typeof DOMParser === 'undefined')
+        return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
     try {
         // 1. Sanitize first with DOMPurify (drops scripts, event handlers, dangerous URIs, optionally images)
         const purifier = createDOMPurify(window as unknown as typeof window);
@@ -23,7 +27,7 @@ export function processHtml(html: string, options: PasteOptions): string {
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitized, 'text/html');
         const body = doc.body;
-        if (!body) return html;
+        if (!body) return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
 
         // 3. Post-sanitization semantic adjustments (things DOMPurify doesn't do)
         if (!options.includeImages) {
@@ -34,10 +38,16 @@ export function processHtml(html: string, options: PasteOptions): string {
         cleanHeadingAnchors(body);
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body);
-        return body.innerHTML;
+
+        // Image -> resource conversion (sequential) if enabled
+        let resourceIds: string[] = [];
+        if (options.includeImages && options.convertImagesToResources) {
+            resourceIds = await convertImagesToResources(body);
+        }
+        return { html: body.innerHTML, resources: { resourcesCreated: resourceIds.length, resourceIds } };
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
-        return html;
+        return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
     }
 }
 
@@ -320,4 +330,181 @@ function normalizeWhitespaceCharacters(body: HTMLElement): void {
     textNodesToUpdate.forEach(({ node, newText }) => {
         node.textContent = newText;
     });
+}
+
+// ---- Image resource conversion helpers ----
+interface ParsedImageData {
+    buffer: ArrayBuffer;
+    mime: string;
+    filename: string;
+}
+
+async function convertImagesToResources(body: HTMLElement): Promise<string[]> {
+    const imgs = Array.from(body.querySelectorAll('img[src]')).filter((img) => {
+        const src = img.getAttribute('src') || '';
+        return src && !src.startsWith(':/') && (src.startsWith('data:') || /^https?:\/\//i.test(src));
+    });
+    const ids: string[] = [];
+    for (const img of imgs) {
+        const src = img.getAttribute('src') || '';
+        try {
+            let data: ParsedImageData | null = null;
+            if (src.startsWith('data:')) data = await parseBase64Image(src);
+            else if (/^https?:\/\//i.test(src)) data = await downloadExternalImage(src);
+            if (!data) continue;
+            // Skip SVGs for now – they are text, small, and often remote badges. Avoid resource conversion complications.
+            const id = await createJoplinResource(data);
+            img.setAttribute('src', `:/${id}`);
+            standardizeImageElement(img as HTMLImageElement, data.filename);
+            ids.push(id);
+        } catch (e) {
+            console.warn(LOG_PREFIX, 'Failed to convert image to resource', src, e);
+        }
+    }
+    return ids;
+}
+
+function standardizeImageElement(img: HTMLImageElement, originalFilename: string): void {
+    // Preserve existing alt if present, else derive from original filename (strip extension underscores -> spaces optional?)
+    const existingAlt = (img.getAttribute('alt') || '').trim();
+    if (!existingAlt) {
+        const base = originalFilename.replace(/\.[a-z0-9]{2,5}$/i, '');
+        img.setAttribute('alt', base);
+    }
+    // Remove all non-whitelisted attributes
+    const allowed = new Set(['src', 'alt', 'width', 'height']);
+    for (const attr of Array.from(img.attributes)) {
+        if (!allowed.has(attr.name.toLowerCase())) img.removeAttribute(attr.name);
+    }
+    // Reorder attributes: src, alt, width, height
+    const srcVal = img.getAttribute('src') || '';
+    const altVal = img.getAttribute('alt');
+    const widthVal = img.getAttribute('width');
+    const heightVal = img.getAttribute('height');
+    // Remove all allowed then re-add in canonical order
+    ['src', 'alt', 'width', 'height'].forEach((a) => img.removeAttribute(a));
+    if (srcVal) img.setAttribute('src', srcVal);
+    if (altVal) img.setAttribute('alt', altVal);
+    if (widthVal) img.setAttribute('width', widthVal);
+    if (heightVal) img.setAttribute('height', heightVal);
+}
+
+async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
+    const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
+    if (!match) throw new Error('Invalid data URL');
+    const mime = match[1].toLowerCase();
+    if (!mime.startsWith('image/')) throw new Error('Not image');
+    const b64 = match[2];
+    const binary = atob(b64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}` };
+}
+
+async function downloadExternalImage(url: string): Promise<ParsedImageData> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!contentType.startsWith('image/')) throw new Error('Not image');
+    const buffer = await resp.arrayBuffer();
+    const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
+    return { buffer, mime: contentType, filename };
+}
+
+function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
+    try {
+        const u = new URL(url);
+        const last = u.pathname.split('/').filter(Boolean).pop() || '';
+        if (last && /\.[a-z0-9]{2,5}$/i.test(last)) return last;
+        return `pasted.${fallbackExt}`;
+    } catch {
+        return `pasted.${fallbackExt}`;
+    }
+}
+
+function extensionForMime(mime: string): string {
+    const map: Record<string, string> = {
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'image/jpg': 'jpg',
+        'image/gif': 'gif',
+        'image/webp': 'webp',
+        'image/svg+xml': 'svg',
+        'image/bmp': 'bmp',
+        'image/x-icon': 'ico',
+        'image/vnd.microsoft.icon': 'ico',
+    };
+    return map[mime] || 'bin';
+}
+
+async function createJoplinResource(img: ParsedImageData): Promise<string> {
+    // Creating a resource via the data API expects a file path. The previous attempt passed
+    // an in‑memory multipart part with a synthetic path which Joplin core attempted to read
+    // from disk (createResourceFromPath) resulting in "Cannot access data". Here we persist
+    // a temporary file under the plugin data directory, post it, then delete it.
+    // @ts-expect-error joplin global provided at runtime
+    const dataDir: string = await joplin.plugins.dataDir();
+    // Attempt to load fs-extra (available in plugin sandbox). If not available, abort conversion.
+    interface FsExtraLike {
+        writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
+        writeFile?: (path: string, data: Uint8Array | Buffer, cb: (err?: Error | null) => void) => void;
+        existsSync?: (path: string) => boolean;
+        unlink?: (path: string, cb: (err?: Error | null) => void) => void;
+    }
+    let fs: FsExtraLike;
+    try {
+        // @ts-expect-error joplin global provided at runtime
+        fs = joplin.require('fs-extra');
+    } catch (e) {
+        console.warn(LOG_PREFIX, 'fs-extra unavailable; skipping image resource conversion');
+        throw e;
+    }
+
+    const ext = img.filename.split('.').pop() || extensionForMime(img.mime);
+    const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    // Build path manually to avoid depending on 'path' module (not available in sandbox on some platforms)
+    const normalizedDir = dataDir.replace(/\\/g, '/');
+    const tmpPath = `${normalizedDir.endsWith('/') ? normalizedDir : normalizedDir + '/'}${tmpName}`;
+
+    interface FsLike {
+        writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
+        writeFile?: (path: string, data: Uint8Array | Buffer, cb: (err?: Error | null) => void) => void;
+        existsSync?: (path: string) => boolean;
+        unlink?: (path: string, cb: (err?: Error | null) => void) => void;
+    }
+    const fsLike: FsLike = fs as unknown as FsLike;
+
+    try {
+        const buffer =
+            typeof Buffer !== 'undefined' ? Buffer.from(new Uint8Array(img.buffer)) : new Uint8Array(img.buffer);
+        // Write synchronously (small files, sequential processing, keeps logic simple)
+        if (typeof fsLike.writeFileSync === 'function') {
+            fsLike.writeFileSync(tmpPath, buffer);
+        } else if (typeof fsLike.writeFile === 'function') {
+            await new Promise<void>((resolve, reject) => {
+                fsLike.writeFile!(tmpPath, buffer, (err) => (err ? reject(err) : resolve()));
+            });
+        } else {
+            throw new Error('fs write unavailable');
+        }
+        // Post resource pointing to the temp file path
+        // @ts-expect-error joplin global provided at runtime
+        const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
+            { path: tmpPath },
+        ]);
+        return resource.id;
+    } catch (e) {
+        console.warn(LOG_PREFIX, 'Failed to create resource from temp file', e);
+        throw e;
+    } finally {
+        try {
+            if (fsLike.existsSync?.(tmpPath)) fsLike.unlink?.(tmpPath, () => {});
+        } catch (cleanupErr) {
+            console.warn(LOG_PREFIX, 'Temp file cleanup failed', cleanupErr);
+        }
+    }
 }

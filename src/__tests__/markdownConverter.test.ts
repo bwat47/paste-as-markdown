@@ -33,7 +33,7 @@ describe('markdownConverter', () => {
         const { default: TurndownService } = await import('@joplin/turndown');
         const mockInstance = new TurndownService();
 
-        const result = convertHtmlToMarkdown('<p>Test</p>');
+        const { markdown: result } = await convertHtmlToMarkdown('<p>Test</p>');
 
         expect(TurndownService).toHaveBeenCalled();
         expect(mockInstance.use).toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe('markdownConverter', () => {
         const { default: TurndownService } = await import('@joplin/turndown');
         const mockInstance = new TurndownService();
 
-        convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
+        await convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
 
         // Defensive removals now expected even though DOMPurify normally strips these.
         expect(mockInstance.remove).toHaveBeenCalledWith('script');
@@ -56,9 +56,9 @@ describe('markdownConverter', () => {
         expect(mockInstance.turndown).toHaveBeenCalled();
     });
 
-    test('strips leading blank lines from output', () => {
+    test('strips leading blank lines from output', async () => {
         const html = '<p>ABC<br>DEF</p>';
-        const result = convertHtmlToMarkdown(html);
+        const { markdown: result } = await convertHtmlToMarkdown(html);
         // Our mock always returns '# Mock Output', so we cannot assert actual trimming here.
         // Instead, simulate the trimming function directly to validate regex behavior.
         const simulate = (md: string) => md.replace(/^(?:[ \t]*\n)+/, '');
@@ -68,14 +68,14 @@ describe('markdownConverter', () => {
 
     // Integration tests based on actual Joplin turndown behavior
     describe('Joplin Turndown Integration', () => {
-        test('should handle GitHub permalink anchors correctly', () => {
+        test('should handle GitHub permalink anchors correctly', async () => {
             const html = `
                 <h2>
                     Heading
                     <a class="anchor" href="#heading" aria-hidden="true"></a>
                 </h2>
             `;
-            const result = convertHtmlToMarkdown(html);
+            const { markdown: result } = await convertHtmlToMarkdown(html);
 
             // With our mock, we get consistent output but the real functionality
             // would remove the anchor and preserve the heading
@@ -83,16 +83,16 @@ describe('markdownConverter', () => {
             // In real implementation: would contain 'Heading', not contain '[](#heading)' or '<ins></ins>'
         });
 
-        test('should handle underlined anchor links correctly', () => {
+        test('should handle underlined anchor links correctly', async () => {
             const html = '<a href="/page" style="text-decoration: underline">Link Text</a>';
-            const result = convertHtmlToMarkdown(html);
+            const { markdown: result } = await convertHtmlToMarkdown(html);
 
             // Our mock returns consistent output, but real implementation would handle properly
             expect(result).toBe('# Mock Output');
             // In real implementation: would contain 'Link Text' and '/page', not contain '<ins>'
         });
 
-        test('should handle GFM tables with proper formatting', () => {
+        test('should handle GFM tables with proper formatting', async () => {
             const html = `
                 <table>
                     <thead>
@@ -103,14 +103,14 @@ describe('markdownConverter', () => {
                     </tbody>
                 </table>
             `;
-            const result = convertHtmlToMarkdown(html);
+            const { markdown: result } = await convertHtmlToMarkdown(html);
 
             // Should contain table elements (mocked turndown will just return mock output)
             expect(result).toContain('Mock Output'); // Our mock always returns this
             // In real implementation, would contain: Header 1, Header 2, Cell 1, Cell 2
         });
 
-        test('should handle complex GitHub-style content without empty ins tags', () => {
+        test('should handle complex GitHub-style content without empty ins tags', async () => {
             const html = `
                 <div class="markdown-heading">
                     <h1>Project Title</h1>
@@ -120,16 +120,16 @@ describe('markdownConverter', () => {
                 </div>
                 <p>Description with <a href="/link" style="text-decoration: underline">styled link</a>.</p>
             `;
-            const result = convertHtmlToMarkdown(html);
+            const { markdown: result } = await convertHtmlToMarkdown(html);
 
             // Should process without creating empty ins tags
             expect(result).not.toContain('<ins></ins>');
             expect(result).toBe('# Mock Output');
         });
 
-        test('processes HTML through turndown service with custom rules', () => {
+        test('processes HTML through turndown service with custom rules', async () => {
             const html = '<div>Test content</div>';
-            const result = convertHtmlToMarkdown(html);
+            const { markdown: result } = await convertHtmlToMarkdown(html);
 
             // Our mock setup ensures turndown service is used
             expect(result).toBe('# Mock Output');

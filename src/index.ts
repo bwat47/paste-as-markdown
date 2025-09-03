@@ -38,6 +38,15 @@ joplin.plugins.register({
                 description:
                     'If enabled, images from HTML will be converted to markdown image syntax. If disabled, images will be removed entirely.',
             },
+            [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: SETTINGS_SECTION,
+                public: true,
+                label: 'Convert images to Joplin resources',
+                description:
+                    "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
+            },
         });
 
         // Add menu item with accelerator in Edit menu for discoverability

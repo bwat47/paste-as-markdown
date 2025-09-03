@@ -15,5 +15,6 @@ export function validatePasteSettings(settings: unknown): PasteOptions {
     const s = (settings || {}) as Partial<PasteOptions>;
     return {
         includeImages: typeof s.includeImages === 'boolean' ? s.includeImages : true,
+        convertImagesToResources: typeof s.convertImagesToResources === 'boolean' ? s.convertImagesToResources : false,
     };
 }

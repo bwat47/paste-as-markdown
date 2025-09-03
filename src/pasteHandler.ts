@@ -47,6 +47,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
     // Get user setting
     const rawSettings = {
         includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
+        convertImagesToResources: await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
     };
     const options = validatePasteSettings(rawSettings);
 
@@ -68,10 +69,17 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
     }
 
     try {
-        const markdown = convertHtmlToMarkdown(html!, options.includeImages);
+        const { markdown, resources } = await convertHtmlToMarkdown(
+            html!,
+            options.includeImages,
+            options.convertImagesToResources
+        );
         await insertMarkdownAtCursor(markdown);
 
-        const message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
+        let message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
+        if (options.includeImages && options.convertImagesToResources && resources.resourcesCreated > 0) {
+            message += ` (${resources.resourcesCreated} image resource${resources.resourcesCreated === 1 ? '' : 's'} created)`;
+        }
         await showToast(message, ToastType.Success);
 
         return { markdown, success: true };

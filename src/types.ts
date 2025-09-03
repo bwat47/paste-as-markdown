@@ -9,4 +9,10 @@ export interface ConversionResult {
 
 export interface PasteOptions {
     includeImages: boolean;
+    convertImagesToResources: boolean;
+}
+
+export interface ResourceConversionMeta {
+    resourcesCreated: number;
+    resourceIds: string[];
 }

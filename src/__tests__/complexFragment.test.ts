@@ -4,7 +4,7 @@ import { convertHtmlToMarkdown } from '../markdownConverter';
 // Snapshot test: combined real-world fragment (email artifacts + table + image + code span)
 // Guards against regressions across multiple transformation features simultaneously.
 describe('complex fragment snapshot', () => {
-    test('email/table/image fragment (images on/off)', () => {
+    test('email/table/image fragment (images on/off)', async () => {
         const html = `<!--StartFragment-->
 <div class=MsoNormal><b>Report Summary</b></div>
 <table style="border-collapse:collapse" width="100%"><tr><th>Item</th><th>Count</th></tr><tr><td>Apples<br>Green</td><td>12</td></tr><tr><td>Oranges</td><td>7</td></tr></table>
@@ -13,8 +13,10 @@ describe('complex fragment snapshot', () => {
 <p>Footer note with <code>&lt;br&gt;</code> example.</p>
 <!--EndFragment-->`;
 
-        const withImages = convertHtmlToMarkdown(html, true).trim();
-        const withoutImages = convertHtmlToMarkdown(html, false).trim();
+        const { markdown: withImagesMd } = await convertHtmlToMarkdown(html, true);
+        const { markdown: withoutImagesMd } = await convertHtmlToMarkdown(html, false);
+        const withImages = withImagesMd.trim();
+        const withoutImages = withoutImagesMd.trim();
 
         expect({ withImages, withoutImages }).toMatchSnapshot();
     });
