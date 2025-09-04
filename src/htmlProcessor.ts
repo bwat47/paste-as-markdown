@@ -48,6 +48,8 @@ export async function processHtml(
         cleanHeadingAnchors(body);
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body); // still run to collapse highlight spans / infer language
+        markNbspOnlyInlineCode(body);
+        unwrapBlockContainersInTableCells(body);
 
         // Phase 5: Image handling (conversion + normalization)
         let resourceIds: string[] = [];
@@ -72,6 +74,46 @@ export async function processHtml(
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
         return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
     }
+}
+
+// Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
+// We replace their text with a sentinel that we later convert back to `&nbsp;` inside markdown cleanup.
+function markNbspOnlyInlineCode(body: HTMLElement): void {
+    const codes = Array.from(body.querySelectorAll('code')) as HTMLElement[];
+    codes.forEach((code) => {
+        if (code.parentElement && code.parentElement.tagName === 'PRE') return; // skip fenced blocks
+        const text = code.textContent || '';
+        if (!text) return;
+        // If text consists solely of NBSP (unicode or entity form if somehow preserved) and ordinary spaces
+        const hasNbsp = /\u00A0/.test(text);
+        if (hasNbsp && text.replace(/\u00A0|\s/g, '') === '') {
+            code.textContent = '__PAM_NBSP__';
+        }
+    });
+}
+
+// Many sources wrap cell content in <p> or <div>. Turndown can emit blank lines that break table continuity.
+// We unwrap single block wrappers (<p>, <div>) inside <td>/<th> to flatten content, while preserving <br> and inline markup.
+function unwrapBlockContainersInTableCells(body: HTMLElement): void {
+    const cells = Array.from(body.querySelectorAll('td,th')) as HTMLElement[];
+    cells.forEach((cell) => {
+        // If cell only contains block wrappers, unwrap them.
+        const children = Array.from(cell.children) as HTMLElement[];
+        if (children.length === 0) return;
+        // Heuristic: unwrap when every direct child is a P or DIV and none contain tables.
+        const unwrapAll = children.every((c) => /^(P|DIV)$/i.test(c.tagName) && !c.querySelector('table'));
+        if (!unwrapAll) return;
+        children.forEach((wrapper, i) => {
+            // Insert a <br> between unwrapped blocks if not already separated and not last
+            while (wrapper.firstChild) {
+                cell.insertBefore(wrapper.firstChild, wrapper);
+            }
+            if (i < children.length - 1) {
+                cell.insertBefore(cell.ownerDocument.createElement('br'), wrapper);
+            }
+            wrapper.remove();
+        });
+    });
 }
 
 // DOMPurify already strips scripts/styles and (optionally) images; no extra removal needed here.

@@ -17,7 +17,8 @@ describe('task list conversion (GFM)', () => {
         const md = markdown.trim();
         // Expect two list items with unchecked boxes
         // Turndown may emit two spaces after the checkbox marker; allow one or two.
-        expect(md).toMatch(/^- \[ \] {1,2}Task\n- \[ \] {1,2}List$/m);
+        // Allow extra spaces after list marker introduced by upstream turndown (e.g., '-   [ ]  Task')
+        expect(md).toMatch(/^-\s+\[ \]\s+Task\n-\s+\[ \]\s+List$/m);
         // No escaped brackets
         expect(md).not.toMatch(/\\\[/);
     });
@@ -29,7 +30,7 @@ describe('task list conversion (GFM)', () => {
 </ul>`;
         const { markdown } = await convertHtmlToMarkdown(html, true);
         const md = markdown.trim();
-        expect(md).toMatch(/^- \[x\] {1,2}Done\n- \[ \] {1,2}Todo$/m);
+        expect(md).toMatch(/^-\s+\[x\]\s+Done\n-\s+\[ \]\s+Todo$/m);
     });
 
     test('input not first child (whitespace span) still detected', async () => {
@@ -39,6 +40,6 @@ describe('task list conversion (GFM)', () => {
         const { markdown } = await convertHtmlToMarkdown(html, true);
         const md = markdown.trim();
         // Depending on rule, leading span might prevent detection; allow either checked box or plain list prefix fallback
-        expect(md).toMatch(/^- (\[x\] {1,2}|)Spaced$/m);
+        expect(md).toMatch(/^-\s+(\[x\]\s+)?Spaced$/m);
     });
 });

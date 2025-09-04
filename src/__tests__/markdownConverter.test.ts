@@ -1,23 +1,31 @@
 import { describe, test, expect, jest } from '@jest/globals';
 
-// No custom turndown rules module after refactor
-
-jest.mock('@joplin/turndown', () => {
-    const mockService = {
-        use: jest.fn(),
-        remove: jest.fn(),
-        addRule: jest.fn(),
-        turndown: jest.fn().mockReturnValue('# Mock Output'),
-    };
-    return {
-        __esModule: true,
-        default: jest.fn(() => mockService),
-    };
+// Mock upstream turndown so we can assert rule wiring without invoking full conversion logic.
+jest.mock('turndown', () => {
+    interface MockRule {
+        filter?: (n: HTMLElement) => boolean;
+        replacement?: (c: string, n: HTMLElement) => string;
+    }
+    interface MockService {
+        use: jest.Mock;
+        remove: jest.Mock;
+        turndown: jest.Mock;
+        addRule: jest.Mock;
+        rules: { array: MockRule[] };
+    }
+    const ctor = jest.fn((): MockService => {
+        return {
+            use: jest.fn(),
+            remove: jest.fn(),
+            turndown: jest.fn().mockReturnValue('# Mock Output'),
+            addRule: jest.fn(),
+            rules: { array: [] },
+        };
+    });
+    return { __esModule: true, default: ctor };
 });
 
-jest.mock('@joplin/turndown-plugin-gfm', () => ({
-    gfm: {},
-}));
+jest.mock('turndown-plugin-gfm', () => ({ gfm: {} }));
 
 describe('markdownConverter', () => {
     let convertHtmlToMarkdown: typeof import('../markdownConverter').convertHtmlToMarkdown;
@@ -30,30 +38,33 @@ describe('markdownConverter', () => {
     });
 
     test('processes HTML and calls turndown service', async () => {
-        const { default: TurndownService } = await import('@joplin/turndown');
-        const mockInstance = new TurndownService();
-
+        const { default: TurndownService } = await import('turndown');
         const { markdown: result } = await convertHtmlToMarkdown('<p>Test</p>');
-
         expect(TurndownService).toHaveBeenCalled();
-        expect(mockInstance.use).toHaveBeenCalled();
-        expect(mockInstance.turndown).toHaveBeenCalled();
+        const instance = (TurndownService as unknown as jest.Mock).mock.results[0].value as {
+            use: jest.Mock;
+            turndown: jest.Mock;
+        };
+        expect(instance.use).toHaveBeenCalled();
+        expect(instance.turndown).toHaveBeenCalled();
         expect(result).toBe('# Mock Output');
     });
 
     test('processes HTML through DOM preprocessing when includeImages is false (defensive removals still applied)', async () => {
-        const { default: TurndownService } = await import('@joplin/turndown');
-        const mockInstance = new TurndownService();
-
+        const { default: TurndownService } = await import('turndown');
         await convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
-
+        const instance = (TurndownService as unknown as jest.Mock).mock.results[0].value as {
+            remove: jest.Mock;
+            addRule: jest.Mock;
+            turndown: jest.Mock;
+        };
         // Defensive removals now expected even though DOMPurify normally strips these.
-        expect(mockInstance.remove).toHaveBeenCalledWith('script');
-        expect(mockInstance.remove).toHaveBeenCalledWith('style');
-        expect(mockInstance.remove).toHaveBeenCalledWith('img');
+        expect(instance.remove).toHaveBeenCalledWith('script');
+        expect(instance.remove).toHaveBeenCalledWith('style');
+        expect(instance.remove).toHaveBeenCalledWith('img');
         // No legacy custom image stripping rule added.
-        expect(mockInstance.addRule).not.toHaveBeenCalledWith('__stripImages', expect.any(Object));
-        expect(mockInstance.turndown).toHaveBeenCalled();
+        expect(instance.addRule).not.toHaveBeenCalledWith('__stripImages', expect.any(Object));
+        expect(instance.turndown).toHaveBeenCalled();
     });
 
     test('strips leading blank lines from output', async () => {
@@ -66,76 +77,5 @@ describe('markdownConverter', () => {
         expect(result).toBe('# Mock Output');
     });
 
-    // Integration tests based on actual Joplin turndown behavior
-    describe('Joplin Turndown Integration', () => {
-        test('should handle GitHub permalink anchors correctly', async () => {
-            const html = `
-                <h2>
-                    Heading
-                    <a class="anchor" href="#heading" aria-hidden="true"></a>
-                </h2>
-            `;
-            const { markdown: result } = await convertHtmlToMarkdown(html);
-
-            // With our mock, we get consistent output but the real functionality
-            // would remove the anchor and preserve the heading
-            expect(result).toBe('# Mock Output');
-            // In real implementation: would contain 'Heading', not contain '[](#heading)' or '<ins></ins>'
-        });
-
-        test('should handle underlined anchor links correctly', async () => {
-            const html = '<a href="/page" style="text-decoration: underline">Link Text</a>';
-            const { markdown: result } = await convertHtmlToMarkdown(html);
-
-            // Our mock returns consistent output, but real implementation would handle properly
-            expect(result).toBe('# Mock Output');
-            // In real implementation: would contain 'Link Text' and '/page', not contain '<ins>'
-        });
-
-        test('should handle GFM tables with proper formatting', async () => {
-            const html = `
-                <table>
-                    <thead>
-                        <tr><th>Header 1</th><th>Header 2</th></tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>Cell 1</td><td>Cell 2</td></tr>
-                    </tbody>
-                </table>
-            `;
-            const { markdown: result } = await convertHtmlToMarkdown(html);
-
-            // Should contain table elements (mocked turndown will just return mock output)
-            expect(result).toContain('Mock Output'); // Our mock always returns this
-            // In real implementation, would contain: Header 1, Header 2, Cell 1, Cell 2
-        });
-
-        test('should handle complex GitHub-style content without empty ins tags', async () => {
-            const html = `
-                <div class="markdown-heading">
-                    <h1>Project Title</h1>
-                    <a id="user-content-title" class="anchor" href="#title">
-                        <svg><path d="..."></path></svg>
-                    </a>
-                </div>
-                <p>Description with <a href="/link" style="text-decoration: underline">styled link</a>.</p>
-            `;
-            const { markdown: result } = await convertHtmlToMarkdown(html);
-
-            // Should process without creating empty ins tags
-            expect(result).not.toContain('<ins></ins>');
-            expect(result).toBe('# Mock Output');
-        });
-
-        test('processes HTML through turndown service with custom rules', async () => {
-            const html = '<div>Test content</div>';
-            const { markdown: result } = await convertHtmlToMarkdown(html);
-
-            // Our mock setup ensures turndown service is used
-            expect(result).toBe('# Mock Output');
-
-            // This verifies the integration works end-to-end
-            // (custom rules are applied in the real implementation)
-        });
-    });
+    // Detailed integration behaviors covered in separate integration test file.
 });

@@ -1,23 +1,62 @@
-import TurndownService from '@joplin/turndown';
-import { gfm } from '@joplin/turndown-plugin-gfm';
+import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './htmlProcessor';
 import type { PasteOptions, ResourceConversionMeta } from './types';
 
 function createTurndownServiceSync(includeImages: boolean): TurndownService {
-    // Much simpler now that DOM pre-processing handles most cleanup.
-    // Images and unwanted elements are already removed by htmlProcessor.
-    const dynamicOptions = includeImages ? TURNDOWN_OPTIONS : { ...TURNDOWN_OPTIONS, preserveImageTagsWithSize: false };
-    const service = new TurndownService(dynamicOptions as typeof TURNDOWN_OPTIONS);
+    const service = new TurndownService(TURNDOWN_OPTIONS);
+
     service.use(gfm);
-    // Defensive removals: DOMPurify normally strips these, but if DOM preprocessing fails and we
-    // fall back to raw HTML we still want them gone.
-    service.remove('script');
-    service.remove('style');
+
     if (!includeImages) {
-        // Images should already be excluded by sanitizer; keep for fallback safety.
         service.remove('img');
     }
+
+    // --- Custom behavior overrides (public addRule API) ---
+    // We previously manipulated the internal rules array to obtain higher precedence. According to upstream
+    // guidance, overriding built-in element handling should use addRule (added rules have highest precedence).
+    // 1. Preserve sized <img> tags (retain width/height) by emitting raw HTML instead of Markdown image syntax.
+    service.addRule('pamSizedImage', {
+        // Uses addRule instead of manipulating internal arrays (see turndown#241 guidance on precedence)
+        filter: (node: HTMLElement) => {
+            return (
+                includeImages && node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height'))
+            );
+        },
+        replacement: (_content: string, node: HTMLElement) => {
+            const img = node as HTMLImageElement;
+            const attrs: string[] = [];
+            const pushAttr = (name: string) => {
+                const v = img.getAttribute(name);
+                if (v) attrs.push(`${name}="${v}"`);
+            };
+            ['src', 'alt', 'width', 'height'].forEach(pushAttr);
+            return `<img ${attrs.join(' ')}>`;
+        },
+    });
+
+    // 2. Preserve <br> literally inside table cells to avoid splitting rows.
+    service.addRule('pamTableCellBr', {
+        filter: (node: HTMLElement) => {
+            if (node.nodeName !== 'BR') return false;
+            let p: HTMLElement | null = node.parentElement;
+            while (p) {
+                if (/^(TD|TH)$/i.test(p.nodeName)) return true;
+                if (/^TABLE$/i.test(p.nodeName)) break; // stop early if we hit table without finding cell wrapper
+                p = p.parentElement;
+            }
+            return false;
+        },
+        replacement: () => '<br>',
+    });
+
+    // NBSP-only inline code is handled by preprocessing sentinel + cleanup restoration; no rule required.
+
+    // Defensive removals
+    service.remove('script');
+    service.remove('style');
+
     return service;
 }
 
@@ -53,6 +92,9 @@ function cleanupMarkdown(markdown: string): string {
     // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
     // leading blank lines while leaving internal spacing intact.
     markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
+
+    // Restore NBSP-only inline code sentinel inserted during HTML preprocessing.
+    markdown = markdown.replace(/`__PAM_NBSP__`/g, '`&nbsp;`');
 
     // Convert stray <br> artifacts:
     // 1. Runs of 2+ <br> become a paragraph break (blank line) -> \n\n
