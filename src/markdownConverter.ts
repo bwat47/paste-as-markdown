@@ -1,12 +1,14 @@
 import TurndownService from 'turndown';
-import { gfm } from 'turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './htmlProcessor';
+import { getGfmPlugin } from './gfmPlugin';
 import type { PasteOptions, ResourceConversionMeta } from './types';
 
-function createTurndownServiceSync(includeImages: boolean): TurndownService {
+async function createTurndownService(includeImages: boolean): Promise<TurndownService> {
     const service = new TurndownService(TURNDOWN_OPTIONS);
 
+    // Load the ESM-only GFM plugin
+    const gfm = await getGfmPlugin();
     service.use(gfm);
 
     if (!includeImages) {
@@ -75,7 +77,7 @@ export async function convertHtmlToMarkdown(
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     // and this guarantees option/rule changes always apply without stale caching.
-    const service = createTurndownServiceSync(includeImages);
+    const service = await createTurndownService(includeImages);
     let markdown = service.turndown(input);
 
     // Post-process the markdown for final cleanup
