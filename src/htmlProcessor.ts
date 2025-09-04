@@ -17,30 +17,39 @@ export async function processHtml(
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined')
         return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
     try {
-        // 1. Sanitize first with DOMPurify (drops scripts, event handlers, dangerous URIs, optionally images)
+        // Phase 1: Parse raw HTML first to allow safe neutralization of code blocks BEFORE sanitization.
+        // Rationale: If we sanitize first, literal examples containing <script> / <style> can be stripped
+        // entirely. By converting code block innerHTML to plain text now, we ensure DOMPurify only
+        // sees escaped entities (&lt;script&gt;...), preserving instructional code samples.
+        const rawParser = new DOMParser();
+        const rawDoc = rawParser.parseFromString(html, 'text/html');
+        const rawBody = rawDoc.body;
+        if (!rawBody) return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
+        neutralizeCodeBlocksPreSanitize(rawBody);
+
+        // Serialize the neutralized DOM back to a string for sanitization
+        const intermediate = rawBody.innerHTML;
+
+        // Phase 2: Sanitize the neutralized HTML (drops scripts, dangerous attributes, optional images)
         const purifier = createDOMPurify(window as unknown as typeof window);
         const sanitized = purifier.sanitize(
-            html,
+            intermediate,
             buildSanitizerConfig({ includeImages: options.includeImages })
         ) as string;
 
-        // 2. Parse sanitized HTML
+        // Phase 3: Parse sanitized HTML for semantic post-processing
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitized, 'text/html');
         const body = doc.body;
         if (!body) return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
 
-        // 3. Post-sanitization semantic adjustments (things DOMPurify doesn't do)
-        if (!options.includeImages) {
-            // DOMPurify already dropped disallowed image tags if configured, but ensure anchors referencing only images are cleaned.
-            removeEmptyAnchors(body);
-        }
-        // Style-based semantic inference intentionally skipped; rely on existing semantic tags only.
+        // Phase 4: Post-sanitization adjustments
+        if (!options.includeImages) removeEmptyAnchors(body);
         cleanHeadingAnchors(body);
         normalizeWhitespaceCharacters(body);
-        normalizeCodeBlocks(body);
+        normalizeCodeBlocks(body); // still run to collapse highlight spans / infer language
 
-        // Image handling
+        // Phase 5: Image handling (conversion + normalization)
         let resourceIds: string[] = [];
         let attempted = 0;
         let failed = 0;
@@ -50,10 +59,8 @@ export async function processHtml(
                 resourceIds = result.ids;
                 attempted = result.attempted;
                 failed = result.failed;
-                // Standardize any images that were not converted
                 standardizeRemainingImages(body);
             } else {
-                // No conversion requested; standardize all included images
                 standardizeRemainingImages(body);
             }
         }
@@ -68,6 +75,40 @@ export async function processHtml(
 }
 
 // DOMPurify already strips scripts/styles and (optionally) images; no extra removal needed here.
+
+/**
+ * Neutralize raw code block content prior to sanitization so literal examples of tags like
+ * <script> or <style> are preserved as text instead of being removed by DOMPurify.
+ * Strategy: For each <pre> (and nested <code> if present), take its current innerHTML and
+ * assign it to textContent, effectively escaping any tag structures. This drops existing
+ * highlight spans (acceptable – markdown cannot represent them) while keeping visual code.
+ * We purposefully do not touch already-empty blocks.
+ */
+function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
+    const pres = Array.from(body.querySelectorAll('pre')) as HTMLElement[];
+    pres.forEach((pre) => {
+        // Find <code> child if present; else operate on <pre> directly.
+        const code = pre.querySelector('code') as HTMLElement | null;
+        const target = code || pre;
+        if (!target) return;
+        // Build text manually so <br> becomes a newline rather than disappearing.
+        const collect = (node: Node): string => {
+            if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const el = node as HTMLElement;
+                if (el.tagName.toLowerCase() === 'br') return '\n';
+                // Skip elements that do not contribute (e.g. purely styling spans) but still traverse children.
+                let out = '';
+                for (const child of Array.from(el.childNodes)) out += collect(child);
+                return out;
+            }
+            return '';
+        };
+        const text = collect(target);
+        if (!text.trim()) return;
+        target.textContent = text;
+    });
+}
 
 /**
  * Remove anchor elements that become empty after image removal
