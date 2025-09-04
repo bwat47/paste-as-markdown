@@ -13,16 +13,6 @@ function makeBody(html: string): HTMLElement {
 const PNG_DATA_URL =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
 
-// Create a base64 string whose estimated size exceeds MAX_IMAGE_BYTES (approx => len*3/4)
-function makeOversizeDataUrl(): string {
-    // Need rawBytes > MAX_IMAGE_BYTES; produce base64 length such that floor(len*3/4) > MAX_IMAGE_BYTES
-    const targetBytes = MAX_IMAGE_BYTES + 10_000; // exceed by margin
-    const base64Length = Math.ceil((targetBytes * 4) / 3);
-    // build repeating 'A' which decodes to zeros
-    const b64 = 'A'.repeat(base64Length);
-    return `data:image/png;base64,${b64}`;
-}
-
 interface JoplinMock {
     plugins: { dataDir: jest.Mock };
     data: { post: jest.Mock };
@@ -158,14 +148,13 @@ describe('resourceConverter edge cases', () => {
         expect(result.ids.length).toBe(0);
     });
 
-    test('mixed batch metrics integrity', async () => {
-        // success (small png), invalid base64, oversize base64
-        const oversize = makeOversizeDataUrl();
+    test('mixed batch metrics integrity (success + invalid base64)', async () => {
+        // success (small png) + invalid base64 only (oversize covered in dedicated test file)
         const bad = 'data:image/png;base64,@@@@';
-        const body = makeBody(`<img src="${PNG_DATA_URL}"><img src="${bad}"><img src="${oversize}">`);
+        const body = makeBody(`<img src="${PNG_DATA_URL}"><img src="${bad}">`);
         const result = await convertImagesToResources(body);
-        expect(result.attempted).toBe(3);
-        expect(result.failed).toBe(2);
+        expect(result.attempted).toBe(2);
+        expect(result.failed).toBe(1);
         expect(result.ids.length).toBe(1);
     });
 
