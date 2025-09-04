@@ -38,7 +38,8 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         },
     });
 
-    // Note: Previously had a custom pamTableCellBr rule, but the new GFM plugin handles <br> tags in table cells better
+    // Note: BR handling in table cells removed for simplicity
+    // The GFM plugin handles table cell content conversion and flattens multi-line content to single lines
 
     // NBSP-only inline code is handled by preprocessing sentinel + cleanup restoration; no rule required.
 

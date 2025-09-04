@@ -49,7 +49,7 @@ export async function processHtml(
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body); // still run to collapse highlight spans / infer language
         markNbspOnlyInlineCode(body);
-        unwrapBlockContainersInTableCells(body);
+        // unwrapBlockContainersInTableCells(body); // Removed - let GFM plugin handle table cell content
 
         // Phase 5: Image handling (conversion + normalization)
         let resourceIds: string[] = [];
@@ -92,35 +92,7 @@ function markNbspOnlyInlineCode(body: HTMLElement): void {
     });
 }
 
-// Many sources wrap cell content in <p> or <div>. Turndown can emit blank lines that break table continuity.
-// We unwrap single block wrappers (<p>, <div>) inside <td>/<th> to flatten content, while preserving <br> and inline markup.
-function unwrapBlockContainersInTableCells(body: HTMLElement): void {
-    const cells = Array.from(body.querySelectorAll('td,th')) as HTMLElement[];
-    cells.forEach((cell) => {
-        // If cell only contains block wrappers, unwrap them.
-        const children = Array.from(cell.children) as HTMLElement[];
-        if (children.length === 0) return;
-        // Heuristic: unwrap when every direct child is a P or DIV and none contain tables.
-        const unwrapAll = children.every((c) => /^(P|DIV)$/i.test(c.tagName) && !c.querySelector('table'));
-        if (!unwrapAll) return;
-        children.forEach((wrapper, i) => {
-            // Move content out of wrapper
-            while (wrapper.firstChild) {
-                cell.insertBefore(wrapper.firstChild, wrapper);
-            }
-
-            // Only insert <br> between blocks if both have meaningful content and not last
-            if (i < children.length - 1) {
-                const hasContent = wrapper.textContent?.trim();
-                const nextHasContent = children[i + 1]?.textContent?.trim();
-                if (hasContent && nextHasContent) {
-                    cell.insertBefore(cell.ownerDocument.createElement('br'), wrapper);
-                }
-            }
-            wrapper.remove();
-        });
-    });
-}
+// Note: unwrapBlockContainersInTableCells function removed - let GFM plugin handle all table cell processing
 
 // DOMPurify already strips scripts/styles and (optionally) images; no extra removal needed here.
 
