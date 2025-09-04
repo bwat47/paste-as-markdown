@@ -10,8 +10,10 @@ User paste command →
 
 1. Raw HTML (and setting includeImages) retrieved.
 2. HTML preprocessing (`processHtml`)
-    - DOM parse + DOMPurify sanitize (single authority for safety / stripping).
-    - Structural normalization (code blocks, tables, anchors, images per settings).
+    - Raw DOM parse.
+    - Pre-sanitize code block neutralization (flatten highlight spans, convert `<br>` → `\n`, escape literal `<script>/<style>` so examples survive sanitization).
+    - DOMPurify sanitize (single authority for safety; runs after neutralization).
+    - Post-sanitize structural normalization (code blocks, anchors, whitespace, images per settings).
 3. Turndown conversion (fresh instance per invocation; no singleton).
 4. Post-conversion Markdown cleanup (`cleanupMarkdown`).
 5. Result inserted.
@@ -23,16 +25,9 @@ User paste command →
 - `sanitizerConfig.ts`  
   Central DOMPurify configuration (allowed tags/attrs). Images allowed only if user setting permits.
 - `htmlProcessor.ts`  
-  DOM-based preprocessing:
-    - Safety wrapper (feature-detect `DOMParser`, try/catch).
-    - DOMPurify sanitize according to config.
-    - Code block normalization:
-        - Flattens GitHub-style span‑tokenized blocks to plain text.
-        - Reconstructs `<pre><code class="language-xxx">...</code></pre>` if missing.
-        - Language inference: class name tokens, shebang, limited HTML heuristic (escaped tags or real `<script|style>`).
-    - No inline style → semantic mapping (bold/italic inference intentionally removed).
-    - No empty-element / spacing micro-heuristics (simplified for maintainability).
-    - Table fragments _not_ handled here (left to lightweight HTML string heuristic pre Turndown).
+   DOM-based preprocessing pipeline: - Safety wrapper (feature-detect `DOMParser`, guarded try/catch). - Pre-sanitize neutralization of `<pre>/<code>` blocks (drops styling spans, preserves literal tag text as plain text, converts line breaks). - DOMPurify sanitize (scripts/styles/event attrs stripped once). - Post-sanitize normalization: - Code blocks: ensure canonical `<pre><code>` structure, remove toolbars, delete empty blocks, infer language from class names only (no shebang / content heuristics), alias mapping. - Anchor cleanup (permalink removal, heading link unwrap, empty image-only anchors pruned when images excluded). - Whitespace normalization (NBSP variants → space outside code). - Image handling: optional conversion to Joplin resources + attribute normalization. - Table fragments not handled here (see `markdownConverter.ts`).
+- `resourceConverter.ts`  
+   Image <img> processing & optional conversion to Joplin resources (base64 validation, size limits, streaming download with early abort, timeout, link unwrap, attribute normalization, metrics).
 - `markdownConverter.ts`
     - `wrapOrphanedTableElements` – Wraps bare `<tr>/<td>/<col>` fragments with `<table>` (Excel clipboard quirk).
     - `createTurndownServiceSync` – Builds per-call Turndown with dynamic `preserveImageTagsWithSize` flag (disabled when images excluded).
@@ -80,10 +75,11 @@ User paste command →
 
 ## Code Block Strategy
 
-- Normalize early so Turndown sees canonical `<pre><code class="language-x">…</code></pre>`.
-- Flatten GitHub highlight spans → plain text → preserve literal `<script>` as code (avoid executing / DOM altering).
-- Shebang & limited HTML heuristics for language classification.
-- Post-conversion fence preservation ensures later whitespace trimming/skipping does not corrupt code.
+- Neutralize BEFORE sanitization to preserve literal `<script>/<style>` examples while still stripping live elements.
+- Neutralization flattens highlight/token spans and converts `<br>` to newlines; no further span flattening required later.
+- Post-sanitize normalization enforces `<pre><code>` shape, removes toolbars, drops empty blocks, infers language from class name patterns only (no shebang / content heuristics).
+- Alias mapping (js→javascript, yml→yaml, c++/cxx→cpp, etc.).
+- Fenced code blocks are later protected during Markdown cleanup to avoid accidental edits.
 
 ## Image Handling
 
@@ -104,10 +100,10 @@ User paste command →
 
 ## Testing Strategy
 
-- Unit tests: table wrapping, `<br>` logic, code block inference, image include/exclude.
-- Integration tests: composite HTML (email, GitHub README, Outlook NBSP artifacts, image-wrapped links).
-- Snapshot test: real-world composite scenario to catch regression in combined transformations.
-- Regression tests for previously problematic cases (empty permalink anchors, image-only links).
+- Unit tests: table wrapping, `<br>` normalization, code block language inference (class-based), image include/exclude, resource conversion edge cases.
+- Dedicated oversize base64 test with mocked small size (avoids multi‑MB fixture) + streaming oversize + timeout abort.
+- Regression: literal `<script>` example preservation, anchor/permalink stripping, link unwrap for converted images, empty code block removal.
+- Snapshot/integration: composite documents (NBSP artifacts, mixed elements) to detect pipeline regressions.
 
 ## Performance Notes
 
@@ -123,13 +119,14 @@ User paste command →
 
 ## Trade-Offs
 
-| Area               | Choice                             | Trade-Off                           |
-| ------------------ | ---------------------------------- | ----------------------------------- |
-| Semantics          | Drop style-based bold/italic       | Less recovery for raw styled spans  |
-| Images             | Attribute-only sizing preservation | Inline style-based size lost        |
-| Perf vs Simplicity | Always rebuild Turndown instance   | Minor overhead accepted             |
-| Heuristics         | Limited (tables, code)             | Some edge formatting not “polished” |
-| Safety             | DOMPurify strict config            | Potential loss of niche markup      |
+| Area               | Choice                                | Trade-Off                            |
+| ------------------ | ------------------------------------- | ------------------------------------ |
+| Semantics          | Drop style-based bold/italic          | Less recovery for raw styled spans   |
+| Images             | Attribute-only sizing preservation    | Inline style-based size lost         |
+| Perf vs Simplicity | Always rebuild Turndown instance      | Minor overhead accepted              |
+| Heuristics         | Limited (tables, code)                | Some edge formatting not “polished”  |
+| Safety             | DOMPurify strict config               | Potential loss of niche markup       |
+| Language Inference | Class-based only (no shebang/content) | Fewer auto-detections for plain code |
 
 ## Potential Future Enhancements
 
