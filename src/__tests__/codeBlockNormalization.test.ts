@@ -192,4 +192,14 @@ describe('code block normalization & language inference', () => {
         // Should appear within a fenced code block (language may be absent now)
         expect(md).toMatch(/```(?:html)?[\s\S]*<script>alert\(1\)<\/script>[\s\S]*```/);
     });
+
+    test('preserves literal <script> tag when produced by highlighter token spans', async () => {
+        const html =
+            '<pre class="language-html"><code><span class="tok">&lt;script&gt;</span>alert(1)<span class="tok">&lt;/script&gt;</span></code></pre>';
+        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const md = markdown.trim();
+        // Should contain the literal script tags inside the fence and no remnant span class names
+        expect(md).toMatch(/```html[\s\S]*<script>alert\(1\)<\/script>[\s\S]*```/);
+        expect(md).not.toMatch(/class=|tok/);
+    });
 });
