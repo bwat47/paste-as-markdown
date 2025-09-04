@@ -231,18 +231,7 @@ function normalizeCodeBlocks(body: HTMLElement): void {
                 }
             }
         }
-        // Flatten GitHub-style token spans: if every non-empty child element is a span.pl-* then replace with plain textContent.
-        if (
-            code.children.length > 0 &&
-            Array.from(code.children).every((el) => el.tagName.toLowerCase() === 'span' && /\bpl-/.test(el.className))
-        ) {
-            const text = code.textContent || '';
-            code.textContent = text; // replaces inner HTML, dropping span markup while preserving decoded characters
-        } else if (code.childElementCount === 1 && code.firstElementChild?.tagName.toLowerCase() === 'span') {
-            // Single-wrapper span case (keep previous behavior)
-            const span = code.firstElementChild as HTMLElement;
-            code.textContent = span.textContent || span.innerText || '';
-        }
+        // Earlier pre-sanitize neutralization already collapses highlight spans; legacy span-flattening removed.
         // If after normalization the code block has no visible text (empty or whitespace), remove the entire pre.
         if (!code.textContent || code.textContent.replace(/\s+/g, '') === '') {
             pre.remove();
