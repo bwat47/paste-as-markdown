@@ -38,20 +38,7 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         },
     });
 
-    // 2. Preserve <br> literally inside table cells to avoid splitting rows.
-    service.addRule('pamTableCellBr', {
-        filter: (node: HTMLElement) => {
-            if (node.nodeName !== 'BR') return false;
-            let p: HTMLElement | null = node.parentElement;
-            while (p) {
-                if (/^(TD|TH)$/i.test(p.nodeName)) return true;
-                if (/^TABLE$/i.test(p.nodeName)) break; // stop early if we hit table without finding cell wrapper
-                p = p.parentElement;
-            }
-            return false;
-        },
-        replacement: () => '<br>',
-    });
+    // Note: Previously had a custom pamTableCellBr rule, but the new GFM plugin handles <br> tags in table cells better
 
     // NBSP-only inline code is handled by preprocessing sentinel + cleanup restoration; no rule required.
 

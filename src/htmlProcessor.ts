@@ -104,12 +104,18 @@ function unwrapBlockContainersInTableCells(body: HTMLElement): void {
         const unwrapAll = children.every((c) => /^(P|DIV)$/i.test(c.tagName) && !c.querySelector('table'));
         if (!unwrapAll) return;
         children.forEach((wrapper, i) => {
-            // Insert a <br> between unwrapped blocks if not already separated and not last
+            // Move content out of wrapper
             while (wrapper.firstChild) {
                 cell.insertBefore(wrapper.firstChild, wrapper);
             }
+
+            // Only insert <br> between blocks if both have meaningful content and not last
             if (i < children.length - 1) {
-                cell.insertBefore(cell.ownerDocument.createElement('br'), wrapper);
+                const hasContent = wrapper.textContent?.trim();
+                const nextHasContent = children[i + 1]?.textContent?.trim();
+                if (hasContent && nextHasContent) {
+                    cell.insertBefore(cell.ownerDocument.createElement('br'), wrapper);
+                }
             }
             wrapper.remove();
         });
