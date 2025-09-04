@@ -9,7 +9,7 @@ The plugin uses Joplin's modified version of Turndown to convert HTML to markdow
 
 Useful for scenarios where you can't use the joplin web clipper (e.g. copying text from an email client) and/or where you don't want to edit the note with the rich text editor (to avoid changes to existing markdown formatting by the rich text editor).
 
-![paste-as-markdown](https://github.com/user-attachments/assets/93772e33-6717-42c7-8430-5760b278dc71)
+![paste-as-markdown](https://github.com/user-attachments/assets/78d2b555-f848-42c0-a30e-e4267a4b1957)
 
 ## How to use
 
