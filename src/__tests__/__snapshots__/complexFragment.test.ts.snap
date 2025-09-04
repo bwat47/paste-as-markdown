@@ -2,7 +2,23 @@
 
 exports[`complex fragment snapshot email/table/image fragment (images on/off) 1`] = `
 {
-  "withImages": "**Report Summary**\n\n| Item | Count |\n| --- | --- |\n| Apples<br>Green | 12 |\n| Oranges | 7 |\n\n[<img src=\"https://example.com/chart.png\" alt=\"Chart\" width=\"400\" height=\"200\">](https://example.com)\n\nFooter note with \`<br>\` example.",
-  "withoutImages": "**Report Summary**\n\n| Item | Count |\n| --- | --- |\n| Apples<br>Green | 12 |\n| Oranges | 7 |\n\nFooter note with \`<br>\` example.",
+  "withImages": "**Report Summary**
+
+| Item | Count |
+| Apples  
+Green | 12 |
+| Oranges | 7 |
+
+[<img src="https://example.com/chart.png" alt="Chart" width="400" height="200">](https://example.com)
+
+Footer note with \`<br>\` example.",
+  "withoutImages": "**Report Summary**
+
+| Item | Count |
+| Apples  
+Green | 12 |
+| Oranges | 7 |
+
+Footer note with \`<br>\` example.",
 }
 `;

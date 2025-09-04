@@ -115,11 +115,11 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html =
             '<table><thead><tr><th>Col1</th><th>Col2</th></tr></thead><tbody><tr><td>A<br>B</td><td>C</td></tr></tbody></table>';
         const { markdown: md } = await convertHtmlToMarkdown(html, true);
-        // Expect a markdown table where the A<br>B remains inside the cell (not converted to hard/paragraph breaks)
-        // Implementation may keep literal <br> or convert to newline depending on turndown; ensure no paragraph break inserted.
-        // Accept either literal <br> or single hard break representation (two spaces + newline) within the same cell line.
-        // Accept A <br>B with optional spaces before <br>
-        expect(md).toMatch(/\|\s*Col1\s*\|\s*Col2\s*\|[\s\S]*\|\s*A\s*<br>B\s*\|/);
+        // The new GFM plugin converts <br> to proper markdown hard breaks (two spaces + newline) within table cells
+        // This is better than literal <br> tags as it's proper markdown syntax
+        expect(md).toMatch(/\|\s*Col1\s*\|\s*Col2\s*\|/); // Header row
+        expect(md).toMatch(/\|\s*---\s*\|\s*---\s*\|/); // Separator row
+        expect(md).toMatch(/\|\s*A\s*\n\s*B\s*\|\s*C\s*\|/); // Data row with line break
     });
 
     test('removes standalone &nbsp; placeholder paragraph from Outlook HTML', async () => {
