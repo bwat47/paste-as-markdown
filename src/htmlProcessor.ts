@@ -187,11 +187,14 @@ function unwrapElement(element: HTMLElement): void {
 
 /**
  * Generic normalization of code blocks copied from various sites (GitHub, GitLab, Bitbucket, Google style, etc.).
- * Goals:
- *  - Collapse wrapper divs (e.g. .highlight, .snippet-clipboard-content, .code-wrapper) so only <pre><code> remains
- *  - Ensure a <code> element exists inside each <pre>
- *  - Infer language from common class/name patterns and add a standardized class="language-xxx"
- *  - Decode HTML entities inside HTML code blocks so Markdown fence shows real tags
+ * Responsibilities (post-sanitization):
+ *  - Collapse known wrapper containers (e.g. .highlight, .snippet-clipboard-content, .sourceCode, figure.highlight)
+ *    so the structure is a simple <pre><code>…</code></pre>
+ *  - Ensure a <code> element exists inside each <pre> (some sources emit only <pre>)
+ *  - Remove non-code UI/tool elements (copy buttons, toolbars) that would interfere with Turndown
+ *  - Remove now-empty code blocks (after neutralization & span stripping earlier) to avoid emitting empty fences
+ *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
+ *  - Preserve literal tag text that was already neutralized earlier (no additional entity decoding is performed here)
  */
 function normalizeCodeBlocks(body: HTMLElement): void {
     const wrappers = Array.from(
@@ -231,7 +234,6 @@ function normalizeCodeBlocks(body: HTMLElement): void {
                 }
             }
         }
-        // Earlier pre-sanitize neutralization already collapses highlight spans; legacy span-flattening removed.
         // If after normalization the code block has no visible text (empty or whitespace), remove the entire pre.
         if (!code.textContent || code.textContent.replace(/\s+/g, '') === '') {
             pre.remove();
