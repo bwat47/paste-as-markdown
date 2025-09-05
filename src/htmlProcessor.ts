@@ -49,7 +49,6 @@ export async function processHtml(
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body); // still run to collapse highlight spans / infer language
         markNbspOnlyInlineCode(body);
-        // unwrapBlockContainersInTableCells(body); // Removed - let GFM plugin handle table cell content
 
         // Phase 5: Image handling (conversion + normalization)
         let resourceIds: string[] = [];
