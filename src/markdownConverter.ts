@@ -43,6 +43,17 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
 
     // NBSP-only inline code is handled by preprocessing sentinel + cleanup restoration; no rule required.
 
+    // 2. Highlight / <mark> support (upstream Turndown lacks a rule). Joplin's convention uses ==text==.
+    service.addRule('pamMark', {
+        filter: (node: HTMLElement) => {
+            if (node.nodeName !== 'MARK') return false;
+            // Skip highlighting when inside code/pre to avoid altering code samples
+            const parentCode = node.closest('code, pre');
+            return !parentCode; // only convert when not inside code/pre
+        },
+        replacement: (content: string) => `==${content}==`,
+    });
+
     // Defensive removals
     service.remove('script');
     service.remove('style');
