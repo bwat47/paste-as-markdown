@@ -54,6 +54,16 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         replacement: (content: string) => `==${content}==`,
     });
 
+    // 3. Preserve <sup>/<sub> tags as raw HTML (mirrors Joplin's Turndown behavior)
+    service.addRule('pamSup', {
+        filter: (node: HTMLElement) => node.nodeName === 'SUP',
+        replacement: (content: string) => `<sup>${content}</sup>`,
+    });
+    service.addRule('pamSub', {
+        filter: (node: HTMLElement) => node.nodeName === 'SUB',
+        replacement: (content: string) => `<sub>${content}</sub>`,
+    });
+
     // Defensive removals
     service.remove('script');
     service.remove('style');
