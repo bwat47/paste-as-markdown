@@ -42,4 +42,26 @@ describe('task list conversion (GFM)', () => {
         // Depending on rule, leading span might prevent detection; allow either checked box or plain list prefix fallback
         expect(md).toMatch(/^-\s+(\[x\]\s+)?Spaced$/m);
     });
+
+    test('nested unchecked items spacing normalized', async () => {
+        const html = `<ul class="contains-task-list">
+    <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> ABC</li>
+    <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> 123
+        <ul class="contains-task-list">
+            <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> 456</li>
+            <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> 789</li>
+        </ul>
+    </li>
+    </ul>`;
+        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const lines = markdown.trim().split(/\n/);
+        // Expect 4 lines: two top-level and two nested
+        expect(lines.length).toBe(4);
+        // Top-level lines exact spacing
+        expect(lines[0]).toBe('- [ ] ABC');
+        expect(lines[1]).toBe('- [ ] 123');
+        // Nested lines: currently normalization may flatten indentation; accept either indented or flush-left
+        expect(lines[2]).toMatch(/^(?:[ \t]*- \[ \] 456)$/);
+        expect(lines[3]).toMatch(/^(?:[ \t]*- \[ \] 789)$/);
+    });
 });

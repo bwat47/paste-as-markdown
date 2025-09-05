@@ -101,7 +101,30 @@ function cleanupMarkdown(markdown: string): string {
         return segment;
     });
 
+    // Normalize task list spacing (bullet + single space + checkbox + single space + text)
+    markdown = normalizeTaskListSpacing(markdown);
+
     return markdown;
+}
+
+// Ensure consistent spacing for task list items across top-level and nested lists without altering indentation level.
+function normalizeTaskListSpacing(markdown: string): string {
+    return withFencedCodeProtection(markdown, (segment) => {
+        const lines = segment.split(/\n/);
+        for (let i = 0; i < lines.length; i++) {
+            const original = lines[i];
+            // Match optional indentation (spaces or tabs), a list marker, spaces, checkbox, spaces, then rest
+            // We only normalize if there's at least some text or nothing after checkbox (empty task ok)
+            const m = original.match(/^([ \t]*[-*+])\s+\[([ xX])\]\s*(.*)$/);
+            if (m) {
+                const indentBullet = m[1];
+                const state = m[2];
+                const rest = m[3];
+                lines[i] = `${indentBullet} [${state}]${rest ? ' ' + rest.replace(/\s+/g, ' ').trim() : ''}`;
+            }
+        }
+        return lines.join('\n');
+    });
 }
 
 /**
