@@ -46,8 +46,8 @@
         "webpack-cli": "^4.10.0"
     },
     "dependencies": {
-        "@truto/turndown-plugin-gfm": "^1.0.2",
+        "@truto/turndown-plugin-gfm": "1.0.2",
         "dompurify": "^3.1.6",
-        "turndown": "^7.2.1"
+        "turndown": "7.2.1"
     }
 }
