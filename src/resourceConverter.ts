@@ -59,8 +59,10 @@ export async function convertImagesToResources(
     try {
         // @ts-expect-error joplin global runtime
         joplin.require('fs-extra');
-    } catch {
+    } catch (err) {
+        // Expected: fs-extra module may not be available in some Joplin environments
         fsExtraAvailable = false;
+        console.debug(LOG_PREFIX, 'fs-extra not available:', (err as Error)?.message || 'unknown error');
     }
     if (!fsExtraAvailable) {
         console.info(LOG_PREFIX, 'fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
@@ -88,7 +90,12 @@ export async function convertImagesToResources(
             ids.push(id);
         } catch (e) {
             failed++;
-            console.warn(LOG_PREFIX, 'Failed to convert image to resource', truncateForLog(src), e);
+            const error = e as Error;
+            console.warn(LOG_PREFIX, 'Failed to convert image to resource:', {
+                src: truncateForLog(src),
+                error: error?.message || 'Unknown error',
+                type: error?.name || 'Error',
+            });
         }
     }
     return { ids, attempted, failed };
@@ -147,7 +154,14 @@ function deriveOriginalFilename(src: string): string {
         // Sanitize: remove path traversal and dangerous characters
         const sanitized = cleaned.replace(/[^a-zA-Z0-9._-]/g, '');
         return sanitized || 'image';
-    } catch {
+    } catch (err) {
+        // Expected: malformed URLs will fail to parse, fallback to generic name
+        console.debug(
+            LOG_PREFIX,
+            'Failed to parse URL for filename derivation:',
+            truncateForLog(src),
+            (err as Error)?.message
+        );
         return 'image';
     }
 }
@@ -247,7 +261,14 @@ function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
             return sanitized || `pasted.${fallbackExt}`;
         }
         return `pasted.${fallbackExt}`;
-    } catch {
+    } catch (err) {
+        // Expected: malformed URLs will fail to parse, use fallback filename
+        console.debug(
+            LOG_PREFIX,
+            'Failed to parse URL for filename extraction:',
+            truncateForLog(url),
+            (err as Error)?.message
+        );
         return `pasted.${fallbackExt}`;
     }
 }
