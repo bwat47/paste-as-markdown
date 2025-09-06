@@ -3,6 +3,7 @@ import { LOG_PREFIX } from './constants';
 import { convertImagesToResources, standardizeRemainingImages } from './resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from './sanitizerConfig';
+import { normalizeAltText } from './textUtils';
 
 /**
  * DOM-based HTML preprocessing for cleaning and sanitizing HTML before Turndown conversion.
@@ -444,15 +445,7 @@ function normalizeImageAltAttributes(body: HTMLElement): void {
     imgs.forEach((img) => {
         const alt = img.getAttribute('alt');
         if (alt == null) return;
-        // Replace CR, LF, TAB and other ASCII control chars with spaces
-        const normalized = alt
-            // ASCII control characters (including CR/LF/TAB) and DEL
-            .replace(/[\u0000-\u001F\u007F]/g, ' ')
-            // Common Unicode separators (NBSP already normalized elsewhere; include general separators here)
-            .replace(/[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, ' ')
-            // Collapse runs of whitespace
-            .replace(/\s+/g, ' ')
-            .trim();
+        const normalized = normalizeAltText(alt);
         if (normalized !== alt) img.setAttribute('alt', normalized);
     });
 }

@@ -1,4 +1,5 @@
 import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
+import { normalizeAltText } from './textUtils';
 import * as path from 'path';
 import type Joplin from '../api/Joplin';
 
@@ -124,10 +125,15 @@ export function standardizeRemainingImages(body: HTMLElement): void {
  * Internal helper – not exported to keep surface minimal.
  */
 function standardizeImageElement(img: HTMLImageElement, originalFilename: string): void {
-    const existingAlt = (img.getAttribute('alt') || '').trim();
+    // Normalize any existing alt to ensure consistent whitespace/control handling
+    const existingAltRaw = img.getAttribute('alt');
+    const existingAlt = existingAltRaw ? normalizeAltText(existingAltRaw) : '';
     if (!existingAlt) {
         const base = originalFilename.replace(/\.[a-z0-9]{2,5}$/i, '');
         img.setAttribute('alt', sanitizeAltText(base));
+    } else if (existingAlt !== existingAltRaw) {
+        // If normalization changed the value, write it back
+        img.setAttribute('alt', existingAlt);
     }
     const allowed = new Set(['src', 'alt', 'width', 'height']);
     for (const attr of Array.from(img.attributes)) {
@@ -173,8 +179,8 @@ function deriveOriginalFilename(src: string): string {
  * Sanitize derived alt text: strip control chars, collapse whitespace, cap length.
  */
 function sanitizeAltText(raw: string): string {
-    let out = raw.replace(/[\x00-\x1F\x7F]/g, '');
-    out = out.replace(/\s+/g, ' ').trim();
+    // Reuse shared normalization and then apply length cap and fallback
+    let out = normalizeAltText(raw);
     if (!out) out = 'image';
     if (out.length > MAX_ALT_TEXT_LENGTH) out = out.slice(0, MAX_ALT_TEXT_LENGTH - 3) + '...';
     return out;
