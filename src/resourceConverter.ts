@@ -1,5 +1,6 @@
 import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
 import * as path from 'path';
+import joplin from '../api';
 
 /**
  * Image Resource Conversion Module
@@ -57,7 +58,6 @@ export async function convertImagesToResources(
 ): Promise<{ ids: string[]; attempted: number; failed: number }> {
     let fsExtraAvailable = true;
     try {
-        // @ts-expect-error joplin global runtime
         joplin.require('fs-extra');
     } catch (err) {
         // Expected: fs-extra module may not be available in some Joplin environments
@@ -340,7 +340,6 @@ function unwrapConvertedImageLink(img: HTMLImageElement): void {
  *  - Best-effort cleanup of temp file (errors during cleanup are logged but not rethrown).
  */
 async function createJoplinResource(img: ParsedImageData): Promise<string> {
-    // @ts-expect-error runtime joplin global
     const dataDir: string = await joplin.plugins.dataDir();
     interface FsExtraLike {
         writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
@@ -350,7 +349,6 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     }
     let fs: FsExtraLike;
     try {
-        // @ts-expect-error runtime joplin global
         fs = joplin.require('fs-extra');
     } catch (e) {
         console.warn(LOG_PREFIX, 'fs-extra unavailable; skipping image resource conversion');
@@ -379,7 +377,6 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         } else {
             throw new Error('fs write unavailable');
         }
-        // @ts-expect-error runtime joplin global
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
         ]);
