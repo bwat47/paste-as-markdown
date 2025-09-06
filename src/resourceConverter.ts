@@ -1,6 +1,9 @@
 import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
 import * as path from 'path';
-import joplin from '../api';
+import type Joplin from '../api/Joplin';
+
+// Global joplin API (available at runtime in Joplin plugin environment)
+declare const joplin: Joplin;
 
 /**
  * Image Resource Conversion Module
