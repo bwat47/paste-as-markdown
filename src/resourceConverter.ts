@@ -1,4 +1,5 @@
 import { LOG_PREFIX, MAX_IMAGE_BYTES } from './constants';
+import * as path from 'path';
 
 /**
  * Image Resource Conversion Module
@@ -142,7 +143,10 @@ function deriveOriginalFilename(src: string): string {
     try {
         const u = new URL(src, 'https://placeholder.local');
         const last = u.pathname.split('/').filter(Boolean).pop() || 'image';
-        return last.split('?')[0].split('#')[0];
+        const cleaned = last.split('?')[0].split('#')[0];
+        // Sanitize: remove path traversal and dangerous characters
+        const sanitized = cleaned.replace(/[^a-zA-Z0-9._-]/g, '');
+        return sanitized || 'image';
     } catch {
         return 'image';
     }
@@ -237,7 +241,11 @@ function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
     try {
         const u = new URL(url);
         const last = u.pathname.split('/').filter(Boolean).pop() || '';
-        if (last && /\.[a-z0-9]{2,5}$/i.test(last)) return last;
+        if (last && /\.[a-z0-9]{2,5}$/i.test(last)) {
+            // Sanitize: remove path traversal and dangerous characters
+            const sanitized = last.replace(/[^a-zA-Z0-9._-]/g, '');
+            return sanitized || `pasted.${fallbackExt}`;
+        }
         return `pasted.${fallbackExt}`;
     } catch {
         return `pasted.${fallbackExt}`;
@@ -327,10 +335,16 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         console.warn(LOG_PREFIX, 'fs-extra unavailable; skipping image resource conversion');
         throw e;
     }
-    const ext = img.filename.split('.').pop() || extensionForMime(img.mime);
+    const ext = (img.filename.split('.').pop() || extensionForMime(img.mime)).replace(/[^a-zA-Z0-9]/g, '');
     const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const normalizedDir = dataDir.replace(/\\/g, '/');
-    const tmpPath = `${normalizedDir.endsWith('/') ? normalizedDir : normalizedDir + '/'}${tmpName}`;
+    const tmpPath = path.join(dataDir, tmpName);
+
+    // Validate the resolved path is still within dataDir to prevent path traversal
+    const resolvedPath = path.resolve(tmpPath);
+    const resolvedDataDir = path.resolve(dataDir);
+    if (!resolvedPath.startsWith(resolvedDataDir + path.sep)) {
+        throw new Error('Invalid file path: potential path traversal detected');
+    }
     const fsLike: FsExtraLike = fs;
     try {
         const buffer =
