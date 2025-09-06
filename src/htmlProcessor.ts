@@ -49,6 +49,9 @@ export async function processHtml(
         normalizeWhitespaceCharacters(body);
         normalizeCodeBlocks(body); // still run to collapse highlight spans / infer language
         markNbspOnlyInlineCode(body);
+        // Word sometimes injects line breaks into image alt attributes via character refs (e.g., &#10;)
+        // which decode to real newlines and break Markdown image syntax. Normalize to single spaces.
+        normalizeImageAltAttributes(body);
 
         // Phase 5: Image handling (conversion + normalization)
         let resourceIds: string[] = [];
@@ -64,6 +67,8 @@ export async function processHtml(
             } else {
                 standardizeRemainingImages(body);
             }
+            // Re-normalize alt attributes in case later steps reintroduced undesirable whitespace
+            normalizeImageAltAttributes(body);
         }
         return {
             html: body.innerHTML,
@@ -427,5 +432,27 @@ function normalizeWhitespaceCharacters(body: HTMLElement): void {
     // Apply the updates (done separately to avoid modifying while iterating)
     textNodesToUpdate.forEach(({ node, newText }) => {
         node.textContent = newText;
+    });
+}
+
+/**
+ * Normalize <img alt> attributes by removing line breaks and control characters that
+ * can break Markdown image syntax. Collapses all whitespace runs to a single space.
+ */
+function normalizeImageAltAttributes(body: HTMLElement): void {
+    const imgs = Array.from(body.querySelectorAll('img')) as HTMLImageElement[];
+    imgs.forEach((img) => {
+        const alt = img.getAttribute('alt');
+        if (alt == null) return;
+        // Replace CR, LF, TAB and other ASCII control chars with spaces
+        const normalized = alt
+            // ASCII control characters (including CR/LF/TAB) and DEL
+            .replace(/[\u0000-\u001F\u007F]/g, ' ')
+            // Common Unicode separators (NBSP already normalized elsewhere; include general separators here)
+            .replace(/[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, ' ')
+            // Collapse runs of whitespace
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (normalized !== alt) img.setAttribute('alt', normalized);
     });
 }
