@@ -216,59 +216,90 @@ function unwrapElement(element: HTMLElement): void {
  *  - Preserve literal tag text that was already neutralized earlier (no additional entity decoding is performed here)
  */
 function normalizeCodeBlocks(body: HTMLElement): void {
+    const pres = findAndUnwrapCodeBlocks(body);
+    pres.forEach((pre) => {
+        ensureCodeElement(pre);
+        removeUIElements(pre);
+        const code = pre.querySelector('code')!;
+
+        if (isEmptyCodeBlock(code)) {
+            pre.remove();
+            return;
+        }
+
+        normalizeLanguageClass(pre, code);
+    });
+}
+
+function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
     const wrappers = Array.from(
         body.querySelectorAll('div.highlight, div.snippet-clipboard-content, div.sourceCode, figure.highlight, pre')
     );
+    const pres: HTMLElement[] = [];
+
     wrappers.forEach((wrapper) => {
-        // Identify the <pre>
         const wrapperEl = wrapper as HTMLElement;
-        const pre: HTMLElement | null =
-            wrapperEl.tagName.toLowerCase() === 'pre'
-                ? wrapperEl
-                : (wrapperEl.querySelector('pre') as HTMLElement | null);
+        const pre =
+            wrapperEl.tagName.toLowerCase() === 'pre' ? wrapperEl : (wrapperEl.querySelector('pre') as HTMLElement);
+
         if (!pre) return;
-        // Unwrap single-pre wrappers
+
+        // Unwrap if wrapper only contains this pre
         if (pre !== wrapperEl && wrapperEl.parentElement && onlyContains(wrapperEl, pre)) {
             wrapperEl.parentElement.replaceChild(pre, wrapperEl);
         }
-        // Ensure <code>
-        let code = pre.querySelector('code');
-        if (!code) {
-            code = pre.ownerDocument.createElement('code');
-            // Move children of pre into code
-            while (pre.firstChild) code.appendChild(pre.firstChild);
-            pre.appendChild(code);
-        }
-        // Remove non-code UI helper elements (e.g., copy/fullscreen button toolbars) that some forums inject
-        // because Turndown may downgrade a <pre> with mixed children to inline code. Keep only the <code> element.
-        for (const child of Array.from(pre.children)) {
-            if (child !== code) {
-                // Heuristic: known wrapper/button containers or any div/button sibling
-                if (
-                    /codeblock-button-wrapper|copy|fullscreen|toolbar/i.test(child.className) ||
-                    child.tagName === 'DIV' ||
-                    child.tagName === 'BUTTON'
-                ) {
-                    child.remove();
-                }
-            }
-        }
-        // If after normalization the code block has no visible text (empty or whitespace), remove the entire pre.
-        if (!code.textContent || code.textContent.replace(/\s+/g, '') === '') {
-            pre.remove();
-            return; // Skip further processing for this block
-        }
-        // Derive language using explicit class-based detection only (no content heuristics).
-        const language = inferLanguageFromClasses(pre, code);
-        if (language) {
-            // Remove any existing language- or lang- prefixed classes to avoid duplication
-            code.className = code.className
-                .split(/\s+/)
-                .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c))
-                .join(' ');
-            if (!code.classList.contains(`language-${language}`)) code.classList.add(`language-${language}`);
-        }
+
+        pres.push(pre);
     });
+
+    return pres;
+}
+
+function ensureCodeElement(pre: HTMLElement): void {
+    let code = pre.querySelector('code');
+    if (!code) {
+        code = pre.ownerDocument.createElement('code');
+        while (pre.firstChild) code.appendChild(pre.firstChild);
+        pre.appendChild(code);
+    }
+}
+
+function removeUIElements(pre: HTMLElement): void {
+    const code = pre.querySelector('code');
+    if (!code) return;
+
+    for (const child of Array.from(pre.children)) {
+        if (child !== code && shouldRemoveUIElement(child)) {
+            child.remove();
+        }
+    }
+}
+
+function shouldRemoveUIElement(element: Element): boolean {
+    return (
+        /codeblock-button-wrapper|copy|fullscreen|toolbar/i.test(element.className) ||
+        element.tagName === 'DIV' ||
+        element.tagName === 'BUTTON'
+    );
+}
+
+function isEmptyCodeBlock(code: HTMLElement): boolean {
+    return !code.textContent || code.textContent.replace(/\s+/g, '') === '';
+}
+
+function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
+    const language = inferLanguageFromClasses(pre, code);
+    if (!language) return;
+
+    // Remove existing language classes
+    code.className = code.className
+        .split(/\s+/)
+        .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c))
+        .join(' ');
+
+    if (!code.classList.contains(`language-${language}`)) {
+        code.classList.add(`language-${language}`);
+    }
 }
 
 function onlyContains(wrapper: Element, child: Element): boolean {
