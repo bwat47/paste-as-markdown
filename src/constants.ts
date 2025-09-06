@@ -30,3 +30,7 @@ export const LOG_PREFIX = '[paste-as-markdown]';
 
 // Hard cap for image resource conversion to avoid excessive memory/disk usage (approx 15MB)
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+
+// Resource conversion timeouts and limits
+export const DOWNLOAD_TIMEOUT_MS = 15000; // 15 seconds for image downloads
+export const MAX_ALT_TEXT_LENGTH = 120; // Maximum length for auto-generated alt text

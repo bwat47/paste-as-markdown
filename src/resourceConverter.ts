@@ -1,4 +1,4 @@
-import { LOG_PREFIX, MAX_IMAGE_BYTES } from './constants';
+import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
 import * as path from 'path';
 
 /**
@@ -159,7 +159,7 @@ function sanitizeAltText(raw: string): string {
     let out = raw.replace(/[\x00-\x1F\x7F]/g, '');
     out = out.replace(/\s+/g, ' ').trim();
     if (!out) out = 'image';
-    if (out.length > 120) out = out.slice(0, 117) + '...';
+    if (out.length > MAX_ALT_TEXT_LENGTH) out = out.slice(0, MAX_ALT_TEXT_LENGTH - 3) + '...';
     return out;
 }
 
@@ -197,7 +197,7 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
  */
 async function downloadExternalImage(url: string): Promise<ParsedImageData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
     const resp = await fetch(url, { signal: controller.signal });
     clearTimeout(timeout);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -368,7 +368,13 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         throw e;
     } finally {
         try {
-            if (fsLike.existsSync?.(tmpPath)) fsLike.unlink?.(tmpPath, () => {});
+            // Skip existsSync check to avoid race condition - just attempt unlink directly
+            // If file doesn't exist, unlink will fail with ENOENT which we can ignore
+            fsLike.unlink?.(tmpPath, (err) => {
+                if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
+                    console.warn(LOG_PREFIX, 'Temp file cleanup failed', err);
+                }
+            });
         } catch (cleanupErr) {
             console.warn(LOG_PREFIX, 'Temp file cleanup failed', cleanupErr);
         }
