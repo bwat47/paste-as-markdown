@@ -70,7 +70,50 @@ export function buildSanitizerConfig(opts: SanitizerConfigOptions) {
         ALLOWED_ATTR: opts.includeImages
             ? [...SANITIZER_ALLOWED_ATTRS_BASE, ...SANITIZER_IMAGE_ATTRS]
             : [...SANITIZER_ALLOWED_ATTRS_BASE],
-        FORBID_ATTR: ['style'],
+        // Explicitly forbid dangerous tags beyond DOMPurify defaults
+        FORBID_TAGS: [
+            'script',
+            'style',
+            'iframe',
+            'frame',
+            'frameset',
+            'noframes',
+            'object',
+            'embed',
+            'applet',
+            'base',
+            'meta',
+            'link',
+        ],
+        // Forbid inline event handler attributes and inline styles
+        FORBID_ATTR: [
+            'style',
+            'onload',
+            'onerror',
+            'onclick',
+            'onmouseover',
+            'onmouseout',
+            'onmousedown',
+            'onmouseup',
+            'onkeydown',
+            'onkeyup',
+            'onkeypress',
+            'onblur',
+            'onfocus',
+            'onchange',
+            'onsubmit',
+            'onreset',
+            'onabort',
+            'onunload',
+            'onresize',
+            'onscroll',
+        ],
+        // Keep text content of removed nodes (e.g., script/style are dropped but text remains out)
         KEEP_CONTENT: true,
+        // Prevent retaining data-* attributes which can store payloads
+        ALLOW_DATA_ATTR: false,
+        // Restrict allowed URL schemes; explicitly block javascript: and similar
+        ALLOWED_URI_REGEXP:
+            /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+\.\-]+(?:[^a-z+\.\-:]|$))/i,
     };
 }
