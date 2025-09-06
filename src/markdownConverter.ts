@@ -38,9 +38,6 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         },
     });
 
-    // Note: BR handling in table cells removed for simplicity
-    // The GFM plugin handles table cell content conversion and flattens multi-line content to single lines
-
     // NBSP-only inline code is handled by preprocessing sentinel + cleanup restoration; no rule required.
 
     // 2. Highlight / <mark> support (upstream Turndown lacks a rule). Joplin's convention uses ==text==.
@@ -110,7 +107,7 @@ function cleanupMarkdown(markdown: string): string {
     // Convert stray <br> artifacts:
     // 1. Runs of 2+ <br> become a paragraph break (blank line) -> \n\n
     // 2. Single <br> becomes a Markdown hard line break (two spaces + newline) -> '  \n'
-    markdown = cleanupBrTagsProtected(markdown);
+    markdown = cleanupBrTags(markdown);
 
     // Remove lines that are only whitespace (artifacts after span/div based email HTML) and
     // collapse 3+ newlines to a single blank line while preserving fenced code blocks.
@@ -149,64 +146,51 @@ function normalizeTaskListSpacing(markdown: string): string {
 }
 
 /**
- * Replace <br> sequences outside of code spans and fenced code blocks while preserving
- * literal <br> tags that appear inside code (where they are usually intentional HTML examples).
- *
+ * Simplified BR tag processing without table handling
+ * The GFM plugin handles table cell content conversion and flattens multi-line content to single lines
  * Rules (applied only to non-code regions):
  *  - Single <br> -> hard line break (two spaces + newline)
  *  - Run of 2+ consecutive <br> (optionally separated by whitespace) -> paragraph break (blank line) '\n\n'
  */
-function cleanupBrTagsProtected(markdown: string): string {
+function cleanupBrTags(markdown: string): string {
     if (!/<br\s*\/?/i.test(markdown)) return markdown;
 
-    // 1. Split on fenced code blocks (``` ... ```). The capturing group keeps the delimiters.
+    // Protect fenced code blocks and inline code spans
+    return withCodeProtection(markdown, (content) => {
+        // Process BR tags in regular content
+        return content.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (match) => {
+            const brCount = (match.match(/<br/gi) || []).length;
+            return brCount === 1 ? '  \n' : '\n\n';
+        });
+    });
+}
+
+function withCodeProtection(markdown: string, transform: (content: string) => string): string {
+    // Split on fenced code blocks first (highest priority protection)
     const fencedSplit = markdown.split(/(```[\s\S]*?```)/);
 
-    const processedFenced = fencedSplit.map((block, blockIndex) => {
-        // Odd indices (because of capturing group) represent fenced code blocks; leave untouched.
-        if (blockIndex % 2 === 1 || block.startsWith('```')) return block;
-
-        // 2. Within this non-code block, protect markdown tables: do not modify <br> tags inside table rows.
-        const lines = block.split(/\n/);
-        const out: string[] = [];
-        let insideTable = false;
-        const isTableDelimiterLine = (line: string) =>
-            /^(?:\s*\|)?\s*:?[-]{2,}:?\s*(?:\|\s*:?[-]{2,}:?\s*)+\|?\s*$/.test(line);
-        const isPotentialHeader = (line: string) => /\|/.test(line) && !/^```/.test(line);
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (insideTable) {
-                // End table if line no longer looks like a table row.
-                if (!/\|/.test(line) || line.trim() === '') {
-                    insideTable = false; // fall through to normal processing for this line
-                } else {
-                    out.push(line); // keep table row verbatim
-                    continue;
-                }
+    return fencedSplit
+        .map((segment, index) => {
+            // Odd indices are fenced code blocks - never touch them
+            if (index % 2 === 1 || segment.startsWith('```')) {
+                return segment;
             }
-            if (!insideTable && isPotentialHeader(line) && i + 1 < lines.length && isTableDelimiterLine(lines[i + 1])) {
-                insideTable = true;
-                out.push(line); // header line
-                continue;
-            }
-            // Normal (non-table) line: we still must protect inline code spans.
-            const processed = line
-                .split(/(`[^`\n]+`)/)
-                .map((segment, segIndex) => {
-                    if (segIndex % 2 === 1 || segment.startsWith('`')) return segment; // inline code span
-                    return segment.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (run) => {
-                        const count = (run.match(/<br/i) || []).length;
-                        return count === 1 ? '  \n' : '\n\n';
-                    });
+
+            // For non-fenced segments, protect inline code spans
+            return segment
+                .split(/(`[^`\n]*`)/) // Split on inline code spans
+                .map((subSegment, subIndex) => {
+                    // Odd indices are inline code spans - don't touch them
+                    if (subIndex % 2 === 1 || subSegment.startsWith('`')) {
+                        return subSegment;
+                    }
+
+                    // Apply transformation to regular content only
+                    return transform(subSegment);
                 })
                 .join('');
-            out.push(processed);
-        }
-        return out.join('\n');
-    });
-
-    return processedFenced.join('');
+        })
+        .join('');
 }
 
 /**
