@@ -38,3 +38,5 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 - **Include Images** - By default, images (external or base64 encoded) are included in the pasted text. If desired, you can un-check include images in the plugin settings so that images are not included in the pasted text.
 
 - **Convert images to Joplin resources** - If enabled (along with Include images), external (http/https) and base64 encoded images will automatically be converted to Joplin resources.
+
+- **Normalize smart quotes** - Convert Word/Office smart quotes to regular quotes for better markdown compatibility.
