@@ -10,6 +10,7 @@ export interface ConversionResult {
 export interface PasteOptions {
     includeImages: boolean;
     convertImagesToResources: boolean;
+    normalizeQuotes: boolean;
 }
 
 export interface ResourceConversionMeta {

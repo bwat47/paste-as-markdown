@@ -47,6 +47,14 @@ joplin.plugins.register({
                 description:
                     "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
             },
+            [SETTINGS.NORMALIZE_QUOTES]: {
+                value: true,
+                type: SettingItemType.Bool,
+                section: SETTINGS_SECTION,
+                public: true,
+                label: 'Normalize smart quotes',
+                description: 'Convert Word/Office smart quotes to regular quotes for better markdown compatibility.',
+            },
         });
 
         // Add menu item with accelerator in Edit menu for discoverability

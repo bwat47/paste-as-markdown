@@ -47,7 +47,7 @@ export async function processHtml(
         // Phase 4: Post-sanitization adjustments
         if (!options.includeImages) removeEmptyAnchors(body);
         cleanHeadingAnchors(body);
-        normalizeWhitespaceCharacters(body);
+        normalizeTextCharacters(body, options.normalizeQuotes);
         normalizeCodeBlocks(body); // still run to collapse highlight spans / infer language
         markNbspOnlyInlineCode(body);
         // Word sometimes injects line breaks into image alt attributes via character refs (e.g., &#10;)
@@ -387,14 +387,22 @@ function normalizeLangAlias(raw: string): string {
 }
 
 /**
- * Normalize whitespace characters to ensure proper rendering in markdown
- * Convert various NBSP encodings to regular spaces for better markdown compatibility
+ * Normalize text characters commonly found in rich document sources:
+ * - Various NBSP representations to regular spaces
+ * - Word/Office smart quotes to regular quotes (optional)
+ * - Other problematic encoded characters
+ * Skips code elements to preserve literal character examples.
  */
-function normalizeWhitespaceCharacters(body: HTMLElement): void {
-    // Fast bail-out: if no NBSP / encoded variants present skip full tree walk.
+function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: boolean = true): void {
+    // Build the bail-out regex conditionally
+    const nbspPattern = /[Â\u00A0]|&nbsp;/;
+    const quotePattern = /&#8220|&#8221|&#8216|&#8217|[\u201C\u201D\u2018\u2019]/;
+    const bailOutPattern = normalizeQuotes ? new RegExp(`${nbspPattern.source}|${quotePattern.source}`) : nbspPattern;
+    // Fast bail-out: if no NBSP / encoded variants or quote entities present skip full tree walk.
     const snapshot = body.innerHTML;
-    if (!/[Â\u00A0]|&nbsp;/.test(snapshot)) return;
-    // Walk through all text nodes and normalize whitespace characters
+    if (!bailOutPattern.test(snapshot)) return;
+
+    // Walk through all text nodes and normalize text characters
     const doc = body.ownerDocument;
     if (!doc) return;
 
@@ -417,13 +425,24 @@ function normalizeWhitespaceCharacters(body: HTMLElement): void {
         ) {
             continue;
         }
-
-        // Normalize various NBSP representations to regular spaces
-        // This handles UTF-8 encoded NBSP (Â ) and Unicode NBSP (\u00A0)
-        const normalizedText = originalText
+        // Normalize various NBSP representations (always applied)
+        let normalizedText = originalText
+            // NBSP normalization
             .replace(/Â\s/g, ' ') // UTF-8 encoded NBSP + space -> regular space
             .replace(/\u00A0/g, ' ') // Unicode NBSP -> regular space
             .replace(/&nbsp;/g, ' '); // HTML entity -> regular space
+
+        // Quote normalization (conditional)
+        if (normalizeQuotes) {
+            normalizedText = normalizedText
+                .replace(/&#8220;?/g, '"') // Left double quote
+                .replace(/&#8221;?/g, '"') // Right double quote
+                .replace(/&#8216;?/g, "'") // Left single quote
+                .replace(/&#8217;?/g, "'") // Right single quote
+                // Unicode versions (in case they're already decoded)
+                .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+                .replace(/[\u2018\u2019]/g, "'"); // Smart single quotes
+        }
 
         if (normalizedText !== originalText) {
             textNodesToUpdate.push({ node: textNode, newText: normalizedText });

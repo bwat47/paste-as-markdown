@@ -48,6 +48,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
     const rawSettings = {
         includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
         convertImagesToResources: await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
+        normalizeQuotes: await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
     };
     const options = validatePasteSettings(rawSettings);
 
@@ -72,7 +73,8 @@ export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
         const { markdown, resources } = await convertHtmlToMarkdown(
             html!,
             options.includeImages,
-            options.convertImagesToResources
+            options.convertImagesToResources,
+            options.normalizeQuotes
         );
         await insertMarkdownAtCursor(markdown);
 

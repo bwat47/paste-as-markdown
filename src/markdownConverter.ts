@@ -71,13 +71,18 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
 export async function convertHtmlToMarkdown(
     html: string,
     includeImages: boolean = true,
-    convertImagesToResources: boolean = false
+    convertImagesToResources: boolean = false,
+    normalizeQuotes: boolean = true
 ): Promise<{ markdown: string; resources: ResourceConversionMeta }> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     let input = wrapOrphanedTableElements(html);
 
     // Apply DOM-based preprocessing to clean and sanitize the HTML (now async)
-    const options: PasteOptions = { includeImages, convertImagesToResources };
+    const options: PasteOptions = {
+        includeImages,
+        convertImagesToResources,
+        normalizeQuotes,
+    };
     const processed = await processHtml(input, options);
     input = processed.html;
 

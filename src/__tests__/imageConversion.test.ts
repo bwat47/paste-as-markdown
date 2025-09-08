@@ -45,7 +45,11 @@ describe('image resource conversion', () => {
     test('converts a single base64 image to a resource and sanitizes attributes', async () => {
         dataPostMock.mockImplementation(() => Promise.resolve({ id: 'res1' }));
         const html = buildHtml([ONE_BY_ONE_PNG_BASE64]);
-        const options: PasteOptions = { includeImages: true, convertImagesToResources: true };
+        const options: PasteOptions = {
+            includeImages: true,
+            convertImagesToResources: true,
+            normalizeQuotes: true,
+        };
         const result = await processHtml(html, options);
 
         expect(result.resources.resourcesCreated).toBe(1);
@@ -62,7 +66,11 @@ describe('image resource conversion', () => {
             .mockImplementationOnce(() => Promise.resolve({ id: 'resA' }))
             .mockImplementationOnce(() => Promise.reject(new Error('simulate failure')));
         const html = buildHtml([ONE_BY_ONE_PNG_BASE64, ONE_BY_ONE_PNG_BASE64]);
-        const options: PasteOptions = { includeImages: true, convertImagesToResources: true };
+        const options: PasteOptions = {
+            includeImages: true,
+            convertImagesToResources: true,
+            normalizeQuotes: true,
+        };
         const result = await processHtml(html, options);
 
         expect(result.resources.resourcesCreated).toBe(1);

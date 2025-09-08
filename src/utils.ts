@@ -16,5 +16,6 @@ export function validatePasteSettings(settings: unknown): PasteOptions {
     return {
         includeImages: typeof s.includeImages === 'boolean' ? s.includeImages : true,
         convertImagesToResources: typeof s.convertImagesToResources === 'boolean' ? s.convertImagesToResources : false,
+        normalizeQuotes: typeof s.normalizeQuotes === 'boolean' ? s.normalizeQuotes : true,
     };
 }

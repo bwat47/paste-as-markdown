@@ -49,7 +49,7 @@ describe('remote image success path', () => {
 
     test('successful remote image conversion increments metrics and rewrites src', async () => {
         const html = '<img src="https://example.com/image.png" alt="Remote">';
-        const options: PasteOptions = { includeImages: true, convertImagesToResources: true };
+        const options: PasteOptions = { includeImages: true, convertImagesToResources: true, normalizeQuotes: true };
         const result = await processHtml(html, options);
         expect(result.resources.attempted).toBe(1);
         expect(result.resources.failed).toBe(0);

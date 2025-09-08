@@ -53,22 +53,36 @@ describe('utils', () => {
 
     describe('validatePasteSettings', () => {
         test('returns default settings for null/undefined input', () => {
-            expect(validatePasteSettings(null)).toEqual({ includeImages: true, convertImagesToResources: false });
-            expect(validatePasteSettings(undefined)).toEqual({ includeImages: true, convertImagesToResources: false });
+            expect(validatePasteSettings(null)).toEqual({
+                includeImages: true,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+            });
+            expect(validatePasteSettings(undefined)).toEqual({
+                includeImages: true,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+            });
         });
 
         test('returns default settings for empty object', () => {
-            expect(validatePasteSettings({})).toEqual({ includeImages: true, convertImagesToResources: false });
+            expect(validatePasteSettings({})).toEqual({
+                includeImages: true,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+            });
         });
 
         test('preserves valid boolean includeImages setting', () => {
             expect(validatePasteSettings({ includeImages: false })).toEqual({
                 includeImages: false,
                 convertImagesToResources: false,
+                normalizeQuotes: true,
             });
             expect(validatePasteSettings({ includeImages: true })).toEqual({
                 includeImages: true,
                 convertImagesToResources: false,
+                normalizeQuotes: true,
             });
         });
 
@@ -76,14 +90,17 @@ describe('utils', () => {
             expect(validatePasteSettings({ includeImages: 'true' })).toEqual({
                 includeImages: true,
                 convertImagesToResources: false,
+                normalizeQuotes: true,
             });
             expect(validatePasteSettings({ includeImages: 1 })).toEqual({
                 includeImages: true,
                 convertImagesToResources: false,
+                normalizeQuotes: true,
             });
             expect(validatePasteSettings({ includeImages: null })).toEqual({
                 includeImages: true,
                 convertImagesToResources: false,
+                normalizeQuotes: true,
             });
         });
 
@@ -94,7 +111,7 @@ describe('utils', () => {
                     unknownProperty: 'value',
                     anotherProperty: 123,
                 })
-            ).toEqual({ includeImages: false, convertImagesToResources: false });
+            ).toEqual({ includeImages: false, convertImagesToResources: false, normalizeQuotes: true });
         });
     });
 });
