@@ -23,7 +23,7 @@
  * - On any failure, we log and fall back to returning the raw HTML unchanged.
  *
  * @author bwat47
- * @since 1.2.1
+ * @since 1.0.10
  */
 import type { PasteOptions, ResourceConversionMeta } from '../types';
 import { LOG_PREFIX } from '../constants';
