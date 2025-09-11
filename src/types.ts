@@ -7,6 +7,10 @@ export interface ConversionResult {
     plainTextFallback?: boolean;
 }
 
+// Discriminated result variants for stronger type narrowing
+export type ConversionSuccess = ConversionResult & { success: true };
+export type ConversionFailure = ConversionResult & { success: false; warnings: readonly string[] };
+
 export interface PasteOptions {
     includeImages: boolean;
     convertImagesToResources: boolean;
@@ -14,8 +18,27 @@ export interface PasteOptions {
 }
 
 export interface ResourceConversionMeta {
-    resourcesCreated: number;
-    resourceIds: string[];
-    attempted?: number;
-    failed?: number;
+    readonly resourcesCreated: number;
+    readonly resourceIds: readonly string[];
+    readonly attempted: number;
+    readonly failed: number;
 }
+
+// Generic validation result for user inputs/settings or parsed data
+export interface ValidationResult<T> {
+    readonly isValid: boolean;
+    readonly value?: T;
+    readonly error?: string;
+}
+
+// Image processing types
+export interface ParsedImageData {
+    readonly buffer: ArrayBuffer;
+    readonly mime: string;
+    readonly filename: string;
+    readonly size: number;
+}
+
+// Settings validation helpers
+export type SettingsInput = Partial<Record<string, unknown>>;
+export type ValidatedSettings = PasteOptions;

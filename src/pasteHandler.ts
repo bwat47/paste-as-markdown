@@ -2,7 +2,7 @@ import joplin from 'api';
 import { convertHtmlToMarkdown } from './markdownConverter';
 import { showToast, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
-import type { ConversionResult } from './types';
+import type { ConversionSuccess, ConversionFailure } from './types';
 import { SETTINGS, LOG_PREFIX } from './constants';
 
 async function readClipboardHtml(): Promise<string | null> {
@@ -43,14 +43,15 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
     throw new Error('Unable to insert markdown into editor');
 }
 
-export async function handlePasteAsMarkdown(): Promise<ConversionResult> {
+export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | ConversionFailure> {
     // Get user setting
     const rawSettings = {
         includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
         convertImagesToResources: await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
         normalizeQuotes: await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
     };
-    const options = validatePasteSettings(rawSettings);
+    const validation = validatePasteSettings(rawSettings);
+    const options = validation.value!; // validation currently always returns isValid=true
 
     // Read HTML (will be null if unavailable)
 

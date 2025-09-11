@@ -1,5 +1,5 @@
 /**
- * @fileoverview High-level HTML processing pipeline used before converting to Markdown.
+ * High-level HTML processing pipeline used before converting to Markdown.
  *
  * Phases
  * 1) Parse raw HTML
@@ -21,10 +21,8 @@
  * - All text normalization avoids code/pre to preserve literal examples and spacing.
  * - Early normalization + UI removal makes behavior robust against DOM structure from real-world fragments.
  * - On any failure, we log and fall back to returning the raw HTML unchanged.
- *
- * @author bwat47
- * @since 1.0.10
  */
+
 import type { PasteOptions, ResourceConversionMeta } from '../types';
 import { LOG_PREFIX } from '../constants';
 import { convertImagesToResources, standardizeRemainingImages } from '../resourceConverter';
@@ -43,12 +41,12 @@ export async function processHtml(
     options: PasteOptions
 ): Promise<{ html: string; resources: ResourceConversionMeta }> {
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined')
-        return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
+        return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
     try {
         const rawParser = new DOMParser();
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
-        if (!rawBody) return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
+        if (!rawBody) return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
         try {
             normalizeTextCharacters(rawBody, options.normalizeQuotes);
         } catch {}
@@ -65,7 +63,7 @@ export async function processHtml(
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitized, 'text/html');
         const body = doc.body;
-        if (!body) return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
+        if (!body) return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
 
         if (!options.includeImages) removeEmptyAnchors(body);
         cleanHeadingAnchors(body);
@@ -96,6 +94,6 @@ export async function processHtml(
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
         if (err instanceof Error && (err as Error).stack) console.warn((err as Error).stack);
-        return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
+        return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
     }
 }

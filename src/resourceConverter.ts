@@ -2,6 +2,7 @@ import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH }
 import { normalizeAltText } from './textUtils';
 import * as path from 'path';
 import type Joplin from '../api/Joplin';
+import type { ParsedImageData } from './types';
 
 // Global joplin API (available at runtime in Joplin plugin environment)
 declare const joplin: Joplin;
@@ -40,12 +41,7 @@ declare const joplin: Joplin;
  *  - Enforces strict base64 and size limits
  */
 
-// Internal type describing parsed image data
-interface ParsedImageData {
-    buffer: ArrayBuffer;
-    mime: string;
-    filename: string;
-}
+// ParsedImageData exported from types.ts for reuse
 
 /**
  * Convert eligible <img> tags to Joplin resources.
@@ -211,7 +207,7 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
     if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
-    return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}` };
+    return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
 }
 
 /**
@@ -236,7 +232,7 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
         const buffer = await resp.arrayBuffer();
         if (buffer.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
         const filenameImmediate = deriveFilenameFromUrl(url, extensionForMime(contentType));
-        return { buffer, mime: contentType, filename: filenameImmediate };
+        return { buffer, mime: contentType, filename: filenameImmediate, size: buffer.byteLength };
     }
     const chunks: Uint8Array[] = [];
     let received = 0;
@@ -254,7 +250,7 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
     }
     const merged = concatChunks(chunks, received);
     const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
-    return { buffer: merged, mime: contentType, filename };
+    return { buffer: merged, mime: contentType, filename, size: merged.byteLength };
 }
 
 /**

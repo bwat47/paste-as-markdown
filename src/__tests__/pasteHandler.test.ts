@@ -65,9 +65,12 @@ describe('pasteHandler', () => {
         });
 
         mockValidatePasteSettings.mockReturnValue({
-            includeImages: true,
-            convertImagesToResources: false,
-            normalizeQuotes: true,
+            isValid: true,
+            value: {
+                includeImages: true,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+            },
         });
     });
 
@@ -79,7 +82,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: expectedMarkdown,
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
             const result = await handlePasteAsMarkdown();
@@ -102,15 +105,14 @@ describe('pasteHandler', () => {
             const expectedMarkdown = 'Text';
 
             mockValidatePasteSettings.mockReturnValue({
-                includeImages: false,
-                convertImagesToResources: false,
-                normalizeQuotes: true,
+                isValid: true,
+                value: { includeImages: false, convertImagesToResources: false, normalizeQuotes: true },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: expectedMarkdown,
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
             const result = await handlePasteAsMarkdown();
@@ -128,9 +130,8 @@ describe('pasteHandler', () => {
             const expectedMarkdown = 'Text\n\n![Image](:resource-id)';
 
             mockValidatePasteSettings.mockReturnValue({
-                includeImages: true,
-                convertImagesToResources: true,
-                normalizeQuotes: true,
+                isValid: true,
+                value: { includeImages: true, convertImagesToResources: true, normalizeQuotes: true },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -162,9 +163,8 @@ describe('pasteHandler', () => {
             const expectedMarkdown = 'Text\n\n![](image1.png)\n![](image2.png)';
 
             mockValidatePasteSettings.mockReturnValue({
-                includeImages: true,
-                convertImagesToResources: true,
-                normalizeQuotes: true,
+                isValid: true,
+                value: { includeImages: true, convertImagesToResources: true, normalizeQuotes: true },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -195,9 +195,8 @@ describe('pasteHandler', () => {
             const expectedMarkdown = 'Text\n\n![](image1.png)\n![](image2.png)';
 
             mockValidatePasteSettings.mockReturnValue({
-                includeImages: true,
-                convertImagesToResources: true,
-                normalizeQuotes: true,
+                isValid: true,
+                value: { includeImages: true, convertImagesToResources: true, normalizeQuotes: true },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -316,7 +315,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
             mockJoplin.commands.execute.mockResolvedValueOnce(undefined);
 
@@ -336,7 +335,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
             mockJoplin.commands.execute
                 .mockRejectedValueOnce(new Error('insertText failed'))
@@ -363,7 +362,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
             mockJoplin.clipboard.readText.mockResolvedValue(plainText);
 
@@ -391,7 +390,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
             mockJoplin.clipboard.readText.mockResolvedValue(''); // No fallback text available
 
@@ -468,15 +467,14 @@ describe('pasteHandler', () => {
             });
 
             mockValidatePasteSettings.mockReturnValue({
-                includeImages: false,
-                convertImagesToResources: true,
-                normalizeQuotes: true,
+                isValid: true,
+                value: { includeImages: false, convertImagesToResources: true, normalizeQuotes: true },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: 'Test',
-                resources: { resourcesCreated: 0, resourceIds: [] },
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
             await handlePasteAsMarkdown();
