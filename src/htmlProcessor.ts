@@ -525,8 +525,8 @@ function removeNonContentUi(body: HTMLElement): void {
         if (type !== 'checkbox') (el as HTMLElement).remove();
     });
 
-    // 4) Remove <select> and <textarea>
-    Array.from(body.querySelectorAll('select, textarea')).forEach((el) => {
+    // 4) Remove <select>; keep <textarea> so its text content survives (useful user-intended text)
+    Array.from(body.querySelectorAll('select')).forEach((el) => {
         if (!isInCode(el)) (el as HTMLElement).remove();
     });
 }

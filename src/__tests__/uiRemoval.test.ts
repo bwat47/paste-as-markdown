@@ -24,10 +24,11 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         // Checkbox preserved
         expect(/<input[^>]*type="checkbox"/i.test(html)).toBe(true);
 
-        // Non-checkbox input, select, textarea removed
+        // Non-checkbox input and select are removed; textarea tag removed but its text remains
         expect(/<input[^>]*type="text"/i.test(html)).toBe(false);
         expect(/<select/i.test(html)).toBe(false);
         expect(/<textarea/i.test(html)).toBe(false);
+        expect(html.includes('Write: text')).toBe(true);
 
         // Role-based UI removed
         expect(html.includes('Click me')).toBe(false);
