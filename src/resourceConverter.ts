@@ -217,7 +217,7 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
 async function downloadExternalImage(url: string): Promise<ParsedImageData> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
-    const resp = await fetch(url, { signal: controller.signal });
+    const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
     clearTimeout(timeout);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
@@ -251,6 +251,32 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
     const merged = concatChunks(chunks, received);
     const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
     return { buffer: merged, mime: contentType, filename, size: merged.byteLength };
+}
+
+/**
+ * Lightweight retry wrapper around fetch for transient errors.
+ * Retries on network errors and HTTP 408/429/5xx with exponential backoff.
+ */
+async function fetchWithRetry(url: string, init: RequestInit, retries: number, baseDelayMs: number): Promise<Response> {
+    let attempt = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        const signal = (init as { signal?: AbortSignal } | undefined)?.signal;
+        if (signal?.aborted) throw new Error('abort');
+        try {
+            const resp = await fetch(url, init);
+            if (resp.ok) return resp;
+            const status = resp.status;
+            const retryable = status === 408 || status === 429 || (status >= 500 && status < 600);
+            if (!retryable || attempt >= retries) return resp; // return last response; caller will handle !ok
+        } catch (e) {
+            // Network or abort errors: retry if not exceeded
+            if (signal?.aborted || attempt >= retries) throw e;
+        }
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        attempt++;
+    }
 }
 
 /**
@@ -366,7 +392,8 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     // Validate the resolved path is still within dataDir to prevent path traversal
     const resolvedPath = path.resolve(tmpPath);
     const resolvedDataDir = path.resolve(dataDir);
-    if (!resolvedPath.startsWith(resolvedDataDir + path.sep)) {
+    // Allow exact dataDir (defensive) or any child path; reject traversal
+    if (!resolvedPath.startsWith(resolvedDataDir + path.sep) && resolvedPath !== resolvedDataDir) {
         throw new Error('Invalid file path: potential path traversal detected');
     }
     const fsLike: FsExtraLike = fs;
