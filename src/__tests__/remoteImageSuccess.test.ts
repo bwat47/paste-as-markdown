@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, jest } from '@jest/globals';
-import { processHtml } from '../htmlProcessor';
+import { processHtml } from '../html/processHtml';
 import type { PasteOptions } from '../types';
 
 // 40 byte tiny PNG binary (fake) for streaming

@@ -1,6 +1,6 @@
 import TurndownService from 'turndown';
 import { TURNDOWN_OPTIONS } from './constants';
-import { processHtml } from './htmlProcessor';
+import { processHtml } from './html/processHtml';
 import { getGfmPlugin } from './gfmPlugin';
 import type { PasteOptions, ResourceConversionMeta } from './types';
 

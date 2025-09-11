@@ -1,5 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
-import { processHtml } from '../htmlProcessor';
+import { processHtml } from '../html/processHtml';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 

@@ -1,6 +1,6 @@
 import { describe, test, expect } from '@jest/globals';
 
-import { processHtml } from '../htmlProcessor';
+import { processHtml } from '../html/processHtml';
 
 describe('text normalization toggle', () => {
     test('does not normalize smart quotes when normalizeQuotes is false', async () => {
