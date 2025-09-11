@@ -259,7 +259,6 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
  */
 async function fetchWithRetry(url: string, init: RequestInit, retries: number, baseDelayMs: number): Promise<Response> {
     let attempt = 0;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
         const signal = (init as { signal?: AbortSignal } | undefined)?.signal;
         if (signal?.aborted) throw new Error('abort');
