@@ -26,6 +26,15 @@ export async function processHtml(
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
         if (!rawBody) return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
+        // Normalize text characters on the raw DOM before any structural changes.
+        // This ensures top-level text (e.g., headings/paragraphs) gets normalized
+        // regardless of how later code-block neutralization and sanitization
+        // might restructure the DOM. This pass skips code/pre.
+        try {
+            normalizeTextCharacters(rawBody, options.normalizeQuotes);
+        } catch {
+            // Non-fatal: if early normalization fails on odd DOMs, continue.
+        }
         neutralizeCodeBlocksPreSanitize(rawBody);
 
         // Serialize the neutralized DOM back to a string for sanitization
@@ -77,6 +86,9 @@ export async function processHtml(
         };
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
+        if (err instanceof Error && (err as Error).stack) {
+            console.warn((err as Error).stack);
+        }
         return { html, resources: { resourcesCreated: 0, resourceIds: [] } };
     }
 }
@@ -271,7 +283,24 @@ function ensureCodeElement(pre: HTMLElement): void {
 }
 
 function removeUIElements(pre: HTMLElement): void {
-    const code = pre.querySelector('code');
+    // Ensure the <pre> contains a direct <code> child; if code is nested inside wrappers,
+    // hoist the first descendant <code> to be the sole code child before stripping UI wrappers.
+    let code: HTMLElement | null = null;
+    for (const child of Array.from(pre.children)) {
+        if (child.tagName.toLowerCase() === 'code') {
+            code = child as HTMLElement;
+            break;
+        }
+    }
+    if (!code) {
+        const descendant = pre.querySelector('code') as HTMLElement | null;
+        if (descendant) {
+            // Move the descendant code to be the only relevant child of <pre>
+            while (pre.firstChild) pre.removeChild(pre.firstChild);
+            pre.appendChild(descendant);
+            code = descendant;
+        }
+    }
     if (!code) return;
 
     for (const child of Array.from(pre.children)) {
