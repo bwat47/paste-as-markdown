@@ -13,7 +13,12 @@ joplin.plugins.register({
             iconName: 'fas fa-paste',
             execute: async () => {
                 try {
-                    await handlePasteAsMarkdown();
+                    const res = await handlePasteAsMarkdown();
+                    if (res.success) {
+                        // Success path already shows success toasts inside handler.
+                    } else if (res.warnings && res.warnings.length) {
+                        console.warn(LOG_PREFIX, 'Paste reported warnings:', res.warnings);
+                    }
                 } catch (err: unknown) {
                     const message = err instanceof Error ? err.message : String(err);
                     console.error(LOG_PREFIX, 'Error:', err);

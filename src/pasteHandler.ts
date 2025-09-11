@@ -51,7 +51,12 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         normalizeQuotes: await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
     };
     const validation = validatePasteSettings(rawSettings);
-    const options = validation.value!; // validation currently always returns isValid=true
+    if (!validation.isValid || !validation.value) {
+        const msg = validation.error || 'Invalid settings';
+        await showToast(msg, ToastType.Error);
+        return { markdown: '', success: false, warnings: [msg] };
+    }
+    const options = validation.value;
 
     // Read HTML (will be null if unavailable)
 

@@ -52,23 +52,9 @@ describe('utils', () => {
     });
 
     describe('validatePasteSettings', () => {
-        test('returns default settings for null/undefined input', () => {
-            expect(validatePasteSettings(null)).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                },
-            });
-            expect(validatePasteSettings(undefined)).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                },
-            });
+        test('returns error for null/undefined input', () => {
+            expect(validatePasteSettings(null)).toEqual({ isValid: false, error: 'Settings must be an object' });
+            expect(validatePasteSettings(undefined)).toEqual({ isValid: false, error: 'Settings must be an object' });
         });
 
         test('returns default settings for empty object', () => {
@@ -101,30 +87,21 @@ describe('utils', () => {
             });
         });
 
-        test('uses default for invalid includeImages values', () => {
+        test('reports error for invalid includeImages values', () => {
             expect(validatePasteSettings({ includeImages: 'true' })).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                },
+                isValid: false,
+                error: 'Invalid setting(s): includeImages must be boolean',
+                value: { includeImages: true, convertImagesToResources: false, normalizeQuotes: true },
             });
             expect(validatePasteSettings({ includeImages: 1 })).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                },
+                isValid: false,
+                error: 'Invalid setting(s): includeImages must be boolean',
+                value: { includeImages: true, convertImagesToResources: false, normalizeQuotes: true },
             });
-            expect(validatePasteSettings({ includeImages: null })).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                },
+            expect(validatePasteSettings({ includeImages: null as unknown as boolean })).toEqual({
+                isValid: false,
+                error: 'Invalid setting(s): includeImages must be boolean',
+                value: { includeImages: true, convertImagesToResources: false, normalizeQuotes: true },
             });
         });
 
