@@ -7,12 +7,15 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 1. Input acquisition (HTML string + options).
 2. HTML preprocessing (`processHtml`):
     - Safe DOM parse (guarded if no DOM APIs).
-    - Pre-sanitize code block neutralization: flatten highlight/token spans, convert `<br>`→`\n`, escape literal `<script>/<style>` examples by moving innerHTML to textContent.
-    - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled).
+    - Pre-sanitize passes (order matters):
+        - Text normalization (idempotent): normalize NBSP and optionally smart quotes; skips `code/pre`.
+        - UI cleanup: remove obvious non-content UI (e.g., `<button>`, role-based controls, non-checkbox inputs, `<select>`), skipping `code/pre`.
+        - Code block neutralization: flatten highlight/token spans, convert `<br>`→`\n`, and escape literal `<script>/<style>` examples by moving innerHTML to textContent.
+    - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup.
     - Post-sanitize normalization:
         - Code blocks: enforce `<pre><code>` shape, drop toolbars/empty blocks, infer language from class patterns (alias mapping), remove stray wrappers.
-        - Anchor cleanup (permalink / empty anchors).
-        - Whitespace normalization (NBSP variants outside code).
+        - Anchor cleanup (permalink / empty anchors; remove empty anchors only when images are excluded).
+        - Text normalization again (idempotent) to remain robust to structure changes.
         - Image handling (optional conversion to Joplin resources + attribute normalization; or removal when disabled).
 3. Pre-Turndown HTML fixups (`markdownConverter`):
     - `wrapOrphanedTableElements` – Wrap bare `<tr>/<td>/<col>` fragments in `<table>` (clipboard edge cases e.g. Excel) so GFM table rule can apply.
@@ -38,6 +41,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 
 - `wrapOrphanedTableElements(html)` – Enables GFM table rule on row-only fragments.
 - `normalizeCodeBlocks(body)` – Language inference + structural cleanup (class-based only; no heuristic on file content).
+- `removeNonContentUi(body)` – Drops buttons/role-based UI/non-checkbox inputs/select (skips in code/pre).
+- `normalizeTextCharacters(body, normalizeQuotes)` – Normalizes NBSP/smart quotes outside code/pre; idempotent.
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
 
@@ -59,8 +64,9 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 
 ## Design Principles (Applied)
 
-- Single sanitize pass (DOMPurify) before structural mutation.
+- Sanitize pass (DOMPurify).
 - Prefer DOM over regex for semantics; regex only for final line/spacing cleanup.
+- Make pre-sanitize passes idempotent and safe (text normalization can run twice; early UI removal compensates for KEEP_CONTENT behavior).
 - No style-based semantic inference (bold/italic from CSS dropped intentionally).
 - Per-invocation Turndown instance (no shared mutable state).
 - Minimal post-processing; only tasks simpler after Markdown emission.
