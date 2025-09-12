@@ -24,3 +24,9 @@ test('height-only image is preserved as HTML', async () => {
     const { markdown } = await convertHtmlToMarkdown(html, true, false);
     expect(markdown).toContain('<img src="h.png" alt="H" height="90">');
 });
+
+test('sized <img> preserves title attribute and order', async () => {
+    const html = '<p><img src="t.png" width="10" alt="A" title="T"></p>';
+    const { markdown } = await convertHtmlToMarkdown(html, true, false);
+    expect(markdown).toContain('<img src="t.png" alt="A" title="T" width="10">');
+});

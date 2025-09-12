@@ -33,7 +33,8 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
                 const v = img.getAttribute(name);
                 if (v) attrs.push(`${name}="${v}"`);
             };
-            ['src', 'alt', 'width', 'height'].forEach(pushAttr);
+            // Allowed image attributes: src, alt, title, width, height
+            ['src', 'alt', 'title', 'width', 'height'].forEach(pushAttr);
             return `<img ${attrs.join(' ')}>`;
         },
     });

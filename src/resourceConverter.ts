@@ -104,7 +104,7 @@ export async function convertImagesToResources(
 /**
  * Standardize every <img> element regardless of conversion outcome so output HTML is uniform.
  * - Ensures only whitelisted attributes remain
- * - Applies canonical ordering (src, alt, width, height)
+ * - Applies canonical ordering (src, alt, title, width, height)
  * - Fills missing alt from an inferred filename
  */
 export function standardizeRemainingImages(body: HTMLElement): void {
@@ -131,17 +131,19 @@ function standardizeImageElement(img: HTMLImageElement, originalFilename: string
         // If normalization changed the value, write it back
         img.setAttribute('alt', existingAlt);
     }
-    const allowed = new Set(['src', 'alt', 'width', 'height']);
+    const allowed = new Set(['src', 'alt', 'title', 'width', 'height']);
     for (const attr of Array.from(img.attributes)) {
         if (!allowed.has(attr.name.toLowerCase())) img.removeAttribute(attr.name);
     }
     const srcVal = img.getAttribute('src') || '';
     const altVal = img.getAttribute('alt');
+    const titleVal = img.getAttribute('title');
     const widthVal = img.getAttribute('width');
     const heightVal = img.getAttribute('height');
-    ['src', 'alt', 'width', 'height'].forEach((a) => img.removeAttribute(a));
+    ['src', 'alt', 'title', 'width', 'height'].forEach((a) => img.removeAttribute(a));
     if (srcVal) img.setAttribute('src', srcVal);
     if (altVal) img.setAttribute('alt', altVal);
+    if (titleVal) img.setAttribute('title', titleVal);
     if (widthVal) img.setAttribute('width', widthVal);
     if (heightVal) img.setAttribute('height', heightVal);
 }
