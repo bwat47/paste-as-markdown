@@ -23,7 +23,12 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         // Uses addRule instead of manipulating internal arrays (see turndown#241 guidance on precedence)
         filter: (node: HTMLElement) => {
             return (
-                includeImages && node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height'))
+                includeImages &&
+                node.nodeName === 'IMG' &&
+                (node.hasAttribute('width') ||
+                    node.hasAttribute('height') ||
+                    // Now also triggers for style-based sizing!
+                    (node.hasAttribute('style') && /width|height/.test(node.getAttribute('style') || '')))
             );
         },
         replacement: (_content: string, node: HTMLElement) => {

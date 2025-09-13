@@ -31,6 +31,7 @@ import { buildSanitizerConfig } from '../sanitizerConfig';
 
 import { normalizeTextCharacters } from './pre/normalizeText';
 import { removeNonContentUi } from './pre/uiCleanup';
+import { promoteImageSizingStylesToAttributes } from './pre/imageSizing';
 import { neutralizeCodeBlocksPreSanitize } from './pre/codeNeutralize';
 import { removeEmptyAnchors, cleanHeadingAnchors } from './post/anchors';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from './post/codeBlocks';
@@ -52,6 +53,8 @@ export async function processHtml(
             normalizeTextCharacters(rawBody, options.normalizeQuotes);
         } catch {}
         removeNonContentUi(rawBody);
+        // Promote <img style=width/height> to attributes so sizing survives sanitize and Turndown sees it
+        promoteImageSizingStylesToAttributes(rawBody);
         neutralizeCodeBlocksPreSanitize(rawBody);
 
         const intermediate = rawBody.innerHTML;
