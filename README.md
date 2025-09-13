@@ -40,3 +40,5 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 - **Convert images to Joplin resources** - If enabled (along with Include images), external (http/https) and base64 encoded images will automatically be converted to Joplin resources.
 
 - **Normalize smart quotes** - Convert Word/Office smart quotes to regular quotes for better markdown compatibility.
+
+- **Force tight lists** - Removes space between list items.
