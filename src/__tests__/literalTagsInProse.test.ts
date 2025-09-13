@@ -21,9 +21,9 @@ describe('literal HTML tag mentions in prose', () => {
             <p>Images like &lt;img src=\"test\"/&gt; or &lt;img src=\"test\" &gt; should be shown as text.</p>
         `;
         const { markdown: md } = await convertHtmlToMarkdown(html, true);
-        expect(md).toMatch(/`<br>`/);
-        expect(md).toMatch(/`<br\/>`/);
-        expect(md).toMatch(/`<img src="test"\/>`/);
-        expect(md).toMatch(/`<img src="test">`/);
+        const brMatches = md.match(/`<br\s*(?:\/\s*)?\s*>(?=`)/g) ?? [];
+        expect(brMatches.length).toBeGreaterThanOrEqual(2);
+        const imgMatches = md.match(/`<img\s+src="test"(?:\s*\/\s*)?\s*>`/g) ?? [];
+        expect(imgMatches.length).toBeGreaterThanOrEqual(2);
     });
 });

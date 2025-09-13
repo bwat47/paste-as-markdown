@@ -5,8 +5,29 @@
  *
  * - Operates only on text nodes outside of <code>/<pre>.
  * - Matches simple tag-like tokens: <tag> and </tag> where tag is [A-Za-z][A-Za-z0-9-]*.
+ * - The main problematic tag is table, as a literal table tag can result in all text after being rendered as a table in joplin.
  */
-export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
+const DEFAULT_PROBLEMATIC_TAGS = new Set([
+    'table',
+    'tr',
+    'td',
+    'th',
+    'div',
+    'span',
+    'img',
+    'a',
+    'br',
+    'ul',
+    'ol',
+    'li',
+    'hr',
+    // keep small and focused; extend if real-world cases arise
+]);
+
+export function protectLiteralHtmlTagMentions(
+    body: HTMLElement,
+    problematicTags: Set<string> = DEFAULT_PROBLEMATIC_TAGS
+): void {
     const doc = body.ownerDocument;
     if (!doc) return;
 
@@ -33,9 +54,8 @@ export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
     }
 
     // Match simple HTML-like tokens with optional attributes and optional self-closing slash.
-    // This intentionally does not attempt to be a full HTML lexer; since we only operate on text nodes
-    // (not real elements), matching angle-bracketed tokens is safe for our purposes.
-    const tagTokenRe = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/g;
+    // Capture the tag name in group 1 to allow whitelist filtering.
+    const tagTokenRe = /<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s+[^<>]*?)?\s*\/?\>/g;
 
     textNodes.forEach((textNode) => {
         const content = textNode.textContent || '';
@@ -50,9 +70,15 @@ export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
             const end = start + match[0].length;
             const before = content.slice(lastIndex, start);
             if (before) frag.appendChild(doc.createTextNode(before));
-            const code = doc.createElement('code');
-            code.textContent = match[0];
-            frag.appendChild(code);
+            const tagName = (match[1] || '').toLowerCase();
+            if (problematicTags.has(tagName)) {
+                const code = doc.createElement('code');
+                code.textContent = match[0];
+                frag.appendChild(code);
+            } else {
+                // Leave token as literal text when not in the problematic list
+                frag.appendChild(doc.createTextNode(match[0]));
+            }
             lastIndex = end;
         }
         if (!hasMatch) return;
