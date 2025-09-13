@@ -23,7 +23,13 @@ describe('literal HTML tag mentions in prose', () => {
         const { markdown: md } = await convertHtmlToMarkdown(html, true);
         const brMatches = md.match(/`<br\s*(?:\/\s*)?\s*>(?=`)/g) ?? [];
         expect(brMatches.length).toBeGreaterThanOrEqual(2);
-        const imgMatches = md.match(/`<img\s+src="test"(?:\s*\/\s*)?\s*>`/g) ?? [];
+        const imgMatches = md.match(/`<img\s+src=\"test\"(?:\s*\/\s*)?\s*>`/g) ?? [];
         expect(imgMatches.length).toBeGreaterThanOrEqual(2);
+    });
+
+    test('wraps arbitrary tag-like token in inline code', async () => {
+        const html = '<p>This uses a placeholder tag like &lt;foo&gt; in text.</p>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, true);
+        expect(md).toMatch(/`<foo>`/);
     });
 });

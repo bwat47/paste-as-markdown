@@ -7,81 +7,7 @@
  * - Matches simple tag-like tokens: <tag> and </tag> where tag is [A-Za-z][A-Za-z0-9-]*.
  * - The main problematic tag is table, as a literal table tag can result in all text after being rendered as a table in joplin.
  */
-const DEFAULT_PROBLEMATIC_TAGS = new Set([
-    // Table elements
-    'table',
-    'tr',
-    'td',
-    'th',
-    'thead',
-    'tbody',
-    'tfoot',
-
-    // Block elements that break layout
-    'div',
-    'section',
-    'article',
-    'aside',
-    'main',
-    'header',
-    'footer',
-    'nav',
-
-    // List elements
-    'ul',
-    'ol',
-    'li',
-    'dl',
-    'dt',
-    'dd',
-
-    // Form elements
-    'form',
-    'input',
-    'button',
-    'select',
-    'textarea',
-    'fieldset',
-    'legend',
-
-    // Media/embeds
-    'img',
-    'video',
-    'audio',
-    'iframe',
-    'embed',
-    'object',
-
-    // Dangerous elements
-    'script',
-    'style',
-    'link',
-    'meta',
-
-    // Common inline elements that might break formatting
-    'span',
-    'a',
-    'strong',
-    'em',
-    'code',
-    'pre',
-
-    // Semantic elements
-    'h1',
-    'h2',
-    'h3',
-    'h4',
-    'h5',
-    'h6',
-    'p',
-    'br',
-    'hr',
-]);
-
-export function protectLiteralHtmlTagMentions(
-    body: HTMLElement,
-    problematicTags: Set<string> = DEFAULT_PROBLEMATIC_TAGS
-): void {
+export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
     const doc = body.ownerDocument;
     if (!doc) return;
 
@@ -108,8 +34,7 @@ export function protectLiteralHtmlTagMentions(
     }
 
     // Match simple HTML-like tokens with optional attributes and optional self-closing slash.
-    // Capture the tag name in group 1 to allow whitelist filtering.
-    const tagTokenRe = /<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s+[^<>]*?)?\s*\/?\>/g;
+    const tagTokenRe = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/g;
 
     textNodes.forEach((textNode) => {
         const content = textNode.textContent || '';
@@ -124,15 +49,9 @@ export function protectLiteralHtmlTagMentions(
             const end = start + match[0].length;
             const before = content.slice(lastIndex, start);
             if (before) frag.appendChild(doc.createTextNode(before));
-            const tagName = (match[1] || '').toLowerCase();
-            if (problematicTags.has(tagName)) {
-                const code = doc.createElement('code');
-                code.textContent = match[0];
-                frag.appendChild(code);
-            } else {
-                // Leave token as literal text when not in the problematic list
-                frag.appendChild(doc.createTextNode(match[0]));
-            }
+            const code = doc.createElement('code');
+            code.textContent = match[0];
+            frag.appendChild(code);
             lastIndex = end;
         }
         if (!hasMatch) return;
