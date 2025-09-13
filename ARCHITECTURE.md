@@ -35,6 +35,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Collapse excessive blank lines (protect fenced code via sentinel extraction).
     - Remove whitespace-only NBSP lines.
     - Normalize task list spacing (top-level + nested): enforce `- [ ] Task` / `- [x] Task` while preserving original indentation (tabs/spaces).
+    - Optional: Force tight lists (setting) — remove blank lines between consecutive list items (unordered/ordered/tasks), protected by fenced-code extraction.
 6. Return `{ markdown, resourcesMeta }`.
 
 ## Key Helpers
@@ -44,6 +45,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `removeNonContentUi(body)` – Drops buttons/role-based UI/non-checkbox inputs/select (skips in code/pre).
 - `normalizeTextCharacters(body, normalizeQuotes)` – Normalizes NBSP/smart quotes outside code/pre; idempotent.
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
+- `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
 
 ## What the GFM Plugin Now Covers
@@ -60,6 +62,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - Preserve `<sup>/<sub>` tags directly.
 - NBSP sanitation & task list spacing normalization.
 - Orphaned table fragment wrapping.
+- Tight list enforcement (optional post-processing preference; removes inter-item blank lines only).
 - Image resource conversion & sizing preservation.
 
 ## Design Principles (Applied)
@@ -80,6 +83,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No attempt to recover styling-based emphasis.
 - No content-based language detection (class names only).
 - No deep normalization of nested task list indentation beyond spacing cleanup.
+- Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
 
 ## Security
 
@@ -88,7 +92,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 
 ## Testing Focus
 
-- Table fragment wrapping, task list spacing (nested + top-level), code block language inference, image include/exclude & resource conversion edge cases, literal `<script>` preservation, anchor cleanup, NBSP + `<br>` policies, custom mark/sup/sub rules.
+- Table fragment wrapping, task list spacing (nested + top-level), tight list option behavior, code block language inference, image include/exclude & resource conversion edge cases, literal `<script>` preservation, anchor cleanup, NBSP + `<br>` policies, custom mark/sup/sub rules.
 
 ## Summary
 
