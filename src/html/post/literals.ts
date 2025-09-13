@@ -27,12 +27,15 @@ export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
         }
         const text = textNode.textContent || '';
         if (!text || text.indexOf('<') === -1 || text.indexOf('>') === -1) continue;
-        // Quick check for patterns like <tag> or </tag>
-        if (!/<\/?[A-Za-z][A-Za-z0-9-]*>/.test(text)) continue;
+        // Quick check for patterns like <tag>, </tag>, <tag/>, and <tag attr="v"> in text
+        if (!/<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/.test(text)) continue;
         textNodes.push(textNode);
     }
 
-    const tagTokenRe = /<\/?[A-Za-z][A-Za-z0-9-]*>/g;
+    // Match simple HTML-like tokens with optional attributes and optional self-closing slash.
+    // This intentionally does not attempt to be a full HTML lexer; since we only operate on text nodes
+    // (not real elements), matching angle-bracketed tokens is safe for our purposes.
+    const tagTokenRe = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/g;
 
     textNodes.forEach((textNode) => {
         const content = textNode.textContent || '';

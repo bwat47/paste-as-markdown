@@ -14,5 +14,16 @@ describe('literal HTML tag mentions in prose', () => {
         expect(md).toMatch(/`<td>`/);
         expect(md).toMatch(/`<li>`/);
     });
-});
 
+    test('wraps <br>, <br/>, and <img ...> tokens with attributes as inline code', async () => {
+        const html = `
+            <p>Line break tags like &lt;br&gt; or &lt;br/&gt; are not paragraphs.</p>
+            <p>Images like &lt;img src=\"test\"/&gt; or &lt;img src=\"test\" &gt; should be shown as text.</p>
+        `;
+        const { markdown: md } = await convertHtmlToMarkdown(html, true);
+        expect(md).toMatch(/`<br>`/);
+        expect(md).toMatch(/`<br\/>`/);
+        expect(md).toMatch(/`<img src="test"\/>`/);
+        expect(md).toMatch(/`<img src="test">`/);
+    });
+});
