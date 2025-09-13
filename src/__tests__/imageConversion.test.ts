@@ -49,6 +49,7 @@ describe('image resource conversion', () => {
             includeImages: true,
             convertImagesToResources: true,
             normalizeQuotes: true,
+            forceTightLists: false,
         };
         const result = await processHtml(html, options);
 
@@ -70,6 +71,7 @@ describe('image resource conversion', () => {
             includeImages: true,
             convertImagesToResources: true,
             normalizeQuotes: true,
+            forceTightLists: false,
         };
         const result = await processHtml(html, options);
 

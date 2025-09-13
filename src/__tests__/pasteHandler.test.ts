@@ -70,6 +70,7 @@ describe('pasteHandler', () => {
                 includeImages: true,
                 convertImagesToResources: false,
                 normalizeQuotes: true,
+                forceTightLists: false,
             },
         });
     });
@@ -88,7 +89,7 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false);
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: 'insertText',
                 args: [expectedMarkdown],
@@ -106,7 +107,12 @@ describe('pasteHandler', () => {
 
             mockValidatePasteSettings.mockReturnValue({
                 isValid: true,
-                value: { includeImages: false, convertImagesToResources: false, normalizeQuotes: true },
+                value: {
+                    includeImages: false,
+                    convertImagesToResources: false,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -117,7 +123,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, false, true);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, false, true, false);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown (images excluded)', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
@@ -131,7 +137,12 @@ describe('pasteHandler', () => {
 
             mockValidatePasteSettings.mockReturnValue({
                 isValid: true,
-                value: { includeImages: true, convertImagesToResources: true, normalizeQuotes: true },
+                value: {
+                    includeImages: true,
+                    convertImagesToResources: true,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -147,7 +158,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, true, true);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, true, true, false);
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Pasted as Markdown (1 image resource created)',
                 ToastType.Success
@@ -164,7 +175,12 @@ describe('pasteHandler', () => {
 
             mockValidatePasteSettings.mockReturnValue({
                 isValid: true,
-                value: { includeImages: true, convertImagesToResources: true, normalizeQuotes: true },
+                value: {
+                    includeImages: true,
+                    convertImagesToResources: true,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -196,7 +212,12 @@ describe('pasteHandler', () => {
 
             mockValidatePasteSettings.mockReturnValue({
                 isValid: true,
-                value: { includeImages: true, convertImagesToResources: true, normalizeQuotes: true },
+                value: {
+                    includeImages: true,
+                    convertImagesToResources: true,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -292,7 +313,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false);
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: 'insertText',
                 args: [plainText],
@@ -468,7 +489,12 @@ describe('pasteHandler', () => {
 
             mockValidatePasteSettings.mockReturnValue({
                 isValid: true,
-                value: { includeImages: false, convertImagesToResources: true, normalizeQuotes: true },
+                value: {
+                    includeImages: false,
+                    convertImagesToResources: true,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -485,8 +511,9 @@ describe('pasteHandler', () => {
                 includeImages: false,
                 convertImagesToResources: true,
                 normalizeQuotes: undefined,
+                forceTightLists: undefined,
             });
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, true, true);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, true, true, false);
         });
     });
 });

@@ -15,6 +15,7 @@ export interface PasteOptions {
     includeImages: boolean;
     convertImagesToResources: boolean;
     normalizeQuotes: boolean;
+    forceTightLists: boolean;
 }
 
 export interface ResourceConversionMeta {

@@ -37,7 +37,14 @@ export function validatePasteSettings(settings: unknown): ValidationResult<Valid
               ? true
               : (invalid.push('normalizeQuotes'), true);
 
-    const value: PasteOptions = { includeImages, convertImagesToResources, normalizeQuotes };
+    const forceTightLists =
+        typeof s.forceTightLists === 'boolean'
+            ? s.forceTightLists
+            : s.forceTightLists === undefined
+              ? false
+              : (invalid.push('forceTightLists'), false);
+
+    const value: PasteOptions = { includeImages, convertImagesToResources, normalizeQuotes, forceTightLists };
     if (invalid.length) {
         return {
             isValid: false,

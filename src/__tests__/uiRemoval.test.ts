@@ -19,6 +19,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
+            forceTightLists: false,
         });
 
         // Checkbox preserved
@@ -47,6 +48,7 @@ describe('UI cleanup on real-world fragments', () => {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
+            forceTightLists: false,
         });
         expect(html.includes('repomix-output-bwat47-joplin-co')).toBe(false);
     });

@@ -8,9 +8,9 @@ describe('image title preservation in standardization', () => {
             includeImages: true,
             convertImagesToResources: false,
             normalizeQuotes: true,
+            forceTightLists: false,
         });
         // Expect attributes ordered as src, alt, title, width, height
         expect(html).toContain('<img src="u.png" alt="Alt" title="Title" width="5">');
     });
 });
-

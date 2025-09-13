@@ -9,6 +9,7 @@ describe('text normalization toggle', () => {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: false,
+            forceTightLists: false,
         });
 
         // Curly quotes should remain when normalization is disabled
@@ -26,6 +27,7 @@ describe('text normalization toggle', () => {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
+            forceTightLists: false,
         });
 
         // Curly quotes should be converted to straight quotes

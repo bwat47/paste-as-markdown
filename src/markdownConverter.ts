@@ -73,7 +73,8 @@ export async function convertHtmlToMarkdown(
     html: string,
     includeImages: boolean = true,
     convertImagesToResources: boolean = false,
-    normalizeQuotes: boolean = true
+    normalizeQuotes: boolean = true,
+    forceTightLists: boolean = false
 ): Promise<{ markdown: string; resources: ResourceConversionMeta }> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     let input = wrapOrphanedTableElements(html);
@@ -83,6 +84,7 @@ export async function convertHtmlToMarkdown(
         includeImages,
         convertImagesToResources,
         normalizeQuotes,
+        forceTightLists,
     };
     const processed = await processHtml(input, options);
     input = processed.html;
@@ -93,7 +95,7 @@ export async function convertHtmlToMarkdown(
     let markdown = service.turndown(input);
 
     // Post-process the markdown for final cleanup
-    markdown = cleanupMarkdown(markdown);
+    markdown = cleanupMarkdown(markdown, forceTightLists);
 
     return { markdown, resources: processed.resources };
 }
@@ -101,7 +103,7 @@ export async function convertHtmlToMarkdown(
 /**
  * Final markdown cleanup operations that can't be easily done during DOM preprocessing
  */
-function cleanupMarkdown(markdown: string): string {
+function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
     // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>). For
     // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
     // leading blank lines while leaving internal spacing intact.
@@ -128,7 +130,21 @@ function cleanupMarkdown(markdown: string): string {
     // Normalize task list spacing (bullet + single space + checkbox + single space + text)
     markdown = normalizeTaskListSpacing(markdown);
 
+    // If enabled, remove blank lines between consecutive list items (unordered, ordered, tasks)
+    if (forceTightLists) {
+        markdown = tightenListSpacing(markdown);
+    }
+
     return markdown;
+}
+
+// Remove blank lines between list items while protecting fenced code blocks.
+function tightenListSpacing(markdown: string): string {
+    return withFencedCodeProtection(markdown, (segment) => {
+        const re =
+            /(^[ \t]*(?:[-*+]|\d+[.)])[ \t]+(?:\[[ xX]\][ \t]+)?[^\n]*?)\n(?:[ \t]*\n)+(?=^[ \t]*(?:[-*+]|\d+[.)])[ \t]+)/gm;
+        return segment.replace(re, '$1\n');
+    });
 }
 
 // Ensure consistent spacing for task list items across top-level and nested lists without altering indentation level.

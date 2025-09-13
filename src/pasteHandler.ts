@@ -49,6 +49,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
         convertImagesToResources: await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
         normalizeQuotes: await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
+        forceTightLists: await joplin.settings.value(SETTINGS.FORCE_TIGHT_LISTS),
     };
     const validation = validatePasteSettings(rawSettings);
     if (!validation.isValid || !validation.value) {
@@ -80,7 +81,8 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             html!,
             options.includeImages,
             options.convertImagesToResources,
-            options.normalizeQuotes
+            options.normalizeQuotes,
+            options.forceTightLists
         );
         await insertMarkdownAtCursor(markdown);
 

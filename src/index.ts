@@ -60,6 +60,14 @@ joplin.plugins.register({
                 label: 'Normalize smart quotes',
                 description: 'Convert Word/Office smart quotes to regular quotes for better markdown compatibility.',
             },
+            [SETTINGS.FORCE_TIGHT_LISTS]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: SETTINGS_SECTION,
+                public: true,
+                label: 'Force tight lists',
+                description: 'Remove blank lines between list items in output Markdown.',
+            },
         });
 
         // Add menu item with accelerator in Edit menu for discoverability

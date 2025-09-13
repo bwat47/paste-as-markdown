@@ -10,6 +10,7 @@ describe('smart quotes normalization with large code block present', () => {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
+            forceTightLists: false,
         });
 
         // Expect the “Copy as HTML / Plain Text” phrase to be normalized to straight quotes.

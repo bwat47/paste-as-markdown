@@ -16,6 +16,7 @@ export const SETTINGS = {
     INCLUDE_IMAGES: 'includeImages',
     CONVERT_IMAGES_TO_RESOURCES: 'convertImagesToResources',
     NORMALIZE_QUOTES: 'normalizeQuotes',
+    FORCE_TIGHT_LISTS: 'forceTightLists',
 } as const;
 
 // Settings section identifiers
