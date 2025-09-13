@@ -8,20 +8,74 @@
  * - The main problematic tag is table, as a literal table tag can result in all text after being rendered as a table in joplin.
  */
 const DEFAULT_PROBLEMATIC_TAGS = new Set([
+    // Table elements
     'table',
     'tr',
     'td',
     'th',
+    'thead',
+    'tbody',
+    'tfoot',
+
+    // Block elements that break layout
     'div',
-    'span',
-    'img',
-    'a',
-    'br',
+    'section',
+    'article',
+    'aside',
+    'main',
+    'header',
+    'footer',
+    'nav',
+
+    // List elements
     'ul',
     'ol',
     'li',
+    'dl',
+    'dt',
+    'dd',
+
+    // Form elements
+    'form',
+    'input',
+    'button',
+    'select',
+    'textarea',
+    'fieldset',
+    'legend',
+
+    // Media/embeds
+    'img',
+    'video',
+    'audio',
+    'iframe',
+    'embed',
+    'object',
+
+    // Dangerous elements
+    'script',
+    'style',
+    'link',
+    'meta',
+
+    // Common inline elements that might break formatting
+    'span',
+    'a',
+    'strong',
+    'em',
+    'code',
+    'pre',
+
+    // Semantic elements
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'p',
+    'br',
     'hr',
-    // keep small and focused; extend if real-world cases arise
 ]);
 
 export function protectLiteralHtmlTagMentions(
