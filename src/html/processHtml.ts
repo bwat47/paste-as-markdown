@@ -34,6 +34,7 @@ import { removeNonContentUi } from './pre/uiCleanup';
 import { neutralizeCodeBlocksPreSanitize } from './pre/codeNeutralize';
 import { removeEmptyAnchors, cleanHeadingAnchors } from './post/anchors';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from './post/codeBlocks';
+import { protectLiteralHtmlTagMentions } from './post/literals';
 import { normalizeImageAltAttributes } from './post/images';
 
 export async function processHtml(
@@ -68,6 +69,8 @@ export async function processHtml(
         if (!options.includeImages) removeEmptyAnchors(body);
         cleanHeadingAnchors(body);
         normalizeTextCharacters(body, options.normalizeQuotes);
+        // Wrap literal HTML tag tokens in inline code to prevent accidental HTML interpretation downstream
+        protectLiteralHtmlTagMentions(body);
         normalizeCodeBlocks(body);
         markNbspOnlyInlineCode(body);
         normalizeImageAltAttributes(body);
