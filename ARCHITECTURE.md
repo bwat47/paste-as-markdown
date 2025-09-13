@@ -10,9 +10,11 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Pre-sanitize passes (order matters):
         - Text normalization (idempotent): normalize NBSP and optionally smart quotes; skips `code/pre`.
         - UI cleanup: remove obvious non-content UI (e.g., `<button>`, role-based controls, non-checkbox inputs, `<select>`), skipping `code/pre`.
+        - Image sizing promotion: on `<img>` elements, promote `style="width: Npx; height: Mpx;"` into `width="N"`/`height="M"` attributes when neither attribute is present; remove `style` for determinism.
         - Code block neutralization: flatten highlight/token spans, convert `<br>`→`\n`, and escape literal `<script>/<style>` examples by moving innerHTML to textContent.
     - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup.
     - Post-sanitize normalization:
+        - Literal tag mentions in prose: wrap problematic tag tokens (e.g., `<table>`, `<img ...>`, `<br>`) in inline code to prevent accidental HTML interpretation; applies only outside `code/pre` and uses a curated whitelist so Markdown autolinks are not touched.
         - Code blocks: enforce `<pre><code>` shape, drop toolbars/empty blocks, infer language from class patterns (alias mapping), remove stray wrappers.
         - Anchor cleanup (permalink / empty anchors; remove empty anchors only when images are excluded).
         - Text normalization again (idempotent) to remain robust to structure changes.
@@ -44,6 +46,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `normalizeCodeBlocks(body)` – Language inference + structural cleanup (class-based only; no heuristic on file content).
 - `removeNonContentUi(body)` – Drops buttons/role-based UI/non-checkbox inputs/select (skips in code/pre).
 - `normalizeTextCharacters(body, normalizeQuotes)` – Normalizes NBSP/smart quotes outside code/pre; idempotent.
+- `promoteImageSizingStylesToAttributes(body)` – Pre-sanitize: move px width/height from `<img style>` to `width`/`height` attributes (only when neither attribute exists) and remove style.
+- `protectLiteralHtmlTagMentions(body)` – Post-sanitize: wrap mentions of selected HTML tags (whitelist) in inline code, skipping `code/pre`.
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
@@ -64,6 +68,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - Orphaned table fragment wrapping.
 - Tight list enforcement (optional post-processing preference; removes inter-item blank lines only).
 - Image resource conversion & sizing preservation.
+- Literal tag mention protection in prose (whitelist-based) to avoid unintended rendering (e.g., tables) when pasting escaped tags.
+- Image sizing promotion from inline style to attributes; style removed for deterministic output.
 
 ## Design Principles (Applied)
 
@@ -84,6 +90,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No content-based language detection (class names only).
 - No deep normalization of nested task list indentation beyond spacing cleanup.
 - Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
+- Do not wrap Markdown autolinks (e.g., `<https://example.com>`) as code; literal protection applies only to a small, curated set of tags.
 
 ## Security
 
@@ -93,6 +100,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 ## Testing Focus
 
 - Table fragment wrapping, task list spacing (nested + top-level), tight list option behavior, code block language inference, image include/exclude & resource conversion edge cases, literal `<script>` preservation, anchor cleanup, NBSP + `<br>` policies, custom mark/sup/sub rules.
+- Image sizing promotion from style → attributes (single- and double-dimension, precedence when attributes already exist).
+- Literal tag mention wrapping and autolink pass-through.
 
 ## Summary
 
@@ -100,4 +109,5 @@ A deterministic two-phase approach:
 (1) DOM preprocessing (safety + structural normalization),
 (2) Turndown (upstream + forked GFM + minimal custom rules),
 followed by constrained Markdown cleanup (spacing + line semantics).
+
 Redundant logic removed; only `wrapOrphanedTableElements` retained to ensure GFM table rule applicability.
