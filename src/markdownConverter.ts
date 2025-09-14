@@ -215,14 +215,6 @@ function withCodeProtection(markdown: string, transform: (content: string) => st
         .join('');
 }
 
-/**
- * Removes standalone NBSP-only lines produced by rich email clients (e.g. Outlook placeholder
- * paragraphs like <p><o:p>&nbsp;</o:p></p>) while preserving code:
- *  - Fenced code blocks (temporarily extracted and restored unchanged)
- *  - Inline code spans (any line containing backticks is left untouched)
- *
- * NBSP patterns removed when they are the only content on a line: &nbsp; | &#160; | \u00A0
- */
 // Utility to protect fenced code blocks while applying a transformation to non-code segments
 function withFencedCodeProtection(markdown: string, transform: (segment: string) => string): string {
     // Extract fences to deterministic tokens; avoids complex negative-lookahead logic.
