@@ -5,7 +5,6 @@
  *
  * - Operates only on text nodes outside of <code>/<pre>.
  * - Matches simple tag-like tokens: <tag> and </tag> where tag is [A-Za-z][A-Za-z0-9-]*.
- * - The main problematic tag is table, as a literal table tag can result in all text after being rendered as a table in joplin.
  */
 export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
     const doc = body.ownerDocument;
