@@ -33,6 +33,7 @@ import { normalizeTextCharacters } from './pre/normalizeText';
 import { removeNonContentUi } from './pre/uiCleanup';
 import { promoteImageSizingStylesToAttributes } from './pre/imageSizing';
 import { neutralizeCodeBlocksPreSanitize } from './pre/codeNeutralize';
+import { removeGoogleDocsWrappers } from './pre/wrapperCleanup';
 import { removeEmptyAnchors, cleanHeadingAnchors } from './post/anchors';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from './post/codeBlocks';
 import { protectLiteralHtmlTagMentions } from './post/literals';
@@ -40,7 +41,8 @@ import { normalizeImageAltAttributes } from './post/images';
 
 export async function processHtml(
     html: string,
-    options: PasteOptions
+    options: PasteOptions,
+    isGoogleDocs: boolean = false
 ): Promise<{ html: string; resources: ResourceConversionMeta }> {
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined')
         return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
@@ -56,6 +58,10 @@ export async function processHtml(
         // Promote <img style=width/height> to attributes so sizing survives sanitize and Turndown sees it
         promoteImageSizingStylesToAttributes(rawBody);
         neutralizeCodeBlocksPreSanitize(rawBody);
+
+        if (isGoogleDocs) {
+            removeGoogleDocsWrappers(rawBody);
+        }
 
         const intermediate = rawBody.innerHTML;
         const purifier = createDOMPurify(window as unknown as typeof window);

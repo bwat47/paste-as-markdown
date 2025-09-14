@@ -13,6 +13,26 @@ async function readClipboardHtml(): Promise<string | null> {
     }
 }
 
+async function detectGoogleDocsSource(html: string | null): Promise<boolean> {
+    try {
+        // Primary detection: Google Docs specific MIME type
+        const formats = await joplin.clipboard.availableFormats();
+        if (formats.includes('application/x-vnd.google-docs-document-slice-clip+wrapped')) {
+            return true;
+        }
+
+        // Secondary detection: Check HTML content for Google Docs internal GUID pattern
+        if (html && /docs-internal-guid-/.test(html)) {
+            return true;
+        }
+
+        return false;
+    } catch (err) {
+        console.warn(LOG_PREFIX, 'Failed to detect clipboard source:', err);
+        return false; // Safer default
+    }
+}
+
 async function readClipboardText(): Promise<string> {
     try {
         return await joplin.clipboard.readText();
@@ -43,8 +63,9 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
     throw new Error('Unable to insert markdown into editor');
 }
 
+// Update handlePasteAsMarkdown function:
 export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | ConversionFailure> {
-    // Get user setting
+    // Get user settings
     const rawSettings = {
         includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
         convertImagesToResources: await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
@@ -59,10 +80,10 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
     }
     const options = validation.value;
 
-    // Read HTML (will be null if unavailable)
-
+    // Read HTML and detect source
     const html = await readClipboardHtml();
-    const shouldConvert = html && /</.test(html); // basic presence of tag marker
+    const isGoogleDocs = await detectGoogleDocsSource(html);
+    const shouldConvert = html && /</.test(html);
 
     if (!shouldConvert) {
         // Fallback to plain text
@@ -77,13 +98,16 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
     }
 
     try {
+        // Pass detection result to conversion
         const { markdown, resources } = await convertHtmlToMarkdown(
             html!,
             options.includeImages,
             options.convertImagesToResources,
             options.normalizeQuotes,
-            options.forceTightLists
+            options.forceTightLists,
+            isGoogleDocs
         );
+
         await insertMarkdownAtCursor(markdown);
 
         let message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
@@ -99,8 +123,13 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
                 }
             }
         }
-        await showToast(message, ToastType.Success);
 
+        // Add Google Docs indicator to success message for debugging
+        if (isGoogleDocs) {
+            console.debug(LOG_PREFIX, 'Processed Google Docs content');
+        }
+
+        await showToast(message, ToastType.Success);
         return { markdown, success: true };
     } catch (err) {
         console.error(LOG_PREFIX, 'Conversion failed, attempting plain text fallback', err);

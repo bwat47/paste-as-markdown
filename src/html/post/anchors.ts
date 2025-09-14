@@ -1,12 +1,4 @@
-/**
- * Unwrap an element by replacing it with its children
- */
-function unwrapElement(element: HTMLElement): void {
-    const parent = element.parentNode;
-    if (!parent) return;
-    while (element.firstChild) parent.insertBefore(element.firstChild, element);
-    parent.removeChild(element);
-}
+import { unwrapElement } from '../shared/dom';
 
 /**
  * Analyze an anchor element to determine permalink / heading context.

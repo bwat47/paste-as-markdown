@@ -74,7 +74,8 @@ export async function convertHtmlToMarkdown(
     includeImages: boolean = true,
     convertImagesToResources: boolean = false,
     normalizeQuotes: boolean = true,
-    forceTightLists: boolean = false
+    forceTightLists: boolean = false,
+    isGoogleDocs: boolean = false
 ): Promise<{ markdown: string; resources: ResourceConversionMeta }> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     let input = wrapOrphanedTableElements(html);
@@ -86,7 +87,7 @@ export async function convertHtmlToMarkdown(
         normalizeQuotes,
         forceTightLists,
     };
-    const processed = await processHtml(input, options);
+    const processed = await processHtml(input, options, isGoogleDocs);
     input = processed.html;
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
