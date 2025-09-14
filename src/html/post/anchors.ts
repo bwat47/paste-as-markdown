@@ -43,7 +43,6 @@ export function removeEmptyAnchors(body: HTMLElement): void {
 
 /**
  * Clean GitHub-style permalink anchors and heading links.
- * Migrated from turndownRules.ts cleanHeadingAnchors functionality.
  */
 export function cleanHeadingAnchors(body: HTMLElement): void {
     const anchors = body.querySelectorAll('a');
