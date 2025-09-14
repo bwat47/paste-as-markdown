@@ -1,3 +1,14 @@
+/**
+ * Generic normalization of code blocks copied from various sites (GitHub, GitLab, Bitbucket, Google style, etc.).
+ * Responsibilities (post-sanitization):
+ *  - Collapse known wrapper containers (e.g. .highlight, .snippet-clipboard-content, .sourceCode, figure.highlight)
+ *    so the structure is a simple <pre><code>…</code></pre>
+ *  - Ensure a <code> element exists inside each <pre> (some sources emit only <pre>)
+ *  - Remove non-code UI/tool elements (copy buttons, toolbars) that would interfere with Turndown
+ *  - Remove now-empty code blocks (after neutralization & span stripping earlier) to avoid emitting empty fences
+ *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
+ */
+
 import { onlyContains } from '../shared/dom';
 
 export function markNbspOnlyInlineCode(body: HTMLElement): void {
@@ -55,6 +66,8 @@ function ensureCodeElement(pre: HTMLElement): void {
 }
 
 function removeUIElements(pre: HTMLElement): void {
+    // Ensure the <pre> contains a direct <code> child; if code is nested inside wrappers,
+    // hoist the first descendant <code> to be the sole code child before stripping UI wrappers.
     let code: HTMLElement | null = null;
     for (const child of Array.from(pre.children)) {
         if (child.tagName.toLowerCase() === 'code') {
@@ -65,6 +78,7 @@ function removeUIElements(pre: HTMLElement): void {
     if (!code) {
         const descendant = pre.querySelector('code') as HTMLElement | null;
         if (descendant) {
+            // Move the descendant code to be the only relevant child of <pre>
             while (pre.firstChild) pre.removeChild(pre.firstChild);
             pre.appendChild(descendant);
             code = descendant;
@@ -91,6 +105,7 @@ function isEmptyCodeBlock(code: HTMLElement): boolean {
 function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
     const language = inferLanguageFromClasses(pre, code);
     if (!language) return;
+    // Remove existing language classes
     code.className = code.className
         .split(/\s+/)
         .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c))
@@ -109,6 +124,7 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
     };
     collect(pre);
     collect(code);
+    // also walk up a few ancestors for wrapper language hints
     let parent: Element | null = pre.parentElement;
     for (let i = 0; i < 3 && parent; i++) {
         collect(parent);
@@ -116,6 +132,7 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
     }
     const classBlob = classSources.join(' ');
     const patterns: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
+        // Handle language-c++ explicitly before generic language-* to avoid truncation to 'c'
         [/\blanguage-(c\+\+)\b/, (m) => m[1]],
         [/\blanguage-([A-Za-z0-9+#_.+-]+)\b/, (m) => m[1]],
         [/\blang-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
@@ -129,11 +146,12 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
         const match = classBlob.match(re);
         if (match) {
             let raw = fn(match);
+            // Normalize common punctuation variations before alias mapping (e.g., c++ -> cpp)
             if (raw === 'c++') raw = 'c++';
             return normalizeLangAlias(raw);
         }
     }
-    return null;
+    return null; // Don't guess language from content, joplin already does this when language not specified
 }
 
 function normalizeLangAlias(raw: string): string {

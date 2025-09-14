@@ -1,3 +1,6 @@
+/**
+ * Unwrap an element by replacing it with its children
+ */
 function unwrapElement(element: HTMLElement): void {
     const parent = element.parentNode;
     if (!parent) return;
@@ -5,6 +8,9 @@ function unwrapElement(element: HTMLElement): void {
     parent.removeChild(element);
 }
 
+/**
+ * Analyze an anchor element to determine permalink / heading context.
+ */
 function analyzeAnchor(node: HTMLElement): { isPermalink: boolean; insideHeading: boolean } {
     const parent = node.parentElement;
     const clsRaw = node.getAttribute('class') || '';
@@ -21,6 +27,9 @@ function analyzeAnchor(node: HTMLElement): { isPermalink: boolean; insideHeading
     return { isPermalink, insideHeading };
 }
 
+/**
+ * Remove anchor elements that become empty after image removal
+ */
 export function removeEmptyAnchors(body: HTMLElement): void {
     const anchors = body.querySelectorAll('a[href]');
     anchors.forEach((anchor) => {
@@ -32,6 +41,10 @@ export function removeEmptyAnchors(body: HTMLElement): void {
     });
 }
 
+/**
+ * Clean GitHub-style permalink anchors and heading links.
+ * Migrated from turndownRules.ts cleanHeadingAnchors functionality.
+ */
 export function cleanHeadingAnchors(body: HTMLElement): void {
     const anchors = body.querySelectorAll('a');
     anchors.forEach((anchor) => {
