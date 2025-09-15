@@ -352,34 +352,45 @@ function truncateForLog(input: string, keep: number = 80): string {
  * We purposefully do NOT reinsert the original link elsewhere to keep output minimal.
  */
 function unwrapConvertedImageLink(img: HTMLImageElement): void {
-    // Try to find an enclosing anchor that contains only this image (possibly wrapped in a simple container)
-    const isWhitespace = (n: Node) => n.nodeType === Node.TEXT_NODE && !(n.textContent || '').trim();
-    const onlyContainsNode = (container: Element, node: Node): boolean => {
-        const kids = Array.from(container.childNodes).filter((n) => !isWhitespace(n));
-        return kids.length === 1 && kids[0] === node;
-    };
-
+    // Find ancestor anchor if present
     let anchor: HTMLElement | null = null;
-    let wrapper: HTMLElement | null = null;
-    const parent = img.parentElement;
-    if (!parent) return;
-    if (parent.tagName.toLowerCase() === 'a') {
-        anchor = parent;
-    } else if (onlyContainsNode(parent, img) && parent.parentElement?.tagName.toLowerCase() === 'a') {
-        // Allow a single simple wrapper (e.g., <span> or <picture>) between <a> and <img>
-        wrapper = parent;
-        anchor = parent.parentElement as HTMLElement;
+    let cur: HTMLElement | null = img.parentElement;
+    while (cur) {
+        if (cur.tagName.toLowerCase() === 'a') {
+            anchor = cur;
+            break;
+        }
+        cur = cur.parentElement;
     }
     if (!anchor) return;
+
+    // Only unwrap remote anchors, and only after conversion to a Joplin resource
     const href = (anchor as HTMLAnchorElement).getAttribute('href') || '';
-    if (!/^https?:\/\//i.test(href)) return; // only remote links
-    if (!img.getAttribute('src')?.startsWith(':/')) return; // only after conversion
-    if (wrapper && !onlyContainsNode(anchor, wrapper)) return; // anchor has more than the wrapper
-    if (!wrapper && !onlyContainsNode(anchor, img)) return; // anchor has extra content
+    if (!/^https?:\/\//i.test(href)) return;
+    if (!img.getAttribute('src')?.startsWith(':/')) return;
+
+    const isWhitespace = (n: Node) => n.nodeType === Node.TEXT_NODE && !(n.textContent || '').trim();
+    const childrenWithoutWs = (el: Element) => Array.from(el.childNodes).filter((n) => !isWhitespace(n));
+
+    // Validate that the path from anchor → ... → img forms a single chain with no siblings at each level.
+    // Starting from the image, walk up until the anchor; each parent along the way must only contain the current node.
+    let node: Node = img;
+    while (node.parentElement && node.parentElement !== anchor) {
+        const p = node.parentElement;
+        const kids = childrenWithoutWs(p);
+        if (!(kids.length === 1 && kids[0] === node)) return; // has siblings; don't unwrap
+        node = p;
+    }
+    // Now ensure the anchor itself only contains the top node in the chain
+    const topNode = node; // either img or a wrapper whose only descendant chain leads to img
+    const anchorKids = childrenWithoutWs(anchor);
+    if (!(anchorKids.length === 1 && anchorKids[0] === topNode)) return;
+
+    // Safe to unwrap: move the image out and drop the anchor
     const grand = anchor.parentNode;
     if (!grand) return;
-    grand.insertBefore(img, anchor); // move image out
-    grand.removeChild(anchor); // drop anchor (and wrapper if present)
+    grand.insertBefore(img, anchor);
+    grand.removeChild(anchor);
 }
 
 /**
