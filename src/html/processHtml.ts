@@ -57,11 +57,11 @@ export async function processHtml(
         removeNonContentUi(rawBody);
         // Promote <img style=width/height> to attributes so sizing survives sanitize and Turndown sees it
         promoteImageSizingStylesToAttributes(rawBody);
-        neutralizeCodeBlocksPreSanitize(rawBody);
-
+        // Prevent turndown from emitting stray ** when pasting google docs content
         if (isGoogleDocs) {
             removeGoogleDocsWrappers(rawBody);
         }
+        neutralizeCodeBlocksPreSanitize(rawBody);
 
         const intermediate = rawBody.innerHTML;
         const purifier = createDOMPurify(window as unknown as typeof window);
