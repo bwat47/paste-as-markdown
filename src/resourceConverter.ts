@@ -352,16 +352,34 @@ function truncateForLog(input: string, keep: number = 80): string {
  * We purposefully do NOT reinsert the original link elsewhere to keep output minimal.
  */
 function unwrapConvertedImageLink(img: HTMLImageElement): void {
+    // Try to find an enclosing anchor that contains only this image (possibly wrapped in a simple container)
+    const isWhitespace = (n: Node) => n.nodeType === Node.TEXT_NODE && !(n.textContent || '').trim();
+    const onlyContainsNode = (container: Element, node: Node): boolean => {
+        const kids = Array.from(container.childNodes).filter((n) => !isWhitespace(n));
+        return kids.length === 1 && kids[0] === node;
+    };
+
+    let anchor: HTMLElement | null = null;
+    let wrapper: HTMLElement | null = null;
     const parent = img.parentElement;
-    if (!parent || parent.tagName.toLowerCase() !== 'a') return;
-    if (parent.childNodes.length !== 1) return; // anchor has other content; skip
-    const href = (parent as HTMLAnchorElement).getAttribute('href') || '';
+    if (!parent) return;
+    if (parent.tagName.toLowerCase() === 'a') {
+        anchor = parent;
+    } else if (onlyContainsNode(parent, img) && parent.parentElement?.tagName.toLowerCase() === 'a') {
+        // Allow a single simple wrapper (e.g., <span> or <picture>) between <a> and <img>
+        wrapper = parent;
+        anchor = parent.parentElement as HTMLElement;
+    }
+    if (!anchor) return;
+    const href = (anchor as HTMLAnchorElement).getAttribute('href') || '';
     if (!/^https?:\/\//i.test(href)) return; // only remote links
     if (!img.getAttribute('src')?.startsWith(':/')) return; // only after conversion
-    const grand = parent.parentNode;
+    if (wrapper && !onlyContainsNode(anchor, wrapper)) return; // anchor has more than the wrapper
+    if (!wrapper && !onlyContainsNode(anchor, img)) return; // anchor has extra content
+    const grand = anchor.parentNode;
     if (!grand) return;
-    grand.insertBefore(img, parent); // move image out
-    grand.removeChild(parent); // drop anchor
+    grand.insertBefore(img, anchor); // move image out
+    grand.removeChild(anchor); // drop anchor (and wrapper if present)
 }
 
 /**

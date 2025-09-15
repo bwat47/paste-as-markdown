@@ -33,6 +33,7 @@ import { normalizeTextCharacters } from './pre/normalizeText';
 import { removeNonContentUi } from './pre/uiCleanup';
 import { promoteImageSizingStylesToAttributes } from './pre/imageSizing';
 import { neutralizeCodeBlocksPreSanitize } from './pre/codeNeutralize';
+import { pruneNonImageAnchorChildren } from './pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from './pre/wrapperCleanup';
 import { removeEmptyAnchors, cleanHeadingAnchors } from './post/anchors';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from './post/codeBlocks';
@@ -57,6 +58,8 @@ export async function processHtml(
         removeNonContentUi(rawBody);
         // Promote <img style=width/height> to attributes so sizing survives sanitize and Turndown sees it
         promoteImageSizingStylesToAttributes(rawBody);
+        // Simplify anchors that wrap images by removing non-image children (UI/metadata) so downstream unwrapping can apply
+        pruneNonImageAnchorChildren(rawBody);
         // Prevent turndown from emitting stray ** when pasting google docs content
         if (isGoogleDocs) {
             removeGoogleDocsWrappers(rawBody);

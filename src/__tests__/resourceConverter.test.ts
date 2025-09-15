@@ -206,4 +206,18 @@ describe('resourceConverter edge cases', () => {
         // ensure no anchor remains
         expect(body.querySelector('a')).toBeNull();
     });
+
+    test('anchor wrapping converted image via single wrapper is removed (unwrap)', async () => {
+        const body = makeBody(
+            `<a href="https://example.com/original.png">` +
+                `<span class="wrap"><img src="${PNG_DATA_URL}" alt="image" width="10"></span>` +
+                `</a>`
+        );
+        const result = await convertImagesToResources(body);
+        expect(result.ids.length).toBe(1);
+        const img = body.querySelector('img');
+        expect(img).toBeTruthy();
+        expect(img!.parentElement?.tagName.toLowerCase()).not.toBe('a');
+        expect(body.querySelector('a')).toBeNull();
+    });
 });
