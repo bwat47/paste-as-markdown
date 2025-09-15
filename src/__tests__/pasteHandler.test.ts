@@ -89,7 +89,7 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false, false);
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: 'insertText',
                 args: [expectedMarkdown],
@@ -123,7 +123,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, false, true, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, false, true, false, false);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown (images excluded)', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
@@ -158,7 +158,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, true, true, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, true, true, false, false);
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Pasted as Markdown (1 image resource created)',
                 ToastType.Success
@@ -313,7 +313,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false, false);
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: 'insertText',
                 args: [plainText],
@@ -513,7 +513,7 @@ describe('pasteHandler', () => {
                 normalizeQuotes: undefined,
                 forceTightLists: undefined,
             });
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, true, true, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, true, true, false, false);
         });
     });
 });
