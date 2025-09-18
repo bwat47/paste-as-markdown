@@ -22,6 +22,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 3. Pre-Turndown HTML fixups (`markdownConverter`):
     - `wrapOrphanedTableElements` – Wrap bare `<tr>/<td>/<col>` fragments in `<table>` (clipboard edge cases e.g. Excel) so GFM table rule can apply.
 4. Turndown conversion:
+    - Feed the sanitized `<body>` DOM node directly to Turndown when available, falling back to the wrapped HTML string only in DOM-less environments.
     - Upstream Turndown (fresh instance per paste).
     - Forked `turndown-plugin-gfm` (tables, strikethrough, task list items).
         - The plugin’s `highlightedCodeBlock` rule is effectively superseded by our broader code block normalization;
@@ -90,7 +91,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No content-based language detection (class names only).
 - No deep normalization of nested task list indentation beyond spacing cleanup.
 - Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
-<!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
+  <!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
 
 ## Security
 
