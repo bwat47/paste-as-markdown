@@ -15,8 +15,14 @@ export function promoteImageSizingStylesToAttributes(body: HTMLElement): void {
             // Extract numeric px values; ignore percentages and other units
             const w = style.match(/\bwidth\s*:\s*([0-9.]+)\s*px\b/i);
             const h = style.match(/\bheight\s*:\s*([0-9.]+)\s*px\b/i);
-            if (w) img.setAttribute('width', String(parseInt(w[1], 10)));
-            if (h) img.setAttribute('height', String(parseInt(h[1], 10)));
+            const parsedWidth = w ? parseInt(w[1], 10) : null;
+            const parsedHeight = h ? parseInt(h[1], 10) : null;
+            if (parsedWidth && parsedWidth > 0) {
+                img.setAttribute('width', String(parsedWidth));
+            }
+            if (parsedHeight && parsedHeight > 0) {
+                img.setAttribute('height', String(parsedHeight));
+            }
         }
         // Always remove style for determinism and to avoid leaking CSS
         img.removeAttribute('style');

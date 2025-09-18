@@ -44,4 +44,13 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
         expect(markdown).not.toMatch(/!\[Alt\]\(x\.png\)/);
         expect(markdown).not.toMatch(/style=/);
     });
+
+    test('style width of 0px is ignored while height is retained', async () => {
+        const html = '<p><img src="x.png" alt="Alt" style="width: 0px; height: 328px;"></p>';
+        const { markdown } = await convertHtmlToMarkdown(html, true, false);
+        expect(markdown).toContain('<img src="x.png" alt="Alt" height="328">');
+        expect(markdown).not.toMatch(/width=\"0\"/);
+        expect(markdown).not.toMatch(/width=\"/);
+        expect(markdown).not.toMatch(/style=/);
+    });
 });
