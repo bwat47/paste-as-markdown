@@ -15,12 +15,14 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
             <pre><code><button>UI</button><input type="text" value="x"></code></pre>
         `;
 
-        const { html } = await processHtml(input, {
+        const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
             forceTightLists: false,
         });
+        expect(body).not.toBeNull();
+        const html = body!.innerHTML;
 
         // Checkbox preserved
         expect(/<input[^>]*type="checkbox"/i.test(html)).toBe(true);
@@ -44,12 +46,14 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
 describe('UI cleanup on real-world fragments', () => {
     test('drops GPT chat <button> labels from clipboard_export.html', async () => {
         const input = readFileSync(join(__dirname, 'clipboard_export.html'), 'utf8');
-        const { html } = await processHtml(input, {
+        const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
             forceTightLists: false,
         });
+        expect(body).not.toBeNull();
+        const html = body!.innerHTML;
         expect(html.includes('repomix-output-bwat47-joplin-co')).toBe(false);
     });
 });

@@ -88,7 +88,7 @@ export async function convertHtmlToMarkdown(
         forceTightLists,
     };
     const processed = await processHtml(input, options, isGoogleDocs);
-    const turndownInput = (processed.body ?? processed.html) as Parameters<TurndownService['turndown']>[0];
+    const turndownInput = (processed.body ?? input) as Parameters<TurndownService['turndown']>[0];
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     // and this guarantees option/rule changes always apply without stale caching.

@@ -57,9 +57,12 @@ describe('image resource conversion', () => {
         expect(result.resources.attempted).toBe(1);
         expect(result.resources.failed).toBe(0);
         expect(dataPostMock).toHaveBeenCalledTimes(1);
-        // Resulting HTML should have resource src and only whitelisted attributes
-        expect(result.html).toContain('src=":/res1"');
-        expect(result.html).not.toContain('data-junk');
+        // Resulting markup should have resource src and only whitelisted attributes
+        const body = result.body;
+        expect(body).not.toBeNull();
+        const outputHtml = body!.innerHTML;
+        expect(outputHtml).toContain('src=":/res1"');
+        expect(outputHtml).not.toContain('data-junk');
     });
 
     test('partial failure still converts earlier image and reports counts', async () => {
@@ -80,6 +83,8 @@ describe('image resource conversion', () => {
         expect(result.resources.failed).toBe(1);
         expect(dataPostMock).toHaveBeenCalledTimes(2);
         // One image should reference resource; second should remain as original data URL (or possibly sanitized original)
-        expect(result.html).toContain('src=":/resA"');
+        const body = result.body;
+        expect(body).not.toBeNull();
+        expect(body!.innerHTML).toContain('src=":/resA"');
     });
 });

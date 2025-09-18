@@ -41,7 +41,6 @@ import { protectLiteralHtmlTagMentions } from './post/literals';
 import { normalizeImageAltAttributes } from './post/images';
 
 export interface ProcessHtmlResult {
-    readonly html: string;
     readonly body: HTMLElement | null;
     readonly resources: ResourceConversionMeta;
 }
@@ -64,14 +63,14 @@ export async function processHtml(
     isGoogleDocs: boolean = false
 ): Promise<ProcessHtmlResult> {
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
-        return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+        return { body: createFallbackBody(html), resources: EMPTY_RESOURCES };
     }
     try {
         const rawParser = new DOMParser();
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
         if (!rawBody) {
-            return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+            return { body: createFallbackBody(html), resources: EMPTY_RESOURCES };
         }
         try {
             normalizeTextCharacters(rawBody, options.normalizeQuotes);
@@ -98,7 +97,7 @@ export async function processHtml(
         const doc = parser.parseFromString(sanitized, 'text/html');
         const body = doc.body;
         if (!body) {
-            return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+            return { body: createFallbackBody(html), resources: EMPTY_RESOURCES };
         }
 
         if (!options.includeImages) removeEmptyAnchors(body);
@@ -125,15 +124,13 @@ export async function processHtml(
             }
             normalizeImageAltAttributes(body);
         }
-        const finalHtml = body.innerHTML;
         return {
-            html: finalHtml,
             body,
             resources: { resourcesCreated: resourceIds.length, resourceIds, attempted, failed },
         };
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
         if (err instanceof Error && (err as Error).stack) console.warn((err as Error).stack);
-        return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+        return { body: createFallbackBody(html), resources: EMPTY_RESOURCES };
     }
 }

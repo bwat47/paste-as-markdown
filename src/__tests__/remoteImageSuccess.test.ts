@@ -59,7 +59,9 @@ describe('remote image success path', () => {
         expect(result.resources.attempted).toBe(1);
         expect(result.resources.failed).toBe(0);
         expect(result.resources.resourcesCreated).toBe(1);
-        expect(result.html).toMatch(/src=":\/resRemote"/);
+        const body = result.body;
+        expect(body).not.toBeNull();
+        expect(body!.innerHTML).toMatch(/src=":\/resRemote"/);
         expect(dataPostMock).toHaveBeenCalledTimes(1);
     });
 });

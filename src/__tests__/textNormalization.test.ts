@@ -5,12 +5,14 @@ import { processHtml } from '../html/processHtml';
 describe('text normalization toggle', () => {
     test('does not normalize smart quotes when normalizeQuotes is false', async () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
-        const { html } = await processHtml(input, {
+        const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: false,
             forceTightLists: false,
         });
+        expect(body).not.toBeNull();
+        const html = body!.innerHTML;
 
         // Curly quotes should remain when normalization is disabled
         expect(html).toContain('“Smart”');
@@ -23,12 +25,14 @@ describe('text normalization toggle', () => {
 
     test('normalizes smart quotes when normalizeQuotes is true', async () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
-        const { html } = await processHtml(input, {
+        const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
             normalizeQuotes: true,
             forceTightLists: false,
         });
+        expect(body).not.toBeNull();
+        const html = body!.innerHTML;
 
         // Curly quotes should be converted to straight quotes
         expect(html).toContain('"Smart"');
