@@ -78,7 +78,7 @@ export async function convertHtmlToMarkdown(
     isGoogleDocs: boolean = false
 ): Promise<{ markdown: string; resources: ResourceConversionMeta }> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
-    let input = wrapOrphanedTableElements(html);
+    const input = wrapOrphanedTableElements(html);
 
     // Apply DOM-based preprocessing to clean and sanitize the HTML (now async)
     const options: PasteOptions = {
@@ -88,12 +88,12 @@ export async function convertHtmlToMarkdown(
         forceTightLists,
     };
     const processed = await processHtml(input, options, isGoogleDocs);
-    input = processed.html;
+    const turndownInput = (processed.body ?? processed.html) as Parameters<TurndownService['turndown']>[0];
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     // and this guarantees option/rule changes always apply without stale caching.
     const service = await createTurndownService(includeImages);
-    let markdown = service.turndown(input);
+    let markdown = service.turndown(turndownInput);
 
     // Post-process the markdown for final cleanup
     markdown = cleanupMarkdown(markdown, forceTightLists);

@@ -40,18 +40,39 @@ import { normalizeCodeBlocks, markNbspOnlyInlineCode } from './post/codeBlocks';
 import { protectLiteralHtmlTagMentions } from './post/literals';
 import { normalizeImageAltAttributes } from './post/images';
 
+export interface ProcessHtmlResult {
+    readonly html: string;
+    readonly body: HTMLElement | null;
+    readonly resources: ResourceConversionMeta;
+}
+
+const EMPTY_RESOURCES: ResourceConversionMeta = { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 };
+
+const createFallbackBody = (html: string): HTMLElement | null => {
+    if (typeof document === 'undefined') return null;
+    const implementation = document.implementation;
+    if (!implementation || typeof implementation.createHTMLDocument !== 'function') return null;
+    const fallbackDoc = implementation.createHTMLDocument('');
+    const { body } = fallbackDoc;
+    body.innerHTML = html;
+    return body;
+};
+
 export async function processHtml(
     html: string,
     options: PasteOptions,
     isGoogleDocs: boolean = false
-): Promise<{ html: string; resources: ResourceConversionMeta }> {
-    if (typeof window === 'undefined' || typeof DOMParser === 'undefined')
-        return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
+): Promise<ProcessHtmlResult> {
+    if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
+        return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+    }
     try {
         const rawParser = new DOMParser();
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
-        if (!rawBody) return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
+        if (!rawBody) {
+            return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+        }
         try {
             normalizeTextCharacters(rawBody, options.normalizeQuotes);
         } catch {}
@@ -76,7 +97,9 @@ export async function processHtml(
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitized, 'text/html');
         const body = doc.body;
-        if (!body) return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
+        if (!body) {
+            return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
+        }
 
         if (!options.includeImages) removeEmptyAnchors(body);
         cleanHeadingAnchors(body);
@@ -102,13 +125,15 @@ export async function processHtml(
             }
             normalizeImageAltAttributes(body);
         }
+        const finalHtml = body.innerHTML;
         return {
-            html: body.innerHTML,
+            html: finalHtml,
+            body,
             resources: { resourcesCreated: resourceIds.length, resourceIds, attempted, failed },
         };
     } catch (err) {
         console.warn(LOG_PREFIX, 'DOM preprocessing failed, falling back to raw HTML:', (err as Error)?.message || err);
         if (err instanceof Error && (err as Error).stack) console.warn((err as Error).stack);
-        return { html, resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 } };
+        return { html, body: createFallbackBody(html), resources: EMPTY_RESOURCES };
     }
 }
