@@ -141,10 +141,33 @@ function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
 
 // Remove blank lines between list items while protecting fenced code blocks.
 function tightenListSpacing(markdown: string): string {
+    const isListLine = (rawLine: string): boolean => {
+        const line = rawLine.replace(/\r$/, '');
+        return /^[ \t]*(?:>[ \t]*)*(?:[-*+]|\d+[.)])[ \t]+(?:\[[ xX]\][ \t]+)?/.test(line);
+    };
+
+    const isBlankListSeparator = (rawLine: string): boolean => {
+        const line = rawLine.replace(/\r$/, '');
+        if (line.trim() === '') {
+            return true;
+        }
+        return /^[ \t]*(?:>[ \t]*)*$/.test(line);
+    };
+
     return withFencedCodeProtection(markdown, (segment) => {
-        const re =
-            /(^[ \t]*(?:[-*+]|\d+[.)])[ \t]+(?:\[[ xX]\][ \t]+)?[^\n]*?)\n(?:[ \t]*\n)+(?=^[ \t]*(?:[-*+]|\d+[.)])[ \t]+)/gm;
-        return segment.replace(re, '$1\n');
+        const lines = segment.split('\n');
+        let index = 0;
+        while (index < lines.length - 2) {
+            if (isListLine(lines[index]) && isBlankListSeparator(lines[index + 1]) && isListLine(lines[index + 2])) {
+                lines.splice(index + 1, 1);
+                if (index > 0) {
+                    index--;
+                }
+            } else {
+                index++;
+            }
+        }
+        return lines.join('\n');
     });
 }
 

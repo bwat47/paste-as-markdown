@@ -29,4 +29,12 @@ describe('Force tight lists (markdown post-processing)', () => {
         expect(normalized).toMatch(/^-\s+\[ \]\s+Do\n-\s+\[x\]\s+Done$/m);
         expect(normalized).not.toMatch(/^-\s+\[ \]\s+Do\n\n-\s+\[x\]\s+Done$/m);
     });
+
+    test('blockquote list items become tight when enabled', async () => {
+        const html = '<blockquote><ul><li><p>Alpha</p></li><li><p>Beta</p></li></ul></blockquote>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, true, false, true, true);
+        const normalized = md.trim();
+        expect(normalized).toMatch(/^>\s+-\s+Alpha\n>\s+-\s+Beta$/m);
+        expect(normalized).not.toMatch(/^>\s+-\s+Alpha\n>\s*\n>\s+-\s+Beta$/m);
+    });
 });
