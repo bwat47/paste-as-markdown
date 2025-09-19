@@ -76,7 +76,7 @@ export async function convertHtmlToMarkdown(
     normalizeQuotes: boolean = true,
     forceTightLists: boolean = false,
     isGoogleDocs: boolean = false
-): Promise<{ markdown: string; resources: ResourceConversionMeta }> {
+): Promise<{ markdown: string; resources: ResourceConversionMeta; plainTextFallback: boolean }> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     const input = wrapOrphanedTableElements(html);
 
@@ -88,7 +88,19 @@ export async function convertHtmlToMarkdown(
         forceTightLists,
     };
     const processed = await processHtml(input, options, isGoogleDocs);
-    const turndownInput = (processed.body ?? input) as Parameters<TurndownService['turndown']>[0];
+
+    if (processed.plainText !== null) {
+        const markdown = cleanupMarkdown(processed.plainText, forceTightLists);
+        return { markdown, resources: processed.resources, plainTextFallback: true };
+    }
+
+    const turndownInput = (processed.body ?? processed.sanitizedHtml ?? '') as Parameters<
+        TurndownService['turndown']
+    >[0];
+
+    if (!turndownInput) {
+        return { markdown: '', resources: processed.resources, plainTextFallback: false };
+    }
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     // and this guarantees option/rule changes always apply without stale caching.
@@ -98,7 +110,7 @@ export async function convertHtmlToMarkdown(
     // Post-process the markdown for final cleanup
     markdown = cleanupMarkdown(markdown, forceTightLists);
 
-    return { markdown, resources: processed.resources };
+    return { markdown, resources: processed.resources, plainTextFallback: false };
 }
 
 /**

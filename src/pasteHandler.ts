@@ -99,7 +99,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
     try {
         // Pass detection result to conversion
-        const { markdown, resources } = await convertHtmlToMarkdown(
+        const { markdown, resources, plainTextFallback } = await convertHtmlToMarkdown(
             html!,
             options.includeImages,
             options.convertImagesToResources,
@@ -109,6 +109,16 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         );
 
         await insertMarkdownAtCursor(markdown);
+
+        if (plainTextFallback) {
+            await showToast('Conversion failed; pasted plain text', ToastType.Error);
+            return {
+                markdown,
+                success: false,
+                warnings: ['HTML conversion failed'],
+                plainTextFallback: true,
+            };
+        }
 
         let message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
         if (options.includeImages && options.convertImagesToResources) {
