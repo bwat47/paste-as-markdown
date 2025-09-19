@@ -12,7 +12,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
         - UI cleanup: remove obvious non-content UI (e.g., `<button>`, role-based controls, non-checkbox inputs, `<select>`), skipping `code/pre`.
         - Image sizing promotion: on `<img>` elements, promote `style="width: Npx; height: Mpx;"` into `width="N"`/`height="M"` attributes when neither attribute is present; remove `style` for determinism.
         - Code block neutralization: flatten highlight/token spans, convert `<br>`→`\n`, and escape literal `<script>/<style>` examples by moving innerHTML to textContent.
-    - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup.
+    - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup. Sanitization failure (or missing DOM APIs) skips enhancement and returns a secure plain-text fallback rather than raw HTML.
     - Post-sanitize normalization:
         - Literal tag mentions in prose: wrap tag-like tokens (e.g., `<table>`, `<img ...>`, `<br>`, etc.) in inline code to prevent accidental HTML interpretation; applies only outside `code/pre`.
         - Code blocks: enforce `<pre><code>` shape, drop toolbars/empty blocks, infer language from class patterns (alias mapping), remove stray wrappers.
@@ -39,7 +39,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Remove whitespace-only NBSP lines.
     - Normalize task list spacing (top-level + nested): enforce `- [ ] Task` / `- [x] Task` while preserving original indentation (tabs/spaces).
     - Optional: Force tight lists (setting) — remove blank lines between consecutive list items (unordered/ordered/tasks), protected by fenced-code extraction.
-6. Return `{ markdown, resourcesMeta }`.
+6. Return `{ markdown, resourcesMeta, plainTextFallback }`. The boolean flags whether the pipeline emitted sanitized plain text instead of Markdown (e.g., DOMPurify-only success).
 
 ## Key Helpers
 
@@ -52,6 +52,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
+- Plain-text fallback helpers (detached document factory + HTML→text conversion) used when sanitization or DOM access is unavailable.
 
 ## What the GFM Plugin Now Covers
 
@@ -91,12 +92,20 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No content-based language detection (class names only).
 - No deep normalization of nested task list indentation beyond spacing cleanup.
 - Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
-  <!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
+    <!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
 
 ## Security
 
-- DOMPurify configured centrally; scripts/styles/event handlers stripped once.
+- DOMPurify configured centrally; scripts/styles/event handlers stripped once and treated as the hard security boundary.
+- Pre- and post-sanitize passes are wrapped defensively; failures log and continue so DOMPurify output is still used.
+- Sanitization failure or lack of DOM APIs falls back to plain text, guaranteeing unsanitized HTML is never returned.
 - Subsequent stages assume sanitized tree (no double stripping).
+
+## Fallback Hierarchy
+
+1. Full enhancement: DOMPurify + post-sanitize cleanup + Turndown → Markdown.
+2. Sanitized HTML only: DOMPurify succeeded but enhancements or image conversion failed; sanitized markup still feeds Turndown.
+3. Plain-text fallback: Sanitization or DOM access failed; converter emits plain text and marks `plainTextFallback` so the handler can surface the plain-text toast.
 
 ## Testing Focus
 
@@ -109,6 +118,6 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 A deterministic two-phase approach:
 (1) DOM preprocessing (safety + structural normalization),
 (2) Turndown (upstream + forked GFM + minimal custom rules),
-followed by constrained Markdown cleanup (spacing + line semantics).
+followed by constrained Markdown cleanup (spacing + line semantics), with a plain-text escape hatch when sanitization cannot complete safely.
 
 Redundant logic removed; only `wrapOrphanedTableElements` retained to ensure GFM table rule applicability.
