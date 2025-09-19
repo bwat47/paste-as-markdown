@@ -13,6 +13,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
         - Image sizing promotion: on `<img>` elements, promote `style="width: Npx; height: Mpx;"` into `width="N"`/`height="M"` attributes when neither attribute is present; remove `style` for determinism.
         - Code block neutralization: flatten highlight/token spans, convert `<br>`→`\n`, and escape literal `<script>/<style>` examples by moving innerHTML to textContent.
     - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup. Sanitization failure (or missing DOM APIs) skips enhancement and returns a secure plain-text fallback rather than raw HTML.
+    - Pre/post passes are wrapped in defensive try/catch. When any helper throws, we run a fallback DOMPurify pass on the original HTML to recover sanitized markup before conceding to plain text.
     - Post-sanitize normalization:
         - Literal tag mentions in prose: wrap tag-like tokens (e.g., `<table>`, `<img ...>`, `<br>`, etc.) in inline code to prevent accidental HTML interpretation; applies only outside `code/pre`.
         - Code blocks: enforce `<pre><code>` shape, drop toolbars/empty blocks, infer language from class patterns (alias mapping), remove stray wrappers.
@@ -104,8 +105,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 ## Fallback Hierarchy
 
 1. Full enhancement: DOMPurify + post-sanitize cleanup + Turndown → Markdown.
-2. Sanitized HTML only: DOMPurify succeeded but enhancements or image conversion failed; sanitized markup still feeds Turndown.
-3. Plain-text fallback: Sanitization or DOM access failed; converter emits plain text and marks `plainTextFallback` so the handler can surface the plain-text toast.
+2. Sanitized HTML only: DOMPurify succeeded (during the main pass or the fallback sanitization) but enhancements or image conversion failed; sanitized markup still feeds Turndown.
+3. Plain-text fallback: Both sanitize attempts failed or DOM access is unavailable; converter emits plain text and marks `plainTextFallback` so the handler can surface the plain-text toast.
 
 ## Testing Focus
 
