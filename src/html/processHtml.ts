@@ -88,6 +88,27 @@ const htmlToPlainText = (html: string): string => {
         .trim();
 };
 
+const sanitizeForFallback = (html: string, includeImages: boolean): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+        const purifier = createDOMPurify(window as unknown as typeof window);
+        return purifier.sanitize(html, buildSanitizerConfig({ includeImages })) as string;
+    } catch (err) {
+        console.warn(LOG_PREFIX, 'Fallback sanitization failed:', err);
+        return null;
+    }
+};
+
+const sanitizedHtmlFallback = (sanitized: string | null): ProcessHtmlResult | null => {
+    if (sanitized === null) return null;
+    return {
+        body: null,
+        sanitizedHtml: sanitized,
+        plainText: null,
+        resources: EMPTY_RESOURCES,
+    };
+};
+
 const plainTextFallback = (html: string): ProcessHtmlResult => ({
     body: createDetachedBody(html, true),
     sanitizedHtml: null,
@@ -120,7 +141,9 @@ export async function processHtml(
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
         if (!rawBody) {
-            console.warn(LOG_PREFIX, 'Parsed document missing <body>, falling back to plain text.');
+            console.warn(LOG_PREFIX, 'Parsed document missing <body>, attempting sanitized fallback.');
+            const fallback = sanitizedHtmlFallback(sanitizeForFallback(html, options.includeImages));
+            if (fallback) return fallback;
             return plainTextFallback(html);
         }
 
@@ -196,6 +219,8 @@ export async function processHtml(
         if (sanitizedHtml !== null) {
             return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
         }
+        const fallback = sanitizedHtmlFallback(sanitizeForFallback(html, options.includeImages));
+        if (fallback) return fallback;
         return plainTextFallback(html);
     }
 }
