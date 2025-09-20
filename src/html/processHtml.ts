@@ -3,25 +3,18 @@
  *
  * Phases
  * 1) Parse raw HTML
- * 2) Pre-sanitize passes (order matters):
- *    - normalizeTextCharacters: normalize NBSP and optionally smart quotes; skips code/pre
- *    - removeNonContentUi: drop obvious UI controls (buttons, role-based widgets, non-checkbox inputs, select)
- *    - neutralizeCodeBlocksPreSanitize: turn <pre>/<code> innerHTML into plain text so DOMPurify won’t strip examples
+ * 2) Pre-sanitize passes (order defined in `passes/registry.ts`)
  * 3) Sanitize via DOMPurify (configured in sanitizerConfig)
- *    Note: KEEP_CONTENT is enabled, so forbidden tags drop but their text may remain; hence UI removal is done pre-sanitize.
- * 4) Post-sanitize passes:
- *    - removeEmptyAnchors, cleanHeadingAnchors
- *    - normalizeTextCharacters again (idempotent; resilient to structure changes)
- *    - normalizeCodeBlocks (unwrap known wrappers, ensure <code>, infer language, strip UI chrome)
- *    - markNbspOnlyInlineCode (protects NBSP-only inline code from being dropped later)
- *    - normalizeImageAltAttributes (collapse alt whitespace/newlines)
- * 5) Image handling (optional conversion to Joplin resources, then standardize attributes)
+ *    Note: KEEP_CONTENT is enabled, so forbidden tags drop but their text may remain; hence structural cleanup happens pre-sanitize.
+ * 4) Post-sanitize passes (order defined in `passes/registry.ts`)
+ * 5) Image handling (optional conversion to Joplin resources, then post-image passes)
  *
  * Invariants and rationale
  * - All text normalization avoids code/pre to preserve literal examples and spacing.
  * - Early normalization + UI removal makes behavior robust against DOM structure from real-world fragments.
  * - DOMPurify is the security boundary. If parsing or sanitization fails, we fall back to plain text.
  * - Post-sanitize cleanup is best-effort. On failure we return DOMPurify's sanitized HTML.
+ * - Pass execution is centralized in the registry so new passes register once and maintain priority ordering.
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
