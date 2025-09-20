@@ -423,8 +423,10 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     // Validate the resolved path is still within dataDir to prevent path traversal
     const resolvedPath = path.resolve(tmpPath);
     const resolvedDataDir = path.resolve(dataDir);
-    // Allow exact dataDir (defensive) or any child path; reject traversal
-    if (!resolvedPath.startsWith(resolvedDataDir + path.sep) && resolvedPath !== resolvedDataDir) {
+    const relative = path.relative(resolvedDataDir, resolvedPath);
+    const traversesUp =
+        relative !== '' && (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative));
+    if (traversesUp) {
         throw new Error('Invalid file path: potential path traversal detected');
     }
     const fsLike: FsExtraLike = fs;
