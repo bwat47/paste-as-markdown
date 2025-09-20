@@ -7,19 +7,10 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 1. Input acquisition (HTML string + options).
 2. HTML preprocessing (`processHtml`):
     - Safe DOM parse (guarded if no DOM APIs).
-    - Pre-sanitize passes (order matters):
-        - Text normalization (idempotent): normalize NBSP and optionally smart quotes; skips `code/pre`.
-        - UI cleanup: remove obvious non-content UI (e.g., `<button>`, role-based controls, non-checkbox inputs, `<select>`), skipping `code/pre`.
-        - Image sizing promotion: on `<img>` elements, promote `style="width: Npx; height: Mpx;"` into `width="N"`/`height="M"` attributes when neither attribute is present; remove `style` for determinism.
-        - Code block neutralization: flatten highlight/token spans, convert `<br>`→`\n`, and escape literal `<script>/<style>` examples by moving innerHTML to textContent.
+    - Pre-sanitize pass registry (see `src/html/passes/registry.ts`): ordered `ProcessingPass` objects describe the transformation steps (text normalization, UI cleanup, image sizing promotion, Google Docs wrapper removal, code neutralization, etc.) and are executed via the shared runner so additions live in one place.
     - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup. Sanitization failure (or missing DOM APIs) skips enhancement and returns a secure plain-text fallback rather than raw HTML.
-    - Pre/post passes are wrapped in defensive try/catch. When any helper throws, we run a fallback DOMPurify pass on the original HTML to recover sanitized markup before conceding to plain text.
-    - Post-sanitize normalization:
-        - Literal tag mentions in prose: wrap tag-like tokens (e.g., `<table>`, `<img ...>`, `<br>`, etc.) in inline code to prevent accidental HTML interpretation; applies only outside `code/pre`.
-        - Code blocks: enforce `<pre><code>` shape, drop toolbars/empty blocks, infer language from class patterns (alias mapping), remove stray wrappers.
-        - Anchor cleanup (permalink / empty anchors; remove empty anchors only when images are excluded).
-        - Text normalization again (idempotent) to remain robust to structure changes.
-        - Image handling (optional conversion to Joplin resources + attribute normalization; or removal when disabled).
+    - Pass runner (`runPasses`) wraps each stage in defensive try/catch and logs warnings without halting the pipeline; the registry still defines logical order, conditions, and names for accurate logs.
+    - Post-sanitize pass registry (same file) handles literal tag protection, heading/empty anchor cleanup, code block normalization, NBSP sentinels, and image attribute normalization. Image conversion remains asynchronous and triggers a second batch of post-image passes when enabled.
 3. Pre-Turndown HTML fixups (`markdownConverter`):
     - `wrapOrphanedTableElements` – Wrap bare `<tr>/<td>/<col>` fragments in `<table>` (clipboard edge cases e.g. Excel) so GFM table rule can apply.
 4. Turndown conversion:
@@ -50,6 +41,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `normalizeTextCharacters(body, normalizeQuotes)` – Normalizes NBSP/smart quotes outside code/pre; idempotent.
 - `promoteImageSizingStylesToAttributes(body)` – Pre-sanitize: move px width/height from `<img style>` to `width`/`height` attributes (only when neither attribute exists) and remove style.
 - `protectLiteralHtmlTagMentions(body)` – Post-sanitize: wrap tag-like mentions in inline code, skipping `code/pre`.
+- `getProcessingPasses()` / `runPasses()` – Central registry + runner that declare ordered `ProcessingPass` definitions and execute them with consistent warning handling.
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
@@ -79,6 +71,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - Sanitize pass (DOMPurify).
 - Prefer DOM over regex for semantics; regex only for final line/spacing cleanup.
 - Make pre-sanitize passes idempotent and safe (text normalization can run twice; early UI removal compensates for KEEP_CONTENT behavior).
+- Register cleanup stages once in the pass registry so ordering, conditions, and logging stay authoritative.
 - No style-based semantic inference (bold/italic from CSS dropped intentionally).
 - Per-invocation Turndown instance (no shared mutable state).
 - Minimal post-processing; only tasks simpler after Markdown emission.
@@ -93,12 +86,12 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No content-based language detection (class names only).
 - No deep normalization of nested task list indentation beyond spacing cleanup.
 - Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
-    <!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
+      <!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
 
 ## Security
 
 - DOMPurify configured centrally; scripts/styles/event handlers stripped once and treated as the hard security boundary.
-- Pre- and post-sanitize passes are wrapped defensively; failures log and continue so DOMPurify output is still used.
+- Pre- and post-sanitize passes execute through the runner, which logs failures and continues so DOMPurify output is still used.
 - Sanitization failure or lack of DOM APIs falls back to plain text, guaranteeing unsanitized HTML is never returned.
 - Subsequent stages assume sanitized tree (no double stripping).
 
