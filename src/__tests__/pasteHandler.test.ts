@@ -90,7 +90,13 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, {
+                includeImages: true,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+                forceTightLists: false,
+                isGoogleDocs: false,
+            });
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: 'insertText',
                 args: [expectedMarkdown],
@@ -125,7 +131,13 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, false, true, false, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, {
+                includeImages: false,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+                forceTightLists: false,
+                isGoogleDocs: false,
+            });
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown (images excluded)', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
@@ -161,7 +173,13 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, true, true, false, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, {
+                includeImages: true,
+                convertImagesToResources: true,
+                normalizeQuotes: true,
+                forceTightLists: false,
+                isGoogleDocs: false,
+            });
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Pasted as Markdown (1 image resource created)',
                 ToastType.Success
@@ -318,7 +336,13 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, true, false, true, false, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, {
+                includeImages: true,
+                convertImagesToResources: false,
+                normalizeQuotes: true,
+                forceTightLists: false,
+                isGoogleDocs: false,
+            });
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: 'insertText',
                 args: [plainText],
@@ -550,7 +574,13 @@ describe('pasteHandler', () => {
                 normalizeQuotes: undefined,
                 forceTightLists: undefined,
             });
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, false, true, true, false, false);
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, {
+                includeImages: false,
+                convertImagesToResources: true,
+                normalizeQuotes: true,
+                forceTightLists: false,
+                isGoogleDocs: false,
+            });
         });
     });
 });

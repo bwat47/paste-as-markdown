@@ -71,23 +71,27 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
 
 export async function convertHtmlToMarkdown(
     html: string,
-    includeImages: boolean = true,
-    convertImagesToResources: boolean = false,
-    normalizeQuotes: boolean = true,
-    forceTightLists: boolean = false,
-    isGoogleDocs: boolean = false
+    options: Partial<PasteOptions> & { isGoogleDocs?: boolean } = {}
 ): Promise<{ markdown: string; resources: ResourceConversionMeta; plainTextFallback: boolean }> {
+    const {
+        includeImages = true,
+        convertImagesToResources = false,
+        normalizeQuotes = true,
+        forceTightLists = false,
+        isGoogleDocs = false,
+    } = options ?? {};
+
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     const input = wrapOrphanedTableElements(html);
 
     // Apply DOM-based preprocessing to clean and sanitize the HTML (now async)
-    const options: PasteOptions = {
+    const pasteOptions: PasteOptions = {
         includeImages,
         convertImagesToResources,
         normalizeQuotes,
         forceTightLists,
     };
-    const processed = await processHtml(input, options, isGoogleDocs);
+    const processed = await processHtml(input, pasteOptions, isGoogleDocs);
 
     if (processed.plainText !== null) {
         const markdown = cleanupMarkdown(processed.plainText, forceTightLists);

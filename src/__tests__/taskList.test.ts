@@ -13,7 +13,7 @@ describe('task list conversion (GFM)', () => {
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> Task</li>
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> List</li>
 </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
         // Expect two list items with unchecked boxes
         // Turndown may emit two spaces after the checkbox marker; allow one or two.
@@ -28,7 +28,7 @@ describe('task list conversion (GFM)', () => {
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox" checked> Done</li>
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> Todo</li>
 </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
         expect(md).toMatch(/^-\s+\[x\]\s+Done\n-\s+\[ \]\s+Todo$/m);
     });
@@ -37,7 +37,7 @@ describe('task list conversion (GFM)', () => {
         const html = `<ul class="contains-task-list">
 <li class="task-list-item"><span> </span><input type="checkbox" checked> Spaced</li>
 </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
         // Depending on rule, leading span might prevent detection; allow either checked box or plain list prefix fallback
         expect(md).toMatch(/^-\s+(\[x\]\s+)?Spaced$/m);
@@ -53,7 +53,7 @@ describe('task list conversion (GFM)', () => {
         </ul>
     </li>
     </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const lines = markdown.trim().split(/\n/);
         // Expect 4 lines: two top-level and two nested
         expect(lines.length).toBe(4);

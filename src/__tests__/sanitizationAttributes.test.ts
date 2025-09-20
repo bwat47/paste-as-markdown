@@ -9,7 +9,7 @@ describe('sanitization: style & event handlers', () => {
         const html =
             '<p style="color:red" onclick="alert(1)">Hello ' +
             '<strong style="font-weight:900" onmouseover="x()">World</strong></p>';
-        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
         expect(md).toBe('Hello **World**');
         expect(md).not.toMatch(/style=|onclick=|onmouseover=/i);

@@ -11,7 +11,7 @@ describe('security: script injection prevention', () => {
                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiPjxyZWN0IHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PC9yZWN0Pjwvc3ZnPg==" />
         `;
 
-        const { markdown } = await convertHtmlToMarkdown(maliciousHtml, true);
+        const { markdown } = await convertHtmlToMarkdown(maliciousHtml, { includeImages: true });
 
         // Should NOT contain any onload attribute
         expect(markdown).not.toMatch(/onload/i);
@@ -26,7 +26,7 @@ describe('security: script injection prevention', () => {
             <p>After script</p>
         `;
 
-        const { markdown } = await convertHtmlToMarkdown(htmlWithScript, true);
+        const { markdown } = await convertHtmlToMarkdown(htmlWithScript, { includeImages: true });
 
         expect(markdown).not.toMatch(/<script/i);
         expect(markdown).not.toMatch(/alert\(/);
@@ -42,7 +42,7 @@ describe('security: script injection prevention', () => {
             <a href="javascript:alert('xss')">bad link</a>
         `;
 
-        const { markdown } = await convertHtmlToMarkdown(htmlWithEmbeds, true);
+        const { markdown } = await convertHtmlToMarkdown(htmlWithEmbeds, { includeImages: true });
 
         expect(markdown).not.toMatch(/<iframe/i);
         expect(markdown).not.toMatch(/<object/i);

@@ -13,8 +13,8 @@ describe('complex fragment snapshot', () => {
 <p>Footer note with <code>&lt;br&gt;</code> example.</p>
 <!--EndFragment-->`;
 
-        const { markdown: withImagesMd } = await convertHtmlToMarkdown(html, true);
-        const { markdown: withoutImagesMd } = await convertHtmlToMarkdown(html, false);
+        const { markdown: withImagesMd } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: withoutImagesMd } = await convertHtmlToMarkdown(html, { includeImages: false });
         const withImages = withImagesMd.trim();
         const withoutImages = withoutImagesMd.trim();
 

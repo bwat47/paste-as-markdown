@@ -99,14 +99,13 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
     try {
         // Pass detection result to conversion
-        const { markdown, resources, plainTextFallback } = await convertHtmlToMarkdown(
-            html!,
-            options.includeImages,
-            options.convertImagesToResources,
-            options.normalizeQuotes,
-            options.forceTightLists,
-            isGoogleDocs
-        );
+        const { markdown, resources, plainTextFallback } = await convertHtmlToMarkdown(html!, {
+            includeImages: options.includeImages,
+            convertImagesToResources: options.convertImagesToResources,
+            normalizeQuotes: options.normalizeQuotes,
+            forceTightLists: options.forceTightLists,
+            isGoogleDocs,
+        });
 
         await insertMarkdownAtCursor(markdown);
 

@@ -53,7 +53,7 @@ describe('markdownConverter', () => {
 
     test('processes HTML through DOM preprocessing when includeImages is false (defensive removals still applied)', async () => {
         const { default: TurndownService } = await import('turndown');
-        await convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', false);
+        await convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', { includeImages: false });
         const instance = (TurndownService as unknown as jest.Mock).mock.results[0].value as {
             remove: jest.Mock;
             addRule: jest.Mock;

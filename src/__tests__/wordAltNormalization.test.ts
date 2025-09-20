@@ -9,7 +9,7 @@ describe('word alt normalization', () => {
                  alt="A computer screen shot of a program&#10;&#10;AI-generated content may be incorrect.">
         `;
 
-        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
 
         // No newlines in output
         expect(markdown).not.toMatch(/\n/);
