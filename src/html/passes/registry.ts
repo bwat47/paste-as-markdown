@@ -27,7 +27,7 @@ const PRE_SANITIZE_PASSES: readonly ProcessingPass[] = [
     },
     {
         name: 'Image sizing promotion',
-        phase: 'pre-sanitize',
+        phase: 'pre-sanitize', // run before sanitization as DOMpurify will strip styles
         priority: 30,
         execute: (body) => promoteImageSizingStylesToAttributes(body),
     },
@@ -46,7 +46,7 @@ const PRE_SANITIZE_PASSES: readonly ProcessingPass[] = [
     },
     {
         name: 'Code block neutralization',
-        phase: 'pre-sanitize',
+        phase: 'pre-sanitize', // run before sanitization to prevent examples such as <script> from being stripped from code
         priority: 60,
         execute: (body) => neutralizeCodeBlocksPreSanitize(body),
     },
