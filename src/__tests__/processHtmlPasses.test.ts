@@ -46,6 +46,7 @@ describe('processHtml pass orchestration', () => {
         expect(executionLog[1]).toEqual([
             'Post-sanitize empty anchor removal',
             'Post-sanitize heading anchor cleanup',
+            'Post-sanitize orphaned sub-list fix',
             'Post-sanitize text normalization',
             'Literal HTML tag protection',
             'Code block normalization',

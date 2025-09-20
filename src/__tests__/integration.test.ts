@@ -31,6 +31,25 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\[\s*\n*##/);
     });
 
+    test('re-nests orphaned sub-lists to preserve numbering', async () => {
+        const html = `
+            <ol>
+                <li>Primary step</li>
+                <ul>
+                    <li>Sub step A</li>
+                    <li>Sub step B</li>
+                </ul>
+                <li>Next step</li>
+            </ol>
+        `;
+        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const lines = markdown.trim().split(/\r?\n/);
+        expect(lines[0]).toMatch(/^1\.\s+Primary step/);
+        expect(lines[1]).toMatch(/^\s{4}-\s+Sub step A/);
+        expect(lines[2]).toMatch(/^\s{4}-\s+Sub step B/);
+        expect(lines[3]).toMatch(/^2\.\s+Next step/);
+    });
+
     test('strips picture/source/img when includeImages is false', async () => {
         const html = `
             <picture>

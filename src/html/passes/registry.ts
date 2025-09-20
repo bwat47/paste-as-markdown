@@ -6,6 +6,7 @@ import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
 import { removeEmptyAnchors, cleanHeadingAnchors } from '../post/anchors';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
+import { fixOrphanNestedLists } from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { standardizeRemainingImages } from '../../resourceConverter';
@@ -65,6 +66,12 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         phase: 'post-sanitize',
         priority: 20,
         execute: (body) => cleanHeadingAnchors(body),
+    },
+    {
+        name: 'Post-sanitize orphaned sub-list fix',
+        phase: 'post-sanitize',
+        priority: 25,
+        execute: (body) => fixOrphanNestedLists(body),
     },
     {
         name: 'Post-sanitize text normalization',
