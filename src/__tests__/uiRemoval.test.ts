@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 describe('removeNonContentUi pre-sanitize cleanup', () => {
-    test('removes buttons, role-based UI, and non-checkbox inputs; preserves checkboxes; skips inside code', async () => {
+    test('removes noisy UI controls but preserves inline button text', async () => {
         const input = `
             <p>Task: <input type="checkbox" checked></p>
             <p>Form: <input type="text" value="hello"></p>
@@ -12,6 +12,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
             <p>Write: <textarea>text</textarea></p>
             <div role="button">Click me</div>
             <div role="toolbar"><span>Toolbar</span></div>
+            <p>Reference (<button>File.ts</button>) inline.</p>
             <pre><code><button>UI</button><input type="text" value="x"></code></pre>
         `;
 
@@ -37,6 +38,9 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         expect(html.includes('Click me')).toBe(false);
         expect(html.includes('Toolbar')).toBe(false);
 
+        // Inline button text remains even though the control is removed
+        expect(html.includes('Reference (File.ts) inline.')).toBe(true);
+
         // Inside code/pre should remain as text content (neutralized)
         // We expect the code block to contain the text from the button or input (e.g., "UI")
         expect(/<pre><code>[\s\S]*UI[\s\S]*<\/code><\/pre>/.test(html)).toBe(true);
@@ -45,7 +49,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
 
 describe('UI cleanup on real-world fragments', () => {
     test('drops GPT chat <button> labels from clipboard_export.html', async () => {
-        const input = readFileSync(join(__dirname, 'clipboard_export.html'), 'utf8');
+        const input = readFileSync(join(__dirname, '..', 'clipboard_export.html'), 'utf8');
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
@@ -54,6 +58,6 @@ describe('UI cleanup on real-world fragments', () => {
         });
         expect(body).not.toBeNull();
         const html = body!.innerHTML;
-        expect(html.includes('repomix-output-bwat47-joplin-co')).toBe(false);
+        expect(html.includes('src/markdownConverter.ts:72')).toBe(true);
     });
 });
