@@ -142,3 +142,8 @@ export function getProcessingPasses(): PassCollections {
 
     return { preSanitize, postSanitize };
 }
+
+export const __TEST__ = {
+    validatePriorities,
+    sortPasses,
+};
