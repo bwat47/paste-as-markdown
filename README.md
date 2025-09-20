@@ -31,6 +31,8 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 - **Whitspace normalization** - Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
 
+- **List normalization** - Re-nests orphaned lists, so numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote.
+
 - **Table support** - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
 
 ## Settings
