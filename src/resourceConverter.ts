@@ -415,8 +415,9 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         console.warn(LOG_PREFIX, 'fs-extra unavailable; skipping image resource conversion');
         throw e;
     }
-    const ext = (img.filename.split('.').pop() || extensionForMime(img.mime)).replace(/[^a-zA-Z0-9]/g, '');
-    const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
+    const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
+    const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
     const tmpPath = path.join(dataDir, tmpName);
 
     // Validate the resolved path is still within dataDir to prevent path traversal
