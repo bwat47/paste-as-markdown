@@ -26,20 +26,12 @@
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
 import { LOG_PREFIX } from '../constants';
-import { convertImagesToResources, standardizeRemainingImages } from '../resourceConverter';
+import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
-
-import { normalizeTextCharacters } from './pre/normalizeText';
-import { removeNonContentUi } from './pre/uiCleanup';
-import { promoteImageSizingStylesToAttributes } from './pre/imageSizing';
-import { neutralizeCodeBlocksPreSanitize } from './pre/codeNeutralize';
-import { pruneNonImageAnchorChildren } from './pre/imageAnchorCleanup';
-import { removeGoogleDocsWrappers } from './pre/wrapperCleanup';
-import { removeEmptyAnchors, cleanHeadingAnchors } from './post/anchors';
-import { normalizeCodeBlocks, markNbspOnlyInlineCode } from './post/codeBlocks';
-import { protectLiteralHtmlTagMentions } from './post/literals';
-import { normalizeImageAltAttributes } from './post/images';
+import { getProcessingPasses } from './passes/registry';
+import { runPasses } from './passes/runner';
+import type { PassContext } from './passes/types';
 
 export interface ProcessHtmlResult {
     readonly body: HTMLElement | null;
@@ -54,6 +46,8 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
     attempted: 0,
     failed: 0,
 };
+
+const POST_IMAGE_PASS_PRIORITY = 80;
 
 const createDetachedBody = (html: string, asPlainText: boolean = false): HTMLElement | null => {
     if (typeof document === 'undefined') return null;
@@ -127,14 +121,8 @@ export async function processHtml(
     }
 
     let sanitizedHtml: string | null = null;
-
-    const runSafely = (description: string, fn: () => void): void => {
-        try {
-            fn();
-        } catch (err) {
-            console.warn(LOG_PREFIX, `${description} failed:`, err);
-        }
-    };
+    const passContext: PassContext = { isGoogleDocs };
+    const { preSanitize, postSanitize } = getProcessingPasses();
 
     try {
         const rawParser = new DOMParser();
@@ -147,14 +135,7 @@ export async function processHtml(
             return plainTextFallback(html);
         }
 
-        runSafely('Pre-sanitize text normalization', () => normalizeTextCharacters(rawBody, options.normalizeQuotes));
-        runSafely('Pre-sanitize non-content UI removal', () => removeNonContentUi(rawBody));
-        runSafely('Image sizing promotion', () => promoteImageSizingStylesToAttributes(rawBody));
-        runSafely('Image anchor cleanup', () => pruneNonImageAnchorChildren(rawBody));
-        if (isGoogleDocs) {
-            runSafely('Google Docs wrapper removal', () => removeGoogleDocsWrappers(rawBody));
-        }
-        runSafely('Code block neutralization', () => neutralizeCodeBlocksPreSanitize(rawBody));
+        runPasses(preSanitize, rawBody, options, passContext);
 
         const intermediate = rawBody.innerHTML;
         const purifier = createDOMPurify(window as unknown as typeof window);
@@ -177,15 +158,8 @@ export async function processHtml(
             return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
         }
 
-        runSafely('Post-sanitize empty anchor removal', () => {
-            if (!options.includeImages) removeEmptyAnchors(body);
-        });
-        runSafely('Post-sanitize heading anchor cleanup', () => cleanHeadingAnchors(body));
-        runSafely('Post-sanitize text normalization', () => normalizeTextCharacters(body, options.normalizeQuotes));
-        runSafely('Literal HTML tag protection', () => protectLiteralHtmlTagMentions(body));
-        runSafely('Code block normalization', () => normalizeCodeBlocks(body));
-        runSafely('NBSP inline code sentinel marking', () => markNbspOnlyInlineCode(body));
-        runSafely('Image alt normalization', () => normalizeImageAltAttributes(body));
+        const preImagePasses = postSanitize.filter((pass) => pass.priority < POST_IMAGE_PASS_PRIORITY);
+        runPasses(preImagePasses, body, options, passContext);
 
         let resourceIds: string[] = [];
         let attempted = 0;
@@ -204,8 +178,10 @@ export async function processHtml(
                 }
             }
 
-            runSafely('Image standardization', () => standardizeRemainingImages(body));
-            runSafely('Post-image alt normalization', () => normalizeImageAltAttributes(body));
+            const postImagePasses = postSanitize.filter((pass) => pass.priority >= POST_IMAGE_PASS_PRIORITY);
+            if (postImagePasses.length > 0) {
+                runPasses(postImagePasses, body, options, passContext);
+            }
         }
 
         return {
