@@ -19,6 +19,18 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toMatch(/\[example\]\(https:\/\/example\.com\)/);
     });
 
+    test('unwraps anchors that wrap headings to avoid dangling brackets', async () => {
+        const html = `
+            <a href="https://example.com/heading" id="section-heading">
+                <h2>Exported members</h2>
+            </a>
+        `;
+        const { markdown } = await convertHtmlToMarkdown(html, true);
+        const md = markdown.trim();
+        expect(md).toContain('## Exported members');
+        expect(md).not.toMatch(/\[\s*\n*##/);
+    });
+
     test('strips picture/source/img when includeImages is false', async () => {
         const html = `
             <picture>
