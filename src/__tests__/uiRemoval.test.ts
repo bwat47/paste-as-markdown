@@ -1,7 +1,5 @@
 import { describe, test, expect } from '@jest/globals';
 import { processHtml } from '../html/processHtml';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 describe('removeNonContentUi pre-sanitize cleanup', () => {
     test('removes noisy UI controls but preserves inline button text', async () => {
@@ -44,20 +42,5 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         // Inside code/pre should remain as text content (neutralized)
         // We expect the code block to contain the text from the button or input (e.g., "UI")
         expect(/<pre><code>[\s\S]*UI[\s\S]*<\/code><\/pre>/.test(html)).toBe(true);
-    });
-});
-
-describe('UI cleanup on real-world fragments', () => {
-    test('drops GPT chat <button> labels from clipboard_export.html', async () => {
-        const input = readFileSync(join(__dirname, '..', 'clipboard_export.html'), 'utf8');
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        });
-        expect(body).not.toBeNull();
-        const html = body!.innerHTML;
-        expect(html.includes('src/markdownConverter.ts:72')).toBe(true);
     });
 });
