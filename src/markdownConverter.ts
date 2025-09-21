@@ -62,6 +62,37 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         replacement: (content: string) => `<sub>${content}</sub>`,
     });
 
+    service.addRule('listItem', {
+        filter: 'li',
+        replacement: (content, node, options: TurndownService.Options) => {
+            const element = node as HTMLElement;
+            const parent = element.parentElement;
+
+            let prefix: string;
+            if (parent && parent.nodeName === 'OL') {
+                const startAttr = parent.getAttribute('start');
+                const startIndex = startAttr ? Number(startAttr) : 1;
+                const index = Array.prototype.indexOf.call(parent.children, element);
+                const ordinal = Number.isNaN(startIndex) ? index + 1 : startIndex + index;
+                prefix = `${ordinal}. `;
+            } else {
+                const bulletMarker = options.bulletListMarker ?? '-';
+                prefix = `${bulletMarker} `;
+            }
+
+            const minimumIndentWidth = 4; // Joplin expects nested list items indented by >=4 spaces
+            const indentWidth = Math.max(prefix.length, minimumIndentWidth);
+            const indent = ' '.repeat(indentWidth);
+            content = content
+                .replace(/^\n+/, '') // remove leading newlines
+                .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
+                .replace(/\n/gm, `\n${indent}`); // indent child lines while preserving 4-space nested list requirement
+
+            const needsTrailingNewline = element.nextSibling && !/\n$/.test(content);
+            return prefix + content + (needsTrailingNewline ? '\n' : '');
+        },
+    });
+
     // Defensive removals
     service.remove('script');
     service.remove('style');
