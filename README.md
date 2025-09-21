@@ -5,7 +5,7 @@
 
 A Joplin plugin that allows you to paste HTML formatted text as markdown in the markdown editor.
 
-The plugin uses Turndown to convert HTML to markdown (and @truto/turndown-plugin-gfm for table conversion).
+The plugin uses Turndown to convert HTML to markdown.
 
 Useful for scenarios where you can't use the joplin web clipper (e.g. copying text from an email client) and/or where you don't want to edit the note with the rich text editor (to avoid changes to existing markdown formatting by the rich text editor).
 
@@ -31,7 +31,7 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 - **Whitspace normalization** - Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
 
-- **List normalization** - Re-nests orphaned lists, so numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote.
+- **List normalization** - Re-nests orphaned lists, so numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote. Uniform spacing after list markers.
 
 - **Table support** - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
 
