@@ -66,23 +66,12 @@ export async function getGfmPlugin(): Promise<(service: TurndownServiceLike) => 
 
         service.addRule('taskListItems', {
             filter: function (node: Element): boolean {
-                return node.nodeName === 'LI' && !!node.querySelector('input[type="checkbox"]');
-            },
-            replacement: function (content: string, node: Element): string {
-                const checkbox = node.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
-                const isChecked = !!checkbox && (checkbox.checked || checkbox.getAttribute('checked') !== null);
-                const taskMarker = isChecked ? '[x] ' : '[ ] ';
-                const cleanContent = content.replace(/<input[^>]*>/gi, '').trim();
-                return '- ' + taskMarker + cleanContent + '\n';
-            },
-        });
-
-        service.addRule('checkbox', {
-            filter: function (node: Element): boolean {
                 return node.nodeName === 'INPUT' && node.getAttribute('type') === 'checkbox';
             },
-            replacement: function (): string {
-                return '';
+            replacement: function (_content: string, node: Element): string {
+                const checkbox = node as HTMLInputElement;
+                const isChecked = checkbox.checked || checkbox.getAttribute('checked') !== null;
+                return (isChecked ? '[x]' : '[ ]') + ' ';
             },
         });
     };
