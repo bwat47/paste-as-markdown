@@ -60,7 +60,7 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         replacement: (content: string) => `<sub>${content}</sub>`,
     });
 
-    service.addRule('listItem', {
+    service.addRule('pamListItem', {
         filter: 'li',
         replacement: (content, node, options: TurndownService.Options) => {
             const element = node as HTMLElement;
