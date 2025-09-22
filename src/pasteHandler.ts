@@ -134,6 +134,21 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
     } catch (err) {
         if (err instanceof HtmlProcessingError) {
             console.error(LOG_PREFIX, 'HTML processing prerequisites missing; aborting paste.', err);
+            try {
+                const text = await readClipboardText();
+                if (text) {
+                    await insertMarkdownAtCursor(text);
+                    await showToast('Conversion failed; pasted plain text', ToastType.Error);
+                    return {
+                        markdown: text,
+                        success: false,
+                        warnings: [err.message],
+                        plainTextFallback: true,
+                    };
+                }
+            } catch (readErr) {
+                console.error(LOG_PREFIX, 'Failed to read plain text after HTML processing error', readErr);
+            }
             return {
                 markdown: '',
                 success: false,

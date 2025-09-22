@@ -357,16 +357,42 @@ describe('pasteHandler', () => {
             });
         });
 
-        test('HTML processing error aborts without plain text fallback', async () => {
+        test('HTML processing error falls back to plain text when available', async () => {
             const html = '<p>HTML content</p>';
             const error = new HtmlProcessingError('dom-unavailable');
+            const fallbackText = 'plain clipboard text';
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockRejectedValue(error);
+            mockJoplin.clipboard.readText.mockResolvedValue(fallbackText);
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockJoplin.clipboard.readText).not.toHaveBeenCalled();
+            expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
+                name: 'insertText',
+                args: [fallbackText],
+            });
+            expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
+            expect(result).toEqual({
+                markdown: fallbackText,
+                success: false,
+                warnings: [error.message],
+                plainTextFallback: true,
+            });
+        });
+
+        test('HTML processing error without plain text keeps failure state', async () => {
+            const html = '<p>HTML content</p>';
+            const error = new HtmlProcessingError('sanitize-failed');
+
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockConvertHtmlToMarkdown.mockRejectedValue(error);
+            mockJoplin.clipboard.readText.mockResolvedValue('');
+
+            const result = await handlePasteAsMarkdown();
+
+            expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
             expect(result).toEqual({
                 markdown: '',
