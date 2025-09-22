@@ -28,6 +28,11 @@ export const SHORTCUTS = {
 
 export const TOAST_DURATION = 4000; // ms
 
+export const TOAST_MESSAGES = {
+    DOM_UNAVAILABLE: 'Unable to process HTML: required DOM APIs are unavailable.',
+    HTML_PROCESSING_FAILED: 'Unable to process HTML clipboard content. Please try again or paste as plain text.',
+} as const;
+
 export const LOG_PREFIX = '[paste-as-markdown]';
 
 // Hard cap for image resource conversion to avoid excessive memory/disk usage (approx 15MB)

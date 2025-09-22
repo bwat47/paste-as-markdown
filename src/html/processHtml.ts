@@ -12,19 +12,21 @@
  * Invariants and rationale
  * - All text normalization avoids code/pre to preserve literal examples and spacing.
  * - Early normalization + UI removal makes behavior robust against DOM structure from real-world fragments.
- * - DOMPurify is the security boundary. If parsing or sanitization fails, we fall back to plain text.
+ * - DOMPurify is the security boundary. If parsing or sanitization fails, we surface an error toast and abort conversion.
  * - Post-sanitize cleanup is best-effort. On failure we return DOMPurify's sanitized HTML.
  * - Pass execution is centralized in the registry so new passes register once and maintain priority ordering.
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
-import { LOG_PREFIX } from '../constants';
+import { LOG_PREFIX, TOAST_MESSAGES } from '../constants';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
 import { getProcessingPasses } from './passes/registry';
 import { runPasses } from './passes/runner';
 import type { PassContext } from './passes/types';
+import { showToast } from '../utils';
+import { ToastType } from 'api/types';
 
 export interface ProcessHtmlResult {
     readonly body: HTMLElement | null;
@@ -42,37 +44,26 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
 
 const POST_IMAGE_PASS_PRIORITY = 80;
 
-const createDetachedBody = (html: string, asPlainText: boolean = false): HTMLElement | null => {
-    if (typeof document === 'undefined') return null;
-    const implementation = document.implementation;
-    if (!implementation || typeof implementation.createHTMLDocument !== 'function') return null;
-    const detachedDoc = implementation.createHTMLDocument('');
-    const { body } = detachedDoc;
-    if (asPlainText) {
-        body.textContent = html;
-    } else {
-        body.innerHTML = html;
-    }
-    return body;
+type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed';
+
+const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
+    'dom-unavailable': TOAST_MESSAGES.DOM_UNAVAILABLE,
+    'sanitize-failed': TOAST_MESSAGES.HTML_PROCESSING_FAILED,
 };
 
-const htmlToPlainText = (html: string): string => {
-    if (typeof document !== 'undefined') {
-        const body = createDetachedBody(html);
-        if (body) return body.textContent ?? '';
+export class HtmlProcessingError extends Error {
+    readonly reason: HtmlProcessingFailureReason;
+
+    constructor(reason: HtmlProcessingFailureReason) {
+        super(FAILURE_MESSAGES[reason]);
+        this.name = 'HtmlProcessingError';
+        this.reason = reason;
     }
-    return html
-        .replace(/<br\s*\/?>(?=\s*\n?)/gi, '\n')
-        .replace(/<\/(p|div|li|tr|h[1-6])>/gi, '\n')
-        .replace(/<li[^>]*>/gi, '- ')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-        .replace(/&quot;/gi, '"')
-        .replace(/&#39;/gi, "'")
-        .trim();
+}
+
+const notifyFailure = async (reason: HtmlProcessingFailureReason): Promise<never> => {
+    await showToast(FAILURE_MESSAGES[reason], ToastType.Error);
+    throw new HtmlProcessingError(reason);
 };
 
 const sanitizeForFallback = (html: string, includeImages: boolean): string | null => {
@@ -96,21 +87,14 @@ const sanitizedHtmlFallback = (sanitized: string | null): ProcessHtmlResult | nu
     };
 };
 
-const plainTextFallback = (html: string): ProcessHtmlResult => ({
-    body: createDetachedBody(html, true),
-    sanitizedHtml: null,
-    plainText: htmlToPlainText(html),
-    resources: EMPTY_RESOURCES,
-});
-
 export async function processHtml(
     html: string,
     options: PasteOptions,
     isGoogleDocs: boolean = false
 ): Promise<ProcessHtmlResult> {
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
-        console.warn(LOG_PREFIX, 'DOM APIs unavailable, falling back to plain text.');
-        return plainTextFallback(html);
+        console.warn(LOG_PREFIX, 'DOM APIs unavailable; cannot process HTML safely.');
+        return await notifyFailure('dom-unavailable');
     }
 
     let sanitizedHtml: string | null = null;
@@ -125,7 +109,7 @@ export async function processHtml(
             console.warn(LOG_PREFIX, 'Parsed document missing <body>, attempting sanitized fallback.');
             const fallback = sanitizedHtmlFallback(sanitizeForFallback(html, options.includeImages));
             if (fallback) return fallback;
-            return plainTextFallback(html);
+            return await notifyFailure('sanitize-failed');
         }
 
         runPasses(preSanitize, rawBody, options, passContext);
@@ -139,8 +123,8 @@ export async function processHtml(
                 buildSanitizerConfig({ includeImages: options.includeImages })
             ) as string;
         } catch (err) {
-            console.warn(LOG_PREFIX, 'Sanitization failed, falling back to plain text:', err);
-            return plainTextFallback(html);
+            console.warn(LOG_PREFIX, 'Sanitization failed; no safe HTML output available:', err);
+            return await notifyFailure('sanitize-failed');
         }
 
         const parser = new DOMParser();
@@ -190,6 +174,6 @@ export async function processHtml(
         }
         const fallback = sanitizedHtmlFallback(sanitizeForFallback(html, options.includeImages));
         if (fallback) return fallback;
-        return plainTextFallback(html);
+        return await notifyFailure('sanitize-failed');
     }
 }

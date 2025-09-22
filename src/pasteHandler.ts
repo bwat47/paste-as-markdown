@@ -1,5 +1,6 @@
 import joplin from 'api';
 import { convertHtmlToMarkdown } from './markdownConverter';
+import { HtmlProcessingError } from './html/processHtml';
 import { showToast, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
 import type { ConversionSuccess, ConversionFailure } from './types';
@@ -141,6 +142,16 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         await showToast(message, ToastType.Success);
         return { markdown, success: true };
     } catch (err) {
+        if (err instanceof HtmlProcessingError) {
+            console.error(LOG_PREFIX, 'HTML processing prerequisites missing; aborting paste.', err);
+            return {
+                markdown: '',
+                success: false,
+                warnings: [err.message],
+                plainTextFallback: false,
+            };
+        }
+
         console.error(LOG_PREFIX, 'Conversion failed, attempting plain text fallback', err);
         const text = await readClipboardText();
         if (text) {

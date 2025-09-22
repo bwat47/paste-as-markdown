@@ -1,6 +1,7 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { handlePasteAsMarkdown } from '../pasteHandler';
 import { convertHtmlToMarkdown } from '../markdownConverter';
+import { HtmlProcessingError } from '../html/processHtml';
 import { showToast, validatePasteSettings } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../constants';
@@ -380,6 +381,25 @@ describe('pasteHandler', () => {
                 success: false,
                 warnings: ['HTML conversion failed'],
                 plainTextFallback: true,
+            });
+        });
+
+        test('HTML processing error aborts without plain text fallback', async () => {
+            const html = '<p>HTML content</p>';
+            const error = new HtmlProcessingError('dom-unavailable');
+
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockConvertHtmlToMarkdown.mockRejectedValue(error);
+
+            const result = await handlePasteAsMarkdown();
+
+            expect(mockJoplin.clipboard.readText).not.toHaveBeenCalled();
+            expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
+            expect(result).toEqual({
+                markdown: '',
+                success: false,
+                warnings: [error.message],
+                plainTextFallback: false,
             });
         });
     });
