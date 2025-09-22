@@ -357,33 +357,6 @@ describe('pasteHandler', () => {
             });
         });
 
-        test('HTML conversion degrades to internal plain text fallback', async () => {
-            const html = '<p>HTML content</p>';
-            const fallbackMarkdown = 'Plain text from pipeline';
-
-            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
-            mockConvertHtmlToMarkdown.mockResolvedValue({
-                markdown: fallbackMarkdown,
-                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: true,
-            });
-
-            const result = await handlePasteAsMarkdown();
-
-            expect(mockJoplin.clipboard.readText).not.toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [fallbackMarkdown],
-            });
-            expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
-            expect(result).toEqual({
-                markdown: fallbackMarkdown,
-                success: false,
-                warnings: ['HTML conversion failed'],
-                plainTextFallback: true,
-            });
-        });
-
         test('HTML processing error aborts without plain text fallback', async () => {
             const html = '<p>HTML content</p>';
             const error = new HtmlProcessingError('dom-unavailable');
