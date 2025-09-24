@@ -64,7 +64,10 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
     throw new Error('Unable to insert markdown into editor');
 }
 
-// Update handlePasteAsMarkdown function:
+/**
+ * Reads clipboard HTML or plain text, converts to Markdown using user settings,
+ * inserts result at cursor, and provides user feedback. Falls back to plain text if conversion fails.
+ */
 export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | ConversionFailure> {
     // Get user settings
     const rawSettings = {

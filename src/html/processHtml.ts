@@ -42,7 +42,7 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
     failed: 0,
 };
 
-const POST_IMAGE_PASS_PRIORITY = 80;
+const POST_IMAGE_PASS_PRIORITY = 80; // Passes with priority >= 80 run after image conversion
 
 type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed';
 
@@ -92,6 +92,7 @@ export async function processHtml(
     options: PasteOptions,
     isGoogleDocs: boolean = false
 ): Promise<ProcessHtmlResult> {
+    // Abort if DOM APIs are unavailable (security boundary)
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
         console.warn(LOG_PREFIX, 'DOM APIs unavailable; cannot process HTML safely.');
         return await notifyFailure('dom-unavailable');
@@ -102,6 +103,7 @@ export async function processHtml(
     const { preSanitize, postSanitize } = getProcessingPasses();
 
     try {
+        // Parse raw HTML into DOM
         const rawParser = new DOMParser();
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
@@ -112,8 +114,10 @@ export async function processHtml(
             return await notifyFailure('sanitize-failed');
         }
 
+        // Run pre-sanitize passes (structural normalization, UI cleanup, etc.)
         runPasses(preSanitize, rawBody, options, passContext);
 
+        // Sanitize HTML for security (DOMPurify is the hard boundary)
         const intermediate = rawBody.innerHTML;
         const purifier = createDOMPurify(window as unknown as typeof window);
 
@@ -123,18 +127,22 @@ export async function processHtml(
                 buildSanitizerConfig({ includeImages: options.includeImages })
             ) as string;
         } catch (err) {
+            // Abort if sanitization fails
             console.warn(LOG_PREFIX, 'Sanitization failed; no safe HTML output available:', err);
             return await notifyFailure('sanitize-failed');
         }
 
+        // Parse sanitized HTML for post-sanitize passes
         const parser = new DOMParser();
         const doc = parser.parseFromString(sanitizedHtml, 'text/html');
         const body = doc.body;
         if (!body) {
+            // Fallback: return sanitized HTML only if <body> missing
             console.warn(LOG_PREFIX, 'Sanitized HTML lacked <body>, using sanitized HTML fallback.');
             return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
         }
 
+        // Run post-sanitize passes before image conversion
         const preImagePasses = postSanitize.filter((pass) => pass.priority < POST_IMAGE_PASS_PRIORITY);
         runPasses(preImagePasses, body, options, passContext);
 
@@ -142,6 +150,7 @@ export async function processHtml(
         let attempted = 0;
         let failed = 0;
 
+        // Optionally convert images to Joplin resources
         if (options.includeImages) {
             if (options.convertImagesToResources) {
                 try {
@@ -150,17 +159,20 @@ export async function processHtml(
                     attempted = result.attempted;
                     failed = result.failed;
                 } catch (err) {
+                    // If image conversion fails, return sanitized HTML only
                     console.warn(LOG_PREFIX, 'Image resource conversion failed, using sanitized HTML fallback:', err);
                     return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
                 }
             }
 
+            // Run post-image passes (e.g., image attribute normalization)
             const postImagePasses = postSanitize.filter((pass) => pass.priority >= POST_IMAGE_PASS_PRIORITY);
             if (postImagePasses.length > 0) {
                 runPasses(postImagePasses, body, options, passContext);
             }
         }
 
+        // Return processed DOM body, sanitized HTML, and resource metadata
         return {
             body,
             sanitizedHtml,
@@ -168,6 +180,7 @@ export async function processHtml(
             resources: { resourcesCreated: resourceIds.length, resourceIds, attempted, failed },
         };
     } catch (err) {
+        // On error, fallback to sanitized HTML if available, otherwise abort
         console.warn(LOG_PREFIX, 'HTML processing failed, evaluating secure fallback:', err);
         if (sanitizedHtml !== null) {
             return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
