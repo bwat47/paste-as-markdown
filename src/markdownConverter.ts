@@ -182,6 +182,11 @@ function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
 function tightenListSpacing(markdown: string): string {
     const isListLine = (rawLine: string): boolean => {
         const line = rawLine.replace(/\r$/, '');
+        const trimmed = line.trim();
+        // Guard common Markdown horizontal rules (---, ***, ___, and spaced variants)
+        if (/^([-*_])(\s*\1){2,}$/.test(trimmed)) {
+            return false;
+        }
         return /^[ \t]*(?:>[ \t]*)*(?:[-*+]|\d+[.)])[ \t]+(?:\[[ xX]\][ \t]+)?/.test(line);
     };
 
