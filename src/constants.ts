@@ -41,3 +41,6 @@ export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 // Resource conversion timeouts and limits
 export const DOWNLOAD_TIMEOUT_MS = 15000; // 15 seconds for image downloads
 export const MAX_ALT_TEXT_LENGTH = 120; // Maximum length for auto-generated alt text
+
+// Pass orchestration: post-image passes use priorities >= this value in the registry
+export const POST_IMAGE_PASS_PRIORITY = 80;

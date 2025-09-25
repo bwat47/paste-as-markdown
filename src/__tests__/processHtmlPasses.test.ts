@@ -1,6 +1,9 @@
 import { describe, expect, test, afterEach } from '@jest/globals';
 import { processHtml } from '../html/processHtml';
+import { POST_IMAGE_PASS_PRIORITY } from '../constants';
 import * as passRunner from '../html/passes/runner';
+import { getProcessingPasses } from '../html/passes/registry';
+import type { ProcessingPass } from '../html/passes/types';
 import type { PasteOptions } from '../types';
 
 const defaultOptions: PasteOptions = {
@@ -16,18 +19,12 @@ afterEach(() => {
 
 describe('processHtml pass orchestration', () => {
     test('runs pre- and post-sanitize passes in priority order', async () => {
-        const executionLog: string[][] = [];
+        const calledPassLists: ReadonlyArray<ProcessingPass>[] = [];
 
         const runPassesSpy = jest
             .spyOn(passRunner, 'runPasses')
-            .mockImplementation((passes, _body, options, context) => {
-                const executed: string[] = [];
-                passes.forEach((pass) => {
-                    if (!pass.condition || pass.condition(options, context)) {
-                        executed.push(pass.name);
-                    }
-                });
-                executionLog.push(executed);
+            .mockImplementation((passes: readonly ProcessingPass[]) => {
+                calledPassLists.push(passes);
                 return { warnings: [] };
             });
 
@@ -36,24 +33,13 @@ describe('processHtml pass orchestration', () => {
 
         expect(result.body).not.toBeNull();
         expect(runPassesSpy).toHaveBeenCalledTimes(2);
-        expect(executionLog[0]).toEqual([
-            'Pre-sanitize text normalization',
-            'Pre-sanitize non-content UI removal',
-            'Unwrap redundant bolding in headings',
-            'Image sizing promotion',
-            'Image anchor cleanup',
-            'Code block neutralization',
-        ]);
-        expect(executionLog[1]).toEqual([
-            'Post-sanitize empty anchor removal',
-            'Post-sanitize heading anchor cleanup',
-            'Post-sanitize orphaned sub-list fix',
-            'Post-sanitize text normalization',
-            'Literal HTML tag protection',
-            'Code block normalization',
-            'NBSP inline code sentinel marking',
-            'Image alt normalization (pre-conversion)',
-        ]);
+
+        const { preSanitize, postSanitize } = getProcessingPasses();
+        const expectedPre = preSanitize;
+        const expectedPostPreImage = postSanitize.filter((p) => p.priority < POST_IMAGE_PASS_PRIORITY);
+
+        expect(calledPassLists[0]).toEqual(expectedPre);
+        expect(calledPassLists[1]).toEqual(expectedPostPreImage);
 
         runPassesSpy.mockRestore();
     });

@@ -18,7 +18,7 @@
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
-import { LOG_PREFIX, TOAST_MESSAGES } from '../constants';
+import { LOG_PREFIX, TOAST_MESSAGES, POST_IMAGE_PASS_PRIORITY } from '../constants';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
@@ -42,7 +42,7 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
     failed: 0,
 };
 
-const POST_IMAGE_PASS_PRIORITY = 80; // Passes with priority >= 80 run after image conversion
+// Note: POST_IMAGE_PASS_PRIORITY is defined in constants.ts to keep registry/test usage in sync
 
 type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed';
 
