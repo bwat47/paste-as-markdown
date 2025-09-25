@@ -39,6 +39,7 @@ describe('processHtml pass orchestration', () => {
         expect(executionLog[0]).toEqual([
             'Pre-sanitize text normalization',
             'Pre-sanitize non-content UI removal',
+            'Unwrap redundant bolding in headings',
             'Image sizing promotion',
             'Image anchor cleanup',
             'Code block neutralization',
