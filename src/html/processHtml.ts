@@ -31,7 +31,6 @@ import { ToastType } from 'api/types';
 export interface ProcessHtmlResult {
     readonly body: HTMLElement | null;
     readonly sanitizedHtml: string | null;
-    readonly plainText: string | null;
     readonly resources: ResourceConversionMeta;
 }
 
@@ -82,7 +81,6 @@ const sanitizedHtmlFallback = (sanitized: string | null): ProcessHtmlResult | nu
     return {
         body: null,
         sanitizedHtml: sanitized,
-        plainText: null,
         resources: EMPTY_RESOURCES,
     };
 };
@@ -139,7 +137,7 @@ export async function processHtml(
         if (!body) {
             // Fallback: return sanitized HTML only if <body> missing
             console.warn(LOG_PREFIX, 'Sanitized HTML lacked <body>, using sanitized HTML fallback.');
-            return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
+            return { body: null, sanitizedHtml, resources: EMPTY_RESOURCES };
         }
 
         // Run post-sanitize passes before image conversion
@@ -161,7 +159,7 @@ export async function processHtml(
                 } catch (err) {
                     // If image conversion fails, return sanitized HTML only
                     console.warn(LOG_PREFIX, 'Image resource conversion failed, using sanitized HTML fallback:', err);
-                    return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
+                    return { body: null, sanitizedHtml, resources: EMPTY_RESOURCES };
                 }
             }
 
@@ -176,14 +174,13 @@ export async function processHtml(
         return {
             body,
             sanitizedHtml,
-            plainText: null,
             resources: { resourcesCreated: resourceIds.length, resourceIds, attempted, failed },
         };
     } catch (err) {
         // On error, fallback to sanitized HTML if available, otherwise abort
         console.warn(LOG_PREFIX, 'HTML processing failed, evaluating secure fallback:', err);
         if (sanitizedHtml !== null) {
-            return { body: null, sanitizedHtml, plainText: null, resources: EMPTY_RESOURCES };
+            return { body: null, sanitizedHtml, resources: EMPTY_RESOURCES };
         }
         const fallback = sanitizedHtmlFallback(sanitizeForFallback(html, options.includeImages));
         if (fallback) return fallback;

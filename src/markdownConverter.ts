@@ -121,11 +121,6 @@ export async function convertHtmlToMarkdown(
     };
     const processed = await processHtml(input, pasteOptions, isGoogleDocs);
 
-    if (processed.plainText !== null) {
-        const markdown = cleanupMarkdown(processed.plainText, forceTightLists);
-        return { markdown, resources: processed.resources, plainTextFallback: true };
-    }
-
     const turndownInput = (processed.body ?? processed.sanitizedHtml ?? '') as Parameters<
         TurndownService['turndown']
     >[0];
