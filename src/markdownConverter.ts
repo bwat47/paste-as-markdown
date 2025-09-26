@@ -85,6 +85,17 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
                 .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
                 .replace(/\n/gm, `\n${indent}`); // indent child lines while preserving 4-space nested list requirement
 
+            // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
+            const taskMatch = content.match(/^(\[[ xX]\])([\s\S]*)$/);
+            if (taskMatch) {
+                const [, marker, remainder] = taskMatch;
+                const [firstLine, ...otherLines] = remainder.split('\n');
+                const trimmedFirstLine = firstLine.replace(/^\s+/, '');
+                const inlineText = trimmedFirstLine.length > 0 ? ` ${trimmedFirstLine}` : '';
+                const trailingLines = otherLines.length > 0 ? `\n${otherLines.join('\n')}` : '';
+                content = `${marker}${inlineText}${trailingLines}`;
+            }
+
             const needsTrailingNewline = element.nextSibling && !/\n$/.test(content);
             return prefix + content + (needsTrailingNewline ? '\n' : '');
         },
@@ -167,9 +178,6 @@ function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
         return segment;
     });
 
-    // Normalize task list spacing (bullet + single space + checkbox + single space + text)
-    markdown = normalizeTaskListSpacing(markdown);
-
     // If enabled, remove blank lines between consecutive list items (unordered, ordered, tasks)
     if (forceTightLists) {
         markdown = tightenListSpacing(markdown);
@@ -209,26 +217,6 @@ function tightenListSpacing(markdown: string): string {
                 }
             } else {
                 index++;
-            }
-        }
-        return lines.join('\n');
-    });
-}
-
-// Ensure consistent spacing for task list items across top-level and nested lists without altering indentation level.
-function normalizeTaskListSpacing(markdown: string): string {
-    return withFencedCodeProtection(markdown, (segment) => {
-        const lines = segment.split(/\n/);
-        for (let i = 0; i < lines.length; i++) {
-            const original = lines[i];
-            // Match optional indentation (spaces or tabs), a list marker, spaces, checkbox, spaces, then rest
-            // We only normalize if there's at least some text or nothing after checkbox (empty task ok)
-            const m = original.match(/^([ \t]*[-*+])\s+\[([ xX])\]\s*(.*)$/);
-            if (m) {
-                const indentBullet = m[1];
-                const state = m[2];
-                const rest = m[3];
-                lines[i] = `${indentBullet} [${state}]${rest ? ' ' + rest.replace(/\s+/g, ' ').trim() : ''}`;
             }
         }
         return lines.join('\n');
