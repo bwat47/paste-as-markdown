@@ -17,16 +17,16 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Feed the sanitized `<body>` DOM node directly to Turndown when available. If no DOM body is available (e.g., environment lacks DOM APIs), fall back to the sanitized HTML string produced by `processHtml`.
     - Plain‑text fallback is not emitted by the HTML pipeline; when sanitization cannot complete safely, the paste handler decides whether to insert clipboard `text/plain` instead (and shows a toast if that’s unavailable).
     - Upstream Turndown (fresh instance per paste).
+    - `mark` → `==text==`.
+    - `sup` / `sub` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`).
+    - Sized images rule (preserve width/height attributes when present).
+    - List items rule (`pamListItem`) normalizes list rendering during conversion:
+        - Exactly one space after list markers (ul, ol, and checkboxes).
+        - Ensures nested list item content is indented by at least 4 spaces (what Joplin expects)
+        - Honors `<ol start>` to compute the correct ordered prefixes
+        - Normalizes task checkbox spacing inline to `- [ ] Text` / `- [x] Text` so post-processing doesn’t need to re‑regex task lines
     - Forked `turndown-plugin-gfm` (tables, strikethrough, task list items).
-        - The plugin’s `highlightedCodeBlock` rule is effectively superseded by our broader code block normalization;
-        - `mark` → `==text==`.
-        - `sup` / `sub` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`).
-        - Sized images rule (preserve width/height attributes when present).
-        - List items rule (`pamListItem`) normalizes list rendering during conversion:
-            - Exactly one space after list markers (ul, ol, and checkboxes).
-            - Ensures nested list item content is indented by at least 4 spaces (what Joplin expects)
-            - Honors `<ol start>` to compute the correct ordered prefixes
-            - Normalizes task checkbox spacing inline to `- [ ] Text` / `- [x] Text` so post-processing doesn’t need to re‑regex task lines
+        - The plugin’s `highlightedCodeBlock` rule is effectively superseded by our broader code block normalization.
         - (Other upstream behaviors left intact: task list marker insertion, strikethrough, tables).
 5. Markdown post-processing (`cleanupMarkdown` + helpers):
     - Trim leading blank lines.
@@ -50,7 +50,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
-      <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
+    <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
 
 ## What the GFM Plugin Covers
 
@@ -59,10 +59,9 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - Task list markers (checkbox inputs → `[ ]` / `[x]`).
 - (We bypass its limited highlighted code wrapper rule in favor of richer internal normalization.)
 - Project uses a forked version of @truto/turndown-plugin-gfm
-    - Upstream turndown-plugin-gfm is unmaintained
-    - Joplin turndown-plugin-gfm version has table logic that conflicts with plugin goals (keeping complex tables as HTML)
-    - @truto version aligns with goals (simplified table handling, simplifies/collapses multi-line table cell content).
-    - Forked version only contains minor fixes.
+    - Upstream turndown-plugin-gfm is unmaintained (and didn't work well in testing).
+    - Joplin's forked turndown-plugin-gfm has table logic that conflicts with plugin goals (keeping complex tables as HTML).
+    - @truto version aligns with goals (simplified table handling, simplifies/collapses multi-line table cell content). My fork only contains a minor tweak.
 
 ## Design Principles
 
@@ -110,5 +109,3 @@ A deterministic two-phase approach:
 (1) DOM preprocessing (safety + structural normalization),
 (2) Turndown (upstream + forked GFM + minimal custom rules),
 followed by constrained Markdown cleanup (spacing + line semantics), surfacing a toast and aborting when sanitization cannot complete safely.
-
-Redundant logic removed; only `wrapOrphanedTableElements` retained to ensure GFM table rule applicability.
