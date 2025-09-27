@@ -14,7 +14,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 3. Pre-Turndown HTML fixups (`markdownConverter`):
     - `wrapOrphanedTableElements` – Wrap bare `<tr>/<td>/<col>` fragments in `<table>` (clipboard edge cases e.g. Excel) so GFM table rule can apply.
 4. Turndown conversion:
-    - Feed the sanitized `<body>` DOM node directly to Turndown when available, falling back to the wrapped HTML string only in DOM-less environments.
+    - Feed the sanitized `<body>` DOM node directly to Turndown when available. If no DOM body is available (e.g., environment lacks DOM APIs), fall back to the sanitized HTML string produced by `processHtml`.
+    - Plain‑text fallback is not emitted by the HTML pipeline; when sanitization cannot complete safely, the paste handler decides whether to insert clipboard `text/plain` instead (and shows a toast if that’s unavailable).
     - Upstream Turndown (fresh instance per paste).
     - Forked `turndown-plugin-gfm` (tables, strikethrough, task list items).
         - The plugin’s `highlightedCodeBlock` rule is effectively superseded by our broader code block normalization;
@@ -47,26 +48,19 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
   <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
 
-## What the GFM Plugin Now Covers
+## What the GFM Plugin Covers
 
 - Tables (including header detection & pipe escaping).
 - Strikethrough (`del|s|strike` → `~~`).
 - Task list markers (checkbox inputs → `[ ]` / `[x]`).
 - (We bypass its limited highlighted code wrapper rule in favor of richer internal normalization.)
+- Project uses a forked version of @truto/turndown-plugin-gfm
+    - Upstream turndown-plugin-gfm is unmaintained
+    - Joplin turndown-plugin-gfm version has table logic that conflicts with plugin goals (keeping complex tables as HTML)
+    - @truto version aligns with goals (simplified table handling, simplifies/collapses multi-line table cell content).
+    - Forked version only contains minor fixes.
 
-## Custom Responsibilities Not in GFM
-
-- Broad code block normalization & language alias mapping (hljs / highlight-_ / language-_ / brush:\* etc.).
-- `<mark>` → `==text==`.
-- Preserve `<sup>/<sub>` tags directly.
-- NBSP sanitation & task list spacing normalization.
-- Orphaned table fragment wrapping.
-- Tight list enforcement (optional post-processing preference; removes inter-item blank lines only).
-- Image resource conversion & sizing preservation.
-- Literal tag mention protection in prose to avoid unintended rendering (e.g., tables) when pasting escaped tags.
-- Image sizing promotion from inline style to attributes; style removed for deterministic output.
-
-## Design Principles (Applied)
+## Design Principles
 
 - Sanitize pass (DOMPurify).
 - Prefer DOM over regex for semantics; regex only for final line/spacing cleanup.
@@ -86,7 +80,6 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No content-based language detection (class names only).
 - No deep normalization of nested task list indentation beyond spacing cleanup.
 - Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
-      <!-- Autolinks may be wrapped if they appear as tag-like tokens in pasted text; in practice source HTML rarely contains raw `<https://...>` text. -->
 
 ## Security
 
