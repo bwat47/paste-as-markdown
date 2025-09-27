@@ -23,6 +23,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
         - `sup` / `sub` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`).
         - Sized images rule (preserve width/height attributes when present).
         - List items rule (`pamListItem`) normalizes list rendering during conversion:
+            - Exactly one space after list markers (ul, ol, and checkboxes).
             - Ensures nested list item content is indented by at least 4 spaces (what Joplin expects)
             - Honors `<ol start>` to compute the correct ordered prefixes
             - Normalizes task checkbox spacing inline to `- [ ] Text` / `- [x] Text` so post-processing doesn’t need to re‑regex task lines
@@ -49,7 +50,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
-    <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
+      <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
 
 ## What the GFM Plugin Covers
 
