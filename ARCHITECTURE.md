@@ -22,6 +22,10 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
         - `mark` → `==text==`.
         - `sup` / `sub` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`).
         - Sized images rule (preserve width/height attributes when present).
+        - List items rule (`pamListItem`) normalizes list rendering during conversion:
+            - Ensures nested list item content is indented by at least 4 spaces (what Joplin expects)
+            - Honors `<ol start>` to compute the correct ordered prefixes
+            - Normalizes task checkbox spacing inline to `- [ ] Text` / `- [x] Text` so post-processing doesn’t need to re‑regex task lines
         - (Other upstream behaviors left intact: task list marker insertion, strikethrough, tables).
 5. Markdown post-processing (`cleanupMarkdown` + helpers):
     - Trim leading blank lines.
@@ -30,7 +34,6 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
         - Runs of 2+ `<br>` → paragraph break (`\n\n`).
     - Collapse excessive blank lines (protect fenced code via sentinel extraction).
     - Remove whitespace-only NBSP lines.
-    - Normalize task list spacing (top-level + nested): enforce `- [ ] Task` / `- [x] Task` while preserving original indentation (tabs/spaces).
     - Optional: Force tight lists (setting) — remove blank lines between consecutive list items (unordered/ordered/tasks), protected by fenced-code extraction.
 6. Return `{ markdown, resourcesMeta, plainTextFallback }`. The boolean is reserved for outer plain-text fallbacks handled by the paste command (the HTML pipeline no longer emits sanitized plain text).
 
@@ -46,7 +49,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
 - `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
 - Image conversion utilities (resource creation, metrics: attempted / failed / ids).
-  <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
+    <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
 
 ## What the GFM Plugin Covers
 
