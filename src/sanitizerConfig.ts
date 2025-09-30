@@ -46,6 +46,8 @@ export const SANITIZER_ALLOWED_ATTRS_BASE = [
     'name',
     'id',
     'title',
+    'aria-label',
+    'aria-labelledby',
     'colspan',
     'rowspan',
     'align',

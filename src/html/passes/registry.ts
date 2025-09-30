@@ -65,8 +65,7 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         name: 'Post-sanitize empty anchor removal',
         phase: 'post-sanitize',
         priority: 10,
-        condition: (options) => !options.includeImages,
-        execute: (body) => removeEmptyAnchors(body),
+        execute: (body, options) => removeEmptyAnchors(body, options),
     },
     {
         name: 'Post-sanitize heading anchor cleanup',

@@ -1,4 +1,8 @@
 import { onlyContains, unwrapElement } from '../shared/dom';
+import type { PasteOptions } from '../../types';
+
+const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
+const MEDIA_TAGS = new Set(['img', 'picture', 'source']);
 
 /**
  * Analyze an anchor element to determine permalink / heading context.
@@ -25,17 +29,50 @@ function analyzeAnchor(node: HTMLElement): {
     return { isPermalink, insideHeading, wrapsHeading };
 }
 
+function hasMeaningfulDescendant(element: Element, options: PasteOptions): boolean {
+    const childNodes = Array.from(element.childNodes);
+    for (const node of childNodes) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            if ((node.textContent || '').trim().length > 0) return true;
+            continue;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+        const child = node as Element;
+        const tag = child.tagName.toLowerCase();
+
+        if (MEDIA_TAGS.has(tag) && options.includeImages) return true;
+        if (tag === 'svg') {
+            const ariaLabel = child.getAttribute('aria-label') || child.getAttribute('aria-labelledby');
+            if (ariaLabel && ariaLabel.trim().length > 0) return true;
+
+            const accessibleNode = child.querySelector('title, desc');
+            if (accessibleNode && (accessibleNode.textContent || '').trim().length > 0) return true;
+        }
+        if (DECORATIVE_SVG_TAGS.has(tag)) continue;
+
+        if (hasMeaningfulDescendant(child, options)) return true;
+    }
+    return false;
+}
+
 /**
- * Remove anchor elements that become empty after image removal
+ * Remove anchor elements that lack visible content after sanitization.
  */
-export function removeEmptyAnchors(body: HTMLElement): void {
+export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): void {
     const anchors = body.querySelectorAll('a[href]');
     anchors.forEach((anchor) => {
         const textContent = anchor.textContent?.trim() || '';
-        const hasNonImageChildren = Array.from(anchor.children).some(
-            (child) => !['img', 'picture', 'source'].includes(child.tagName.toLowerCase())
-        );
-        if (textContent.length === 0 && !hasNonImageChildren) anchor.remove();
+        if (textContent.length > 0) return;
+
+        if (!anchor.firstChild) {
+            anchor.remove();
+            return;
+        }
+
+        if (hasMeaningfulDescendant(anchor, options)) return;
+
+        anchor.remove();
     });
 }
 
