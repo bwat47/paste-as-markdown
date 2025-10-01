@@ -171,11 +171,8 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
         [/\blanguage-(c\+\+)\b/, (m) => m[1]],
         [/\blanguage-([A-Za-z0-9+#_.+-]+)\b/, (m) => m[1]],
         [/\blang-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
-        [
-            /\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/i,
-            (m) => (m[0].toLowerCase().includes('highlight-source-') ? null : m[1]),
-        ],
-        [/\bhighlight-([a-z0-9]+)\b/i, (m) => (m[0].toLowerCase().includes('highlight-source-') ? null : m[1])],
+        [/\bhighlight-source-([a-z0-9]+)\b/i, (m) => m[1]],
+        [/\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/i, (m) => m[1]],
         [/\bbrush:\s*([a-z0-9]+)\b/i, (m) => m[1]],
         [/\bprettyprint\s+lang-([a-z0-9]+)\b/i, (m) => m[1]],
         [/\bhljs-([a-z0-9]+)\b/i, (m) => m[1]],

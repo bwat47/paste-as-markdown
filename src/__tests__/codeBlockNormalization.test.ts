@@ -21,15 +21,6 @@ describe('code block normalization & language inference', () => {
         expect(md).not.toMatch(/pl-k|pl-s1|pl-c1/);
     });
 
-    test('does not infer language when only wrapper has highlight-source- class (python)', async () => {
-        const html = '<div class="highlight highlight-source-python"><pre>print(\"x\")</pre></div>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        // We currently unwrap the wrapper (dropping its classes) before collecting parent classes, so no python fence.
-        expect(md).toMatch(/```[a-z0-9-]*[\r\n]+print\("x"\)[\s\S]*```/);
-        expect(md).not.toMatch(/```python/);
-    });
-
     // --------------------------------------------------
     // Additional language inference tests
     // --------------------------------------------------
