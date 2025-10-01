@@ -10,6 +10,7 @@
  */
 
 import { onlyContains } from '../shared/dom';
+import { isHighlightLanguage } from './highlightLanguages';
 
 export function markNbspOnlyInlineCode(body: HTMLElement): void {
     const codes = Array.from(body.querySelectorAll('code')) as HTMLElement[];
@@ -39,17 +40,39 @@ export function normalizeCodeBlocks(body: HTMLElement): void {
 }
 
 function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
-    const wrappers = Array.from(
-        body.querySelectorAll('div.highlight, div.snippet-clipboard-content, div.sourceCode, figure.highlight, pre')
-    );
+    const selectors = [
+        'div.highlight',
+        'div[class^="highlight-"]',
+        'div[class*=" highlight-"]',
+        'div.snippet-clipboard-content',
+        'div.sourceCode',
+        'figure.highlight',
+        'figure[class^="highlight-"]',
+        'figure[class*=" highlight-"]',
+        'pre',
+    ];
+    const wrappers = Array.from(body.querySelectorAll(selectors.join(', '))) as HTMLElement[];
     const pres: HTMLElement[] = [];
-    wrappers.forEach((wrapper) => {
-        const wrapperEl = wrapper as HTMLElement;
+    wrappers.forEach((wrapperEl) => {
         const pre =
-            wrapperEl.tagName.toLowerCase() === 'pre' ? wrapperEl : (wrapperEl.querySelector('pre') as HTMLElement);
+            wrapperEl.tagName.toLowerCase() === 'pre'
+                ? wrapperEl
+                : (wrapperEl.querySelector('pre') as HTMLElement | null);
         if (!pre) return;
-        if (pre !== wrapperEl && wrapperEl.parentElement && onlyContains(wrapperEl, pre)) {
-            wrapperEl.parentElement.replaceChild(pre, wrapperEl);
+        const wrapperClasses = wrapperEl.getAttribute('class');
+        if (wrapperClasses) {
+            const existing = pre.getAttribute('data-pam-wrapper-classes');
+            pre.setAttribute('data-pam-wrapper-classes', existing ? `${existing} ${wrapperClasses}` : wrapperClasses);
+        }
+        if (pre !== wrapperEl) {
+            if (wrapperEl.parentElement && onlyContains(wrapperEl, pre)) {
+                wrapperEl.parentElement.replaceChild(pre, wrapperEl);
+            } else if (/\bhighlight(?:-|$)/i.test(wrapperEl.className)) {
+                wrapperEl.className = wrapperEl.className
+                    .split(/\s+/)
+                    .filter((cls) => cls && !/^highlight(?:-|$)/i.test(cls))
+                    .join(' ');
+            }
         }
         pres.push(pre);
     });
@@ -104,12 +127,17 @@ function isEmptyCodeBlock(code: HTMLElement): boolean {
 
 function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
     const language = inferLanguageFromClasses(pre, code);
-    if (!language) return;
-    // Remove existing language classes
-    code.className = code.className
+    // Remove existing language markers regardless of inference result so we don't leak invalid fences
+    const cleaned = code.className
         .split(/\s+/)
-        .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c))
-        .join(' ');
+        .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c));
+    const cleanedClass = cleaned.join(' ');
+    if (cleanedClass) {
+        code.className = cleanedClass;
+    } else {
+        code.removeAttribute('class');
+    }
+    if (!language) return;
     if (!code.classList.contains(`language-${language}`)) {
         code.classList.add(`language-${language}`);
     }
@@ -117,13 +145,20 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
 
 function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string | null {
     const classSources: string[] = [];
-    const collect = (el: Element | null) => {
+    const collect = (el: Element | null, removeWrapperHint = false) => {
         if (!el) return;
         const cls = el.getAttribute('class');
         if (cls) classSources.push(cls);
+        const wrapperHint = (el as HTMLElement).getAttribute('data-pam-wrapper-classes');
+        if (wrapperHint) {
+            classSources.push(wrapperHint);
+            if (removeWrapperHint) {
+                (el as HTMLElement).removeAttribute('data-pam-wrapper-classes');
+            }
+        }
     };
-    collect(pre);
-    collect(code);
+    collect(pre, true);
+    collect(code, true);
     // also walk up a few ancestors for wrapper language hints
     let parent: Element | null = pre.parentElement;
     for (let i = 0; i < 3 && parent; i++) {
@@ -131,32 +166,42 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
         parent = parent.parentElement;
     }
     const classBlob = classSources.join(' ');
-    const patterns: Array<[RegExp, (m: RegExpMatchArray) => string]> = [
+    const patterns: Array<[RegExp, (m: RegExpMatchArray) => string | null]> = [
         // Handle language-c++ explicitly before generic language-* to avoid truncation to 'c'
         [/\blanguage-(c\+\+)\b/, (m) => m[1]],
         [/\blanguage-([A-Za-z0-9+#_.+-]+)\b/, (m) => m[1]],
         [/\blang-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
-        [/\bhighlight-(?:text-|source-)?([a-z0-9]+)(?:-basic)?\b/i, (m) => m[1]],
+        [
+            /\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/i,
+            (m) => (m[0].toLowerCase().includes('highlight-source-') ? null : m[1]),
+        ],
+        [/\bhighlight-([a-z0-9]+)\b/i, (m) => (m[0].toLowerCase().includes('highlight-source-') ? null : m[1])],
         [/\bbrush:\s*([a-z0-9]+)\b/i, (m) => m[1]],
         [/\bprettyprint\s+lang-([a-z0-9]+)\b/i, (m) => m[1]],
         [/\bhljs-([a-z0-9]+)\b/i, (m) => m[1]],
         [/\bcode-([a-z0-9]+)\b/i, (m) => m[1]],
     ];
     for (const [re, fn] of patterns) {
-        const match = classBlob.match(re);
-        if (match) {
+        const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`;
+        const globalRe = new RegExp(re.source, flags);
+        for (const match of classBlob.matchAll(globalRe)) {
             let raw = fn(match);
+            if (!raw) continue;
             // Normalize common punctuation variations before alias mapping (e.g., c++ -> cpp)
             if (raw === 'c++') raw = 'c++';
-            return normalizeLangAlias(raw);
+            const normalized = normalizeLangAlias(raw);
+            if (!normalized) continue;
+            if (isHighlightLanguage(normalized)) {
+                return normalized;
+            }
         }
     }
     return null; // Don't guess language from content, joplin already does this when language not specified
 }
 
-function normalizeLangAlias(raw: string): string {
+function normalizeLangAlias(raw: string): string | null {
     const l = raw.toLowerCase();
-    const aliasMap: Record<string, string> = {
+    const aliasMap: Record<string, string | null> = {
         js: 'javascript',
         mjs: 'javascript',
         cjs: 'javascript',
@@ -177,11 +222,30 @@ function normalizeLangAlias(raw: string): string {
         html: 'html',
         htm: 'html',
         md: 'markdown',
+        markdown: 'markdown',
         yml: 'yaml',
         rs: 'rust',
         golang: 'go',
         kt: 'kotlin',
         docker: 'dockerfile',
+        plain: 'plaintext',
+        plain_text: 'plaintext',
+        plaintext: 'plaintext',
+        text: 'plaintext',
+        txt: 'plaintext',
+        default: null,
+        none: null,
+        auto: null,
+        container: null,
+        code: null,
+        source: null,
+        sourcecode: null,
     };
-    return aliasMap[l] || l;
+    if (Object.prototype.hasOwnProperty.call(aliasMap, l)) {
+        return aliasMap[l];
+    }
+    if (!/^[a-z0-9+#_.-]{1,40}$/.test(l)) {
+        return null;
+    }
+    return l;
 }

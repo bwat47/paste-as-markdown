@@ -96,6 +96,22 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```ruby[\s\S]*puts :x/);
     });
 
+    test('ignores highlight-only wrapper classes without base highlight', async () => {
+        const html =
+            '<div class="highlight-zzz"><pre><code>highlight(code, {language, ignoreIllegals})</code></pre></div>';
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const md = markdown.trim();
+        expect(md).toMatch(/^```\nhighlight\(code, {language, ignoreIllegals}\)/);
+    });
+
+    test('wrapper highlight-text-html-basic still yields html', async () => {
+        const html =
+            '<div class="highlight highlight-text-html-basic"><pre><code>&lt;div&gt;hi&lt;/div&gt;</code></pre></div>';
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const md = markdown.trim();
+        expect(md).toMatch(/^```html\n<div>hi<\/div>/);
+    });
+
     test('pattern: hljs-rust -> rust', async () => {
         const html = '<pre><code class="hljs-rust">fn main() {}</code></pre>';
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
