@@ -11,6 +11,7 @@ import { fixOrphanNestedLists } from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { standardizeRemainingImages } from '../../resourceConverter';
+import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
 import type { ProcessingPass } from './types';
 
@@ -115,6 +116,13 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         priority: 80,
         condition: (options) => options.includeImages,
         execute: (body) => standardizeRemainingImages(body),
+    },
+    {
+        name: 'Converted image link unwrap',
+        phase: 'post-sanitize',
+        priority: 85,
+        condition: (options) => options.includeImages && options.convertImagesToResources,
+        execute: (body) => unwrapAllConvertedImageLinks(body),
     },
     {
         name: 'Image alt normalization (post-conversion)',

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { convertImagesToResources } from '../resourceConverter';
+import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
 import { MAX_IMAGE_BYTES } from '../constants';
 
 // Helper to build a DOM body from HTML string
@@ -202,8 +203,12 @@ describe('resourceConverter edge cases', () => {
         expect(result.ids.length).toBe(1);
         const img = body.querySelector('img');
         expect(img).toBeTruthy();
+        expect(img!.getAttribute('data-pam-converted')).toBe('true');
+
+        unwrapAllConvertedImageLinks(body);
+
+        expect(img!.hasAttribute('data-pam-converted')).toBe(false);
         expect(img!.parentElement?.tagName.toLowerCase()).not.toBe('a');
-        // ensure no anchor remains
         expect(body.querySelector('a')).toBeNull();
     });
 
@@ -217,6 +222,11 @@ describe('resourceConverter edge cases', () => {
         expect(result.ids.length).toBe(1);
         const img = body.querySelector('img');
         expect(img).toBeTruthy();
+        expect(img!.getAttribute('data-pam-converted')).toBe('true');
+
+        unwrapAllConvertedImageLinks(body);
+
+        expect(img!.hasAttribute('data-pam-converted')).toBe(false);
         expect(img!.parentElement?.tagName.toLowerCase()).not.toBe('a');
         expect(body.querySelector('a')).toBeNull();
     });

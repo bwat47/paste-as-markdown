@@ -37,8 +37,6 @@ async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8A
  *  - Create Joplin resources using a temporary file (sandbox requires a filepath for resource creation)
  *  - Sanitize & normalize resulting <img> tags (attribute whitelist + ordering + alt text fallback)
  *  - Provide metrics (attempted / failed counts) for user feedback
- *  - Unwrap remote hyperlink wrappers around images once converted to local resources to avoid leaving
- *    now-misleading outbound links (anchor is removed if it only wraps the image and no other content)
  *
  * Design Choices / Rationale:
  *  - fs-extra capability check: Some environments may not expose fs-extra; in that case we bail out silently
@@ -107,7 +105,8 @@ export async function convertImagesToResources(
             const id = await createJoplinResource(data);
             img.setAttribute('src', `:/${id}`);
             standardizeImageElement(img as HTMLImageElement, data.filename);
-            unwrapConvertedImageLink(img as HTMLImageElement);
+            // data-pam-converted is used by imageLinks DOM pre-processing step to unwrap converted images from links
+            (img as HTMLImageElement).setAttribute('data-pam-converted', 'true');
             ids.push(id);
         } catch (e) {
             failed++;
@@ -131,6 +130,7 @@ export async function convertImagesToResources(
 export function standardizeRemainingImages(body: HTMLElement): void {
     const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
     imgs.forEach((img) => {
+        if (img.hasAttribute('data-pam-converted')) return; // attributes are already standardized before data-pam-converted is added
         const src = img.getAttribute('src') || '';
         const filename = deriveOriginalFilename(src) || 'image';
         standardizeImageElement(img, filename);
@@ -365,53 +365,6 @@ function truncateForLog(input: string, keep: number = 80): string {
     if (input.length <= keep * 2 + 20) return input; // small enough
     const omitted = input.length - keep * 2;
     return `${input.slice(0, keep)}...[${omitted} chars omitted]...${input.slice(-keep)}`;
-}
-
-/**
- * If the converted <img> is wrapped in a simple remote <a href="http(s)://..."> whose only child is the image,
- * unwrap it (remove the anchor) so the local resource image is not a clickable external link (and prevent issues with Rich Markdown plugin).
- * We purposefully do NOT reinsert the original link elsewhere to keep output minimal.
- */
-function unwrapConvertedImageLink(img: HTMLImageElement): void {
-    // Find ancestor anchor if present
-    let anchor: HTMLElement | null = null;
-    let cur: HTMLElement | null = img.parentElement;
-    while (cur) {
-        if (cur.tagName.toLowerCase() === 'a') {
-            anchor = cur;
-            break;
-        }
-        cur = cur.parentElement;
-    }
-    if (!anchor) return;
-
-    // Only unwrap remote anchors, and only after conversion to a Joplin resource
-    const href = (anchor as HTMLAnchorElement).getAttribute('href') || '';
-    if (!/^https?:\/\//i.test(href)) return;
-    if (!img.getAttribute('src')?.startsWith(':/')) return;
-
-    const isWhitespace = (n: Node) => n.nodeType === Node.TEXT_NODE && !(n.textContent || '').trim();
-    const childrenWithoutWs = (el: Element) => Array.from(el.childNodes).filter((n) => !isWhitespace(n));
-
-    // Validate that the path from anchor → ... → img forms a single chain with no siblings at each level.
-    // Starting from the image, walk up until the anchor; each parent along the way must only contain the current node.
-    let node: Node = img;
-    while (node.parentElement && node.parentElement !== anchor) {
-        const p = node.parentElement;
-        const kids = childrenWithoutWs(p);
-        if (!(kids.length === 1 && kids[0] === node)) return; // has siblings; don't unwrap
-        node = p;
-    }
-    // Now ensure the anchor itself only contains the top node in the chain
-    const topNode = node; // either img or a wrapper whose only descendant chain leads to img
-    const anchorKids = childrenWithoutWs(anchor);
-    if (!(anchorKids.length === 1 && anchorKids[0] === topNode)) return;
-
-    // Safe to unwrap: move the image out and drop the anchor
-    const grand = anchor.parentNode;
-    if (!grand) return;
-    grand.insertBefore(img, anchor);
-    grand.removeChild(anchor);
 }
 
 /**
