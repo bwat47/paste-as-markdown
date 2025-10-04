@@ -14,6 +14,35 @@ interface FsExtraLike {
     unlink?: (path: string, cb: (err?: Error | null) => void) => void;
 }
 
+type ResourceImageSource = { kind: 'resource'; url: string };
+type DataImageSource = { kind: 'data'; url: string };
+type RemoteImageSource = { kind: 'remote'; url: string; protocol: 'http' | 'https' };
+type ImageSource = ResourceImageSource | DataImageSource | RemoteImageSource;
+
+function parseImageSource(raw: string | null): ImageSource | null {
+    if (!raw) return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith(':/')) return { kind: 'resource', url: trimmed };
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('data:')) return { kind: 'data', url: trimmed };
+    if (lower.startsWith('https://')) return { kind: 'remote', url: trimmed, protocol: 'https' };
+    if (lower.startsWith('http://')) return { kind: 'remote', url: trimmed, protocol: 'http' };
+    return null;
+}
+
+function isConvertibleSource(source: ImageSource): source is DataImageSource | RemoteImageSource {
+    return source.kind !== 'resource';
+}
+
+function isDataSource(source: ImageSource): source is DataImageSource {
+    return source.kind === 'data';
+}
+
+function isRemoteSource(source: ImageSource): source is RemoteImageSource {
+    return source.kind === 'remote';
+}
+
 async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8Array | Buffer): Promise<void> {
     if (typeof fsLike.writeFileSync === 'function') {
         fsLike.writeFileSync(filePath, data);
@@ -87,32 +116,30 @@ export async function convertImagesToResources(
         console.info(LOG_PREFIX, 'fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
         return { ids: [], attempted: 0, failed: 0 };
     }
-    const imgs = Array.from(body.querySelectorAll('img[src]')).filter((img) => {
-        const src = img.getAttribute('src') || '';
-        return src && !src.startsWith(':/') && (src.startsWith('data:') || /^https?:\/\//i.test(src));
-    });
+    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
     const ids: string[] = [];
     let attempted = 0;
     let failed = 0;
     for (const img of imgs) {
-        const src = img.getAttribute('src') || '';
+        const source = parseImageSource(img.getAttribute('src'));
+        if (!source || !isConvertibleSource(source)) continue;
         try {
             attempted++;
             let data: ParsedImageData | null = null;
-            if (src.startsWith('data:')) data = await parseBase64Image(src);
-            else if (/^https?:\/\//i.test(src)) data = await downloadExternalImage(src);
+            if (isDataSource(source)) data = await parseBase64Image(source.url);
+            else if (isRemoteSource(source)) data = await downloadExternalImage(source.url);
             if (!data) continue;
             const id = await createJoplinResource(data);
             img.setAttribute('src', `:/${id}`);
-            standardizeImageElement(img as HTMLImageElement, data.filename);
+            standardizeImageElement(img, data.filename);
             // data-pam-converted is used by imageLinks DOM pre-processing step to unwrap converted images from links
-            (img as HTMLImageElement).setAttribute('data-pam-converted', 'true');
+            img.setAttribute('data-pam-converted', 'true');
             ids.push(id);
         } catch (e) {
             failed++;
             const error = e as Error;
             console.warn(LOG_PREFIX, 'Failed to convert image to resource:', {
-                src: truncateForLog(src),
+                src: truncateForLog(source.url),
                 error: error?.message || 'Unknown error',
                 type: error?.name || 'Error',
             });
