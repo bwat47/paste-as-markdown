@@ -250,29 +250,17 @@ function cleanupBrTags(markdown: string): string {
 }
 
 function withCodeProtection(markdown: string, transform: (content: string) => string): string {
-    // Split on fenced code blocks first (highest priority protection)
-    const fencedSplit = markdown.split(/(```[\s\S]*?```)/);
+    return withFencedCodeProtection(markdown, (segment) => withInlineCodeProtection(segment, transform));
+}
 
-    return fencedSplit
-        .map((segment, index) => {
-            // Odd indices are fenced code blocks - never touch them
-            if (index % 2 === 1 || segment.startsWith('```')) {
-                return segment;
+function withInlineCodeProtection(segment: string, transform: (content: string) => string): string {
+    return segment
+        .split(/(`[^`\n]*`)/)
+        .map((subSegment, index) => {
+            if (index % 2 === 1 || subSegment.startsWith('`')) {
+                return subSegment;
             }
-
-            // For non-fenced segments, protect inline code spans
-            return segment
-                .split(/(`[^`\n]*`)/) // Split on inline code spans
-                .map((subSegment, subIndex) => {
-                    // Odd indices are inline code spans - don't touch them
-                    if (subIndex % 2 === 1 || subSegment.startsWith('`')) {
-                        return subSegment;
-                    }
-
-                    // Apply transformation to regular content only
-                    return transform(subSegment);
-                })
-                .join('');
+            return transform(subSegment);
         })
         .join('');
 }
