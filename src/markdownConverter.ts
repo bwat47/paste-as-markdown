@@ -16,11 +16,10 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
     }
 
     // --- Custom behavior overrides (public addRule API) ---
-    // We previously manipulated the internal rules array to obtain higher precedence. According to upstream
-    // guidance, overriding built-in element handling should use addRule (added rules have highest precedence).
+    // Overriding built-in element handling should use addRule (added rules have highest precedence, see turndown#241)
+
     // 1. Preserve sized <img> tags (retain width/height) by emitting raw HTML instead of Markdown image syntax.
     service.addRule('pamSizedImage', {
-        // Uses addRule instead of manipulating internal arrays (see turndown#241 guidance on precedence)
         filter: (node: HTMLElement) => {
             return (
                 includeImages && node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height'))
@@ -60,6 +59,7 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         replacement: (content: string) => `<sub>${content}</sub>`,
     });
 
+    // 4. List normalization, ensure single space after all list markers and consistent indentation.
     service.addRule('pamListItem', {
         filter: 'li',
         replacement: (content, node, options: TurndownService.Options) => {
