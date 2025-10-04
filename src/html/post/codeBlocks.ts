@@ -221,6 +221,7 @@ function normalizeLangAlias(raw: string): string | null {
         md: 'markdown',
         markdown: 'markdown',
         yml: 'yaml',
+        tml: 'toml',
         rs: 'rust',
         golang: 'go',
         kt: 'kotlin',
