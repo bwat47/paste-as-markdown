@@ -89,8 +89,6 @@ async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8A
  *  - Enforces strict base64 and size limits
  */
 
-// ParsedImageData exported from types.ts for reuse
-
 /**
  * Convert eligible <img> tags to Joplin resources.
  *
