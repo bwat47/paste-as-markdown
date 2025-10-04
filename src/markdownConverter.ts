@@ -173,17 +173,13 @@ function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
     // Restore NBSP-only inline code sentinel inserted during HTML preprocessing.
     markdown = markdown.replace(/`__PAM_NBSP__`/g, '`&nbsp;`');
 
-    // Convert stray <br> artifacts:
-    // 1. Runs of 2+ <br> become a paragraph break (blank line) -> \n\n
-    // 2. Single <br> becomes a Markdown hard line break (two spaces + newline) -> '  \n'
+    // Convert stray <br> artifacts
     markdown = cleanupBrTags(markdown);
 
     // Remove lines that are only whitespace (artifacts after span/div based email HTML) and
     // collapse 3+ newlines to a single blank line while preserving fenced code blocks.
     markdown = withFencedCodeProtection(markdown, (segment) => {
-        // remove whitespace-only lines
         segment = segment.replace(/^\s+$/gm, '');
-        // collapse excessive vertical spacing
         segment = segment.replace(/\n{3,}/g, '\n\n');
         return segment;
     });
