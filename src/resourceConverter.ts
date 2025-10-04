@@ -7,6 +7,27 @@ import type { ParsedImageData } from './types';
 // Global joplin API (available at runtime in Joplin plugin environment)
 declare const joplin: Joplin;
 
+interface FsExtraLike {
+    writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
+    writeFile?: (path: string, data: Uint8Array | Buffer, cb: (err?: Error | null) => void) => void;
+    existsSync?: (path: string) => boolean;
+    unlink?: (path: string, cb: (err?: Error | null) => void) => void;
+}
+
+async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8Array | Buffer): Promise<void> {
+    if (typeof fsLike.writeFileSync === 'function') {
+        fsLike.writeFileSync(filePath, data);
+        return;
+    }
+    if (typeof fsLike.writeFile === 'function') {
+        await new Promise<void>((resolve, reject) => {
+            fsLike.writeFile!(filePath, data, (err) => (err ? reject(err) : resolve()));
+        });
+        return;
+    }
+    throw new Error('fs write unavailable');
+}
+
 /**
  * Image Resource Conversion Module
  * ---------------------------------
@@ -402,12 +423,6 @@ function unwrapConvertedImageLink(img: HTMLImageElement): void {
  */
 async function createJoplinResource(img: ParsedImageData): Promise<string> {
     const dataDir: string = await joplin.plugins.dataDir();
-    interface FsExtraLike {
-        writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
-        writeFile?: (path: string, data: Uint8Array | Buffer, cb: (err?: Error | null) => void) => void;
-        existsSync?: (path: string) => boolean;
-        unlink?: (path: string, cb: (err?: Error | null) => void) => void;
-    }
     let fs: FsExtraLike;
     try {
         fs = joplin.require('fs-extra');
@@ -433,15 +448,7 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     try {
         const buffer =
             typeof Buffer !== 'undefined' ? Buffer.from(new Uint8Array(img.buffer)) : new Uint8Array(img.buffer);
-        if (typeof fsLike.writeFileSync === 'function') {
-            fsLike.writeFileSync(tmpPath, buffer);
-        } else if (typeof fsLike.writeFile === 'function') {
-            await new Promise<void>((resolve, reject) => {
-                fsLike.writeFile!(tmpPath, buffer, (err) => (err ? reject(err) : resolve()));
-            });
-        } else {
-            throw new Error('fs write unavailable');
-        }
+        await writeFileSafe(fsLike, tmpPath, buffer);
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
         ]);
