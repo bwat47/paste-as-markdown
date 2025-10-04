@@ -26,7 +26,9 @@ describe('image resource conversion', () => {
         fsExtraMock = {
             writeFileSync: jest.fn(),
             existsSync: jest.fn().mockReturnValue(true),
-            unlink: jest.fn(),
+            unlink: jest.fn((_: string, cb?: (err?: Error | null) => void) => {
+                cb?.(null);
+            }),
         };
         (global as unknown as Record<string, unknown>).joplin = {
             plugins: {

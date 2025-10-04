@@ -26,7 +26,13 @@ describe('remote image success path', () => {
 
     beforeEach(() => {
         dataPostMock = jest.fn(() => Promise.resolve({ id: 'resRemote' }));
-        fsExtraMock = { writeFileSync: jest.fn(), existsSync: jest.fn(() => true), unlink: jest.fn() };
+        fsExtraMock = {
+            writeFileSync: jest.fn(),
+            existsSync: jest.fn(() => true),
+            unlink: jest.fn((_: string, cb?: (err?: Error | null) => void) => {
+                cb?.(null);
+            }),
+        };
         global.joplin = {
             plugins: { dataDir: jest.fn(() => Promise.resolve('/tmp')) },
             require: jest.fn((mod: string) => {

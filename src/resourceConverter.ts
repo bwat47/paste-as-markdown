@@ -457,16 +457,22 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         console.warn(LOG_PREFIX, 'Failed to create resource from temp file', e);
         throw e;
     } finally {
-        try {
-            // Skip existsSync check to avoid race condition - just attempt unlink directly
-            // If file doesn't exist, unlink will fail with ENOENT which we can ignore
-            fsLike.unlink?.(tmpPath, (err) => {
-                if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
-                    console.warn(LOG_PREFIX, 'Temp file cleanup failed', err);
+        if (typeof fsLike.unlink === 'function') {
+            await new Promise<void>((resolve) => {
+                try {
+                    // Skip existsSync check to avoid race condition - just attempt unlink directly
+                    // Resolve even on ENOENT so cleanup remains best-effort
+                    fsLike.unlink!(tmpPath, (err) => {
+                        if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
+                            console.warn(LOG_PREFIX, 'Temp file cleanup failed', err);
+                        }
+                        resolve();
+                    });
+                } catch (cleanupErr) {
+                    console.warn(LOG_PREFIX, 'Temp file cleanup failed', cleanupErr);
+                    resolve();
                 }
             });
-        } catch (cleanupErr) {
-            console.warn(LOG_PREFIX, 'Temp file cleanup failed', cleanupErr);
         }
     }
 }
