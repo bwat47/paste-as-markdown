@@ -108,6 +108,16 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
     return service;
 }
 
+/**
+ * Converts clipboard HTML into Markdown by running the project’s end-to-end pipeline:
+ * wraps orphaned tables, sanitizes and normalizes the DOM, feeds the result through Turndown,
+ * and performs final Markdown cleanup.
+ *
+ * @param html Raw HTML fragment captured from the clipboard.
+ * @param options Paste behavior flags. Supports `includeImages`, `convertImagesToResources`,
+ * `normalizeQuotes`, `forceTightLists`, and `isGoogleDocs` to tailor preprocessing.
+ * @returns Markdown output alongside resource metadata and a plain-text fallback indicator.
+ */
 export async function convertHtmlToMarkdown(
     html: string,
     options: Partial<PasteOptions> & { isGoogleDocs?: boolean } = {}
