@@ -460,7 +460,6 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         if (typeof fsLike.unlink === 'function') {
             await new Promise<void>((resolve) => {
                 try {
-                    // Skip existsSync check to avoid race condition - just attempt unlink directly
                     // Resolve even on ENOENT so cleanup remains best-effort
                     fsLike.unlink!(tmpPath, (err) => {
                         if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
