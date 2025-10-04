@@ -15,23 +15,24 @@ async function readClipboardHtml(): Promise<string | null> {
 }
 
 async function detectGoogleDocsSource(html: string | null): Promise<boolean> {
+    let formats: string[] | null = null;
     try {
         // Primary detection: Google Docs specific MIME type
-        const formats = await joplin.clipboard.availableFormats();
-        if (formats.includes('application/x-vnd.google-docs-document-slice-clip+wrapped')) {
-            return true;
-        }
-
-        // Secondary detection: Check HTML content for Google Docs internal GUID pattern
-        if (html && /docs-internal-guid-/.test(html)) {
-            return true;
-        }
-
-        return false;
+        formats = await joplin.clipboard.availableFormats();
     } catch (err) {
         console.warn(LOG_PREFIX, 'Failed to detect clipboard source:', err);
-        return false; // Safer default
     }
+
+    if (formats && formats.includes('application/x-vnd.google-docs-document-slice-clip+wrapped')) {
+        return true;
+    }
+
+    // Secondary detection: Check HTML content for Google Docs internal GUID pattern
+    if (html && /docs-internal-guid-/.test(html)) {
+        return true;
+    }
+
+    return false;
 }
 
 async function readClipboardText(): Promise<string> {
