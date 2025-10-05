@@ -1,3 +1,18 @@
+/**
+ * Image Resource Conversion Module
+ * ---------------------------------
+ * Responsibilities:
+ *  - Identify eligible <img> elements (data: URLs or http/https sources not already Joplin resources)
+ *  - Safely obtain binary data (base64 decode or streamed network download with size enforcement)
+ *  - Create Joplin resources using a temporary file (sandbox requires a filepath for resource creation)
+ *  - Sanitize & normalize resulting <img> tags (attribute whitelist + ordering + alt text fallback)
+ *  - Provide metrics (attempted / failed counts) for user feedback
+ *
+ * Security Considerations:
+ *  - Only processes image MIME types (content-type or data: prefix)
+ *  - Enforces strict base64 and size limits
+ */
+
 import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
 import { normalizeAltText } from './textUtils';
 import * as path from 'path';
@@ -56,38 +71,6 @@ async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8A
     }
     throw new Error('fs write unavailable');
 }
-
-/**
- * Image Resource Conversion Module
- * ---------------------------------
- * Responsibilities:
- *  - Identify eligible <img> elements (data: URLs or http/https sources not already Joplin resources)
- *  - Safely obtain binary data (base64 decode or streamed network download with size enforcement)
- *  - Create Joplin resources using a temporary file (sandbox requires a filepath for resource creation)
- *  - Sanitize & normalize resulting <img> tags (attribute whitelist + ordering + alt text fallback)
- *  - Provide metrics (attempted / failed counts) for user feedback
- *
- * Design Choices / Rationale:
- *  - fs-extra capability check: Some environments may not expose fs-extra; in that case we bail out silently
- *    and leave original <img> sources intact instead of throwing.
- *  - Temporary file approach: Joplin core expects a file path when creating resources. We write the decoded
- *    bytes to the plugin data directory, POST the resource, then attempt best‑effort cleanup.
- *  - Size limits: Enforced early both for base64 (pre‑decode estimate + post‑decode) and streaming downloads to
- *    prevent excessive memory usage. MAX_IMAGE_BYTES is centralized in constants.
- *  - Streaming download: Uses ReadableStream reader with incremental size guard so very large images are cut off
- *    before full allocation.
- *  - Timeouts: Network fetch guarded with AbortController (15s) so conversions don't hang indefinitely.
- *  - Base64 validation: Rejects malformed or suspicious base64 before decode (character set + padding + length check).
- *  - Alt text sanitization: Ensures reasonable alt text (no control chars, length capped, fallback to 'image').
- *  - Attribute normalization: Reduces variance in downstream markdown by only keeping src|alt|width|height in a
- *    deterministic order.
- *  - Failure Isolation: Each image conversion is wrapped so one failure does not abort the whole batch; failures
- *    increment a counter and processing continues.
- *
- * Security Considerations:
- *  - Only processes image MIME types (content-type or data: prefix)
- *  - Enforces strict base64 and size limits
- */
 
 /**
  * Convert eligible <img> tags to Joplin resources.
