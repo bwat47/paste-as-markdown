@@ -6,14 +6,15 @@ import type { PasteOptions, ResourceConversionMeta } from './types';
 
 async function createTurndownService(includeImages: boolean): Promise<TurndownService> {
     const service = new TurndownService(TURNDOWN_OPTIONS);
-
-    // Load the ESM-only GFM plugin
     const gfm = await getGfmPlugin();
     service.use(gfm);
 
+    // Defensive removals, already handled during DOM pre-processing
     if (!includeImages) {
         service.remove('img');
     }
+    service.remove('script');
+    service.remove('style');
 
     // --- Custom behavior overrides (public addRule API) ---
     // Overriding built-in element handling should use addRule (added rules have highest precedence, see turndown#241)
@@ -101,10 +102,6 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         },
     });
 
-    // Defensive removals
-    service.remove('script');
-    service.remove('style');
-
     return service;
 }
 
@@ -133,7 +130,7 @@ export async function convertHtmlToMarkdown(
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     const input = wrapOrphanedTableElements(html);
 
-    // Apply DOM-based preprocessing to clean and sanitize the HTML (now async)
+    // Apply DOM preprocessing to clean and sanitize the HTML
     const pasteOptions: PasteOptions = {
         includeImages,
         convertImagesToResources,
@@ -151,7 +148,6 @@ export async function convertHtmlToMarkdown(
     }
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
-    // and this guarantees option/rule changes always apply without stale caching.
     const service = await createTurndownService(includeImages);
     let markdown = service.turndown(turndownInput);
 
@@ -165,9 +161,9 @@ export async function convertHtmlToMarkdown(
  * Final markdown cleanup operations that can't be easily done during DOM preprocessing
  */
 function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
-    // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>). For
-    // pasted fragments this results in unwanted blank lines at the insertion point. Strip any
-    // leading blank lines while leaving internal spacing intact.
+    // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>).
+    // For pasted fragments this results in unwanted blank lines at the insertion point.
+    // Strip any leading blank lines while leaving internal spacing intact.
     markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
 
     // Restore NBSP-only inline code sentinel inserted during HTML preprocessing.
@@ -184,7 +180,7 @@ function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
         return segment;
     });
 
-    // If enabled, remove blank lines between consecutive list items (unordered, ordered, tasks)
+    // If enabled, remove blank lines between consecutive list items
     if (forceTightLists) {
         markdown = tightenListSpacing(markdown);
     }
