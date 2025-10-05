@@ -31,4 +31,32 @@ describe('empty anchor cleanup', () => {
         expect(anchor).not.toBeNull();
         expect(anchor!.querySelector('img')).not.toBeNull();
     });
+
+    test('removes heading permalink anchors with visible glyphs', async () => {
+        const input = `
+            <h2 id="rate-limits">Rate Limits
+                <a class="headerlink" href="#rate-limits" title="Permalink to this heading">¶</a>
+            </h2>
+        `;
+        const { body } = await processHtml(input, defaultOptions);
+        expect(body).not.toBeNull();
+        const heading = body!.querySelector('h2#rate-limits');
+        expect(heading).not.toBeNull();
+        expect(heading!.textContent).toContain('Rate Limits');
+        expect(body!.querySelector('a.headerlink')).toBeNull();
+    });
+
+    test('removes heading permalink anchors when href contains absolute URL fragment', async () => {
+        const input = `
+            <h2 id="quota">Quota Limits
+                <a class="headerlink" href="https://example.com/docs#quota" title="Permalink to this heading">¶</a>
+            </h2>
+        `;
+        const { body } = await processHtml(input, defaultOptions);
+        expect(body).not.toBeNull();
+        const heading = body!.querySelector('h2#quota');
+        expect(heading).not.toBeNull();
+        expect(heading!.textContent).toContain('Quota Limits');
+        expect(body!.querySelector('a.headerlink')).toBeNull();
+    });
 });

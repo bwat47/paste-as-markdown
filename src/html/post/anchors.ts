@@ -16,13 +16,25 @@ function analyzeAnchor(node: HTMLElement): {
     const clsRaw = node.getAttribute('class') || '';
     const classes = clsRaw ? clsRaw.split(/\s+/).filter(Boolean) : [];
     const hasAnchorClass = classes.includes('anchor');
+    const hasHeaderlinkClass = classes.includes('headerlink');
     const href = (node.getAttribute('href') || '').trim();
     const id = (node.getAttribute('id') || '').trim();
     const text = (node.textContent || '').trim();
+    const title = (node.getAttribute('title') || '').trim();
+
+    // Common permalink indicators used by GitHub, Sphinx, MkDocs, etc.
+    const isPermalinkText = text.length <= 2 && /^[¶#🔗§]*$/.test(text);
+    const isPermalinkClass = hasAnchorClass || hasHeaderlinkClass;
+    const hashIndex = href.indexOf('#');
+    const hasFragment = hashIndex !== -1 && hashIndex < href.length - 1;
+    const isPermalinkHref = hasFragment;
+    const isPermalinkId = id.startsWith('user-content-');
+    const isPermalinkTitle = title.toLowerCase().includes('permalink');
+
     const isPermalink =
-        hasAnchorClass &&
-        ((href.startsWith('#') && href.length > 1) || id.startsWith('user-content-')) &&
-        text.length === 0;
+        isPermalinkClass &&
+        (isPermalinkHref || isPermalinkId) &&
+        (text.length === 0 || isPermalinkText || isPermalinkTitle);
     const insideHeading = !!parent && /^H[1-6]$/.test(parent.nodeName);
     const headingChild = node.firstElementChild;
     const wrapsHeading = !!headingChild && /^H[1-6]$/.test(headingChild.tagName) && onlyContains(node, headingChild);
