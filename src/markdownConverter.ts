@@ -50,7 +50,7 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
         replacement: (content: string) => `==${content}==`,
     });
 
-    // 3. Preserve <sup>/<sub> tags as raw HTML (mirrors Joplin's Turndown behavior)
+    // 3. Preserve <sup>/<sub>/<ins> tags as raw HTML (mirrors Joplin's Turndown behavior)
     service.addRule('pamSup', {
         filter: (node: HTMLElement) => node.nodeName === 'SUP',
         replacement: (content: string) => `<sup>${content}</sup>`,
@@ -58,6 +58,10 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
     service.addRule('pamSub', {
         filter: (node: HTMLElement) => node.nodeName === 'SUB',
         replacement: (content: string) => `<sub>${content}</sub>`,
+    });
+    service.addRule('pamIns', {
+        filter: (node: HTMLElement) => node.nodeName === 'INS',
+        replacement: (content: string) => `<ins>${content}</ins>`,
     });
 
     // 4. List normalization, ensure single space after all list markers and consistent indentation.
