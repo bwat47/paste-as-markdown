@@ -31,7 +31,7 @@ import { ToastType } from 'api/types';
 export interface ProcessHtmlResult {
     readonly body: HTMLElement | null; // Processed DOM body. Null only when DOM processing failed but sanitization succeeded
     readonly sanitizedHtml: string | null; // Sanitized HTML string. Always present when body is null.
-    readonly resources: ResourceConversionMeta;
+    readonly resources: ResourceConversionMeta; // Metadata about any image-to-resource conversions. Empty in fallback mode.
 }
 
 const EMPTY_RESOURCES: ResourceConversionMeta = {
