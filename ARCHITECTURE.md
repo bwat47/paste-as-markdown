@@ -18,7 +18,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Plain‑text fallback is not emitted by the HTML pipeline; when sanitization cannot complete safely, the paste handler decides whether to insert clipboard `text/plain` instead (and shows a toast if that’s unavailable).
     - Upstream Turndown (fresh instance per paste).
     - `mark` → `==text==`.
-    - `sup` / `sub` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`).
+    - `sup` / `sub` / `ins` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`) due to markdown syntax for these not being widespread (and conflicting with GFM strikethough in the case of `sub`).
     - Sized images rule (preserve width/height attributes when present).
     - List items rule (`pamListItem`) normalizes list rendering during conversion:
         - Exactly one space after list markers (ul, ol, and checkboxes).
@@ -37,20 +37,6 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Remove whitespace-only NBSP lines.
     - Optional: Force tight lists (setting) — remove blank lines between consecutive list items (unordered/ordered/tasks), protected by fenced-code extraction.
 6. Return `{ markdown, resourcesMeta, plainTextFallback }`. The boolean is reserved for outer plain-text fallbacks handled by the paste command (the HTML pipeline no longer emits sanitized plain text).
-
-## Key Helpers
-
-- `wrapOrphanedTableElements(html)` – Enables GFM table rule on row-only fragments.
-- `normalizeCodeBlocks(body)` – Language inference + structural cleanup (class-based only; no heuristic on file content).
-- `removeNonContentUi(body)` – Drops buttons/role-based UI/non-checkbox inputs/select (skips in code/pre).
-- `normalizeTextCharacters(body, normalizeQuotes)` – Normalizes NBSP/smart quotes outside code/pre; idempotent.
-- `promoteImageSizingStylesToAttributes(body)` – Pre-sanitize: move px width/height from `<img style>` to `width`/`height` attributes (only when neither attribute exists) and remove style.
-- `protectLiteralHtmlTagMentions(body)` – Post-sanitize: wrap tag-like mentions in inline code, skipping `code/pre`.
-- `getProcessingPasses()` / `runPasses()` – Central registry + runner that declare ordered `ProcessingPass` definitions and execute them with consistent warning handling.
-- `withFencedCodeProtection(markdown, transform)` – Protects fenced code during regex-based cleanup.
-- `tightenListSpacing(markdown)` – Collapses blank lines between list items when the “Force tight lists” option is enabled.
-- Image conversion utilities (resource creation, metrics: attempted / failed / ids).
-    <!-- Plain-text fallback helpers removed; failures now surface a toast and abort conversion. -->
 
 ## What the GFM Plugin Covers
 
@@ -72,10 +58,6 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No style-based semantic inference (bold/italic from CSS dropped intentionally).
 - Per-invocation Turndown instance (no shared mutable state).
 - Minimal post-processing; only tasks simpler after Markdown emission.
-
-## Retained Legacy Heuristic (Justification)
-
-- Table fragment wrapping: High value, low complexity, still necessary because plugin activates only on `<table>` root nodes.
 
 ## Exclusions / Non-Goals
 
