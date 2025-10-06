@@ -11,6 +11,13 @@ export async function showToast(message: string, type: ToastType = ToastType.Inf
     }
 }
 
+function validateBoolean(value: unknown, key: string, defaultValue: boolean, errors: string[]): boolean {
+    if (typeof value === 'boolean') return value;
+    if (value === undefined) return defaultValue;
+    errors.push(key);
+    return defaultValue;
+}
+
 export function validatePasteSettings(settings: unknown): ValidationResult<ValidatedSettings> {
     if (settings === null || typeof settings !== 'object') {
         return { isValid: false, error: 'Settings must be an object' };
@@ -18,31 +25,15 @@ export function validatePasteSettings(settings: unknown): ValidationResult<Valid
     const s = settings as SettingsInput;
     const invalid: string[] = [];
 
-    const includeImages =
-        typeof s.includeImages === 'boolean'
-            ? s.includeImages
-            : s.includeImages === undefined
-              ? true
-              : (invalid.push('includeImages'), true);
-    const convertImagesToResources =
-        typeof s.convertImagesToResources === 'boolean'
-            ? s.convertImagesToResources
-            : s.convertImagesToResources === undefined
-              ? false
-              : (invalid.push('convertImagesToResources'), false);
-    const normalizeQuotes =
-        typeof s.normalizeQuotes === 'boolean'
-            ? s.normalizeQuotes
-            : s.normalizeQuotes === undefined
-              ? true
-              : (invalid.push('normalizeQuotes'), true);
-
-    const forceTightLists =
-        typeof s.forceTightLists === 'boolean'
-            ? s.forceTightLists
-            : s.forceTightLists === undefined
-              ? false
-              : (invalid.push('forceTightLists'), false);
+    const includeImages = validateBoolean(s.includeImages, 'includeImages', true, invalid);
+    const convertImagesToResources = validateBoolean(
+        s.convertImagesToResources,
+        'convertImagesToResources',
+        false,
+        invalid
+    );
+    const normalizeQuotes = validateBoolean(s.normalizeQuotes, 'normalizeQuotes', true, invalid);
+    const forceTightLists = validateBoolean(s.forceTightLists, 'forceTightLists', false, invalid);
 
     const value: PasteOptions = { includeImages, convertImagesToResources, normalizeQuotes, forceTightLists };
     if (invalid.length) {
