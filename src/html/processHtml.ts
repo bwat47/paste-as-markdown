@@ -29,8 +29,8 @@ import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 
 export interface ProcessHtmlResult {
-    readonly body: HTMLElement | null;
-    readonly sanitizedHtml: string | null;
+    readonly body: HTMLElement | null; // Processed DOM body. Null only when DOM processing failed but sanitization succeeded
+    readonly sanitizedHtml: string | null; // Sanitized HTML string. Always present when body is null.
     readonly resources: ResourceConversionMeta;
 }
 
