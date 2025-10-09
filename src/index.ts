@@ -1,8 +1,9 @@
 import joplin from 'api';
-import { COMMANDS, SHORTCUTS, SETTINGS, SETTINGS_SECTION, LOG_PREFIX } from './constants';
+import { COMMANDS, SHORTCUTS, SETTINGS, SETTINGS_SECTION } from './constants';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import { showToast } from './utils';
 import { MenuItemLocation, ToastType, SettingItemType } from 'api/types';
+import logger from './logger';
 
 joplin.plugins.register({
     onStart: async () => {
@@ -17,11 +18,11 @@ joplin.plugins.register({
                     if (res.success) {
                         // Success path already shows success toasts inside handler.
                     } else if (res.warnings && res.warnings.length) {
-                        console.warn(LOG_PREFIX, 'Paste reported warnings:', res.warnings);
+                        logger.warn('Paste reported warnings:', res.warnings);
                     }
                 } catch (err: unknown) {
                     const message = err instanceof Error ? err.message : String(err);
-                    console.error(LOG_PREFIX, 'Error:', err);
+                    logger.error('Error handling paste command', err);
                     await showToast('Paste as Markdown failed: ' + message, ToastType.Error);
                 }
             },
@@ -81,7 +82,7 @@ joplin.plugins.register({
                 }
             );
         } catch (err) {
-            console.warn(LOG_PREFIX, 'Failed to create menu item', err);
+            logger.warn('Failed to create menu item', err);
         }
 
         // Context menu filtering - only add in markdown editor
@@ -111,6 +112,6 @@ joplin.plugins.register({
             return menu;
         });
 
-        console.info(LOG_PREFIX, 'Plugin started');
+        logger.info('Plugin started');
     },
 });

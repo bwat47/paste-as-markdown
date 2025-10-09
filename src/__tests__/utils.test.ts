@@ -1,6 +1,7 @@
 import { describe, test, expect, jest, beforeEach } from '@jest/globals';
 import { showToast, validatePasteSettings } from '../utils';
 import { ToastType } from 'api/types';
+import logger from '../logger';
 
 // Mock the joplin API
 jest.mock('api');
@@ -39,15 +40,17 @@ describe('utils', () => {
 
         test('handles API errors gracefully', async () => {
             const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
-            const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            const warnSpy = jest
+                .spyOn(logger as unknown as { warn: (...args: unknown[]) => void }, 'warn')
+                .mockImplementation(() => {});
             (mockJoplin.views.dialogs.showToast as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(
                 new Error('API Error')
             );
 
             await expect(showToast('Test message')).resolves.not.toThrow();
-            expect(consoleSpy).toHaveBeenCalledWith('[paste-as-markdown]', 'Failed to show toast:', expect.any(Error));
+            expect(warnSpy).toHaveBeenCalledWith('Failed to show toast', expect.any(Error));
 
-            consoleSpy.mockRestore();
+            warnSpy.mockRestore();
         });
     });
 

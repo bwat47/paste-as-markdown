@@ -1,8 +1,8 @@
 import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
 import { runPasses } from '../html/passes/runner';
 import type { ProcessingPass, PassContext } from '../html/passes/types';
-import { LOG_PREFIX } from '../constants';
 import type { PasteOptions } from '../types';
+import logger from '../logger';
 
 describe('runPasses', () => {
     const options: PasteOptions = {
@@ -16,7 +16,8 @@ describe('runPasses', () => {
     let warnSpy: jest.SpyInstance;
 
     beforeEach(() => {
-        warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+        const loggerForTest = logger as unknown as { warn: (...args: unknown[]) => void };
+        warnSpy = jest.spyOn(loggerForTest, 'warn').mockImplementation(() => undefined);
     });
 
     afterEach(() => {
@@ -59,8 +60,9 @@ describe('runPasses', () => {
         expect(result.warnings).toHaveLength(1);
         expect(result.warnings[0]).toContain('Failing pass');
         expect(warnSpy).toHaveBeenCalledTimes(1);
-        const [prefix, message] = warnSpy.mock.calls[0];
-        expect(prefix).toBe(LOG_PREFIX);
-        expect(message).toBe('Failing pass failed:');
+        const [message, error] = warnSpy.mock.calls[0];
+        expect(message).toBe('Failing pass failed');
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toBe('Boom');
     });
 });

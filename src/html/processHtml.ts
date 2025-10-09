@@ -18,7 +18,7 @@
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
-import { LOG_PREFIX, TOAST_MESSAGES, POST_IMAGE_PASS_PRIORITY } from '../constants';
+import { TOAST_MESSAGES, POST_IMAGE_PASS_PRIORITY } from '../constants';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
@@ -27,6 +27,7 @@ import { runPasses } from './passes/runner';
 import type { PassContext } from './passes/types';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
+import logger from '../logger';
 
 export interface ProcessHtmlResult {
     readonly body: HTMLElement | null; // Processed DOM body. Null only when DOM processing failed but sanitization succeeded
@@ -71,7 +72,7 @@ const sanitizeForFallback = (html: string, includeImages: boolean): string | nul
         const purifier = createDOMPurify(window as unknown as typeof window);
         return purifier.sanitize(html, buildSanitizerConfig({ includeImages })) as string;
     } catch (err) {
-        console.warn(LOG_PREFIX, 'Fallback sanitization failed:', err);
+        logger.warn('Fallback sanitization failed', err);
         return null;
     }
 };
@@ -92,7 +93,7 @@ export async function processHtml(
 ): Promise<ProcessHtmlResult> {
     // Abort if DOM APIs are unavailable (security boundary)
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
-        console.warn(LOG_PREFIX, 'DOM APIs unavailable; cannot process HTML safely.');
+        logger.warn('DOM APIs unavailable; cannot process HTML safely.');
         return await notifyFailure('dom-unavailable');
     }
 
@@ -106,7 +107,7 @@ export async function processHtml(
         const rawDoc = rawParser.parseFromString(html, 'text/html');
         const rawBody = rawDoc.body;
         if (!rawBody) {
-            console.warn(LOG_PREFIX, 'Parsed document missing <body>, attempting sanitized fallback.');
+            logger.warn('Parsed document missing <body>, attempting sanitized fallback.');
             const fallback = sanitizedHtmlFallback(sanitizeForFallback(html, options.includeImages));
             if (fallback) return fallback;
             return await notifyFailure('sanitize-failed');
@@ -126,7 +127,7 @@ export async function processHtml(
             ) as string;
         } catch (err) {
             // Abort if sanitization fails
-            console.warn(LOG_PREFIX, 'Sanitization failed; no safe HTML output available:', err);
+            logger.warn('Sanitization failed; no safe HTML output available', err);
             return await notifyFailure('sanitize-failed');
         }
 
@@ -136,7 +137,7 @@ export async function processHtml(
         const body = doc.body;
         if (!body) {
             // Fallback: return sanitized HTML only if <body> missing
-            console.warn(LOG_PREFIX, 'Sanitized HTML lacked <body>, using sanitized HTML fallback.');
+            logger.warn('Sanitized HTML lacked <body>, using sanitized HTML fallback.');
             return { body: null, sanitizedHtml, resources: EMPTY_RESOURCES };
         }
 
@@ -158,7 +159,7 @@ export async function processHtml(
                     failed = result.failed;
                 } catch (err) {
                     // If image conversion fails, return sanitized HTML only
-                    console.warn(LOG_PREFIX, 'Image resource conversion failed, using sanitized HTML fallback:', err);
+                    logger.warn('Image resource conversion failed, using sanitized HTML fallback', err);
                     return { body: null, sanitizedHtml, resources: EMPTY_RESOURCES };
                 }
             }
@@ -178,7 +179,7 @@ export async function processHtml(
         };
     } catch (err) {
         // On error, fallback to sanitized HTML if available, otherwise abort
-        console.warn(LOG_PREFIX, 'HTML processing failed, evaluating secure fallback:', err);
+        logger.warn('HTML processing failed, evaluating secure fallback', err);
         if (sanitizedHtml !== null) {
             return { body: null, sanitizedHtml, resources: EMPTY_RESOURCES };
         }

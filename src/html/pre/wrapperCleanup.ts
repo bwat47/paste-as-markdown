@@ -1,4 +1,5 @@
 import { unwrapElement } from '../shared/dom';
+import logger from '../../logger';
 
 /**
  * Remove Google Docs wrapper elements that cause unwanted markdown artifacts.
@@ -31,7 +32,7 @@ export function removeGoogleDocsWrappers(body: HTMLElement): void {
         if (candidates.length === 0) break;
         // Unwrap each candidate once per pass; in typical Docs HTML this is a single element
         for (const el of candidates) {
-            console.debug('[paste-as-markdown]', `Unwrapping Google Docs ${el.tagName.toLowerCase()} wrapper`);
+            logger.debug(`Unwrapping Google Docs ${el.tagName.toLowerCase()} wrapper`);
             unwrapElement(el);
         }
         // Loop to catch nested wrappers that become top-level after previous unwrap

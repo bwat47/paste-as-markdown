@@ -13,11 +13,12 @@
  *  - Enforces strict base64 and size limits
  */
 
-import { LOG_PREFIX, MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
+import { MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
 import { normalizeAltText } from './textUtils';
 import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
+import logger from './logger';
 
 // Global joplin API (available at runtime in Joplin plugin environment)
 declare const joplin: Joplin;
@@ -91,10 +92,10 @@ export async function convertImagesToResources(
     } catch (err) {
         // Expected: fs-extra module may not be available in some Joplin environments
         fsExtraAvailable = false;
-        console.debug(LOG_PREFIX, 'fs-extra not available:', (err as Error)?.message || 'unknown error');
+        logger.debug('fs-extra not available:', (err as Error)?.message || 'unknown error');
     }
     if (!fsExtraAvailable) {
-        console.info(LOG_PREFIX, 'fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
+        logger.info('fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
         return { ids: [], attempted: 0, failed: 0 };
     }
     const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
@@ -119,7 +120,7 @@ export async function convertImagesToResources(
         } catch (e) {
             failed++;
             const error = e as Error;
-            console.warn(LOG_PREFIX, 'Failed to convert image to resource:', {
+            logger.warn('Failed to convert image to resource', {
                 src: truncateForLog(source.url),
                 error: error?.message || 'Unknown error',
                 type: error?.name || 'Error',
@@ -192,12 +193,7 @@ function deriveOriginalFilename(src: string): string {
         return sanitized || 'image';
     } catch (err) {
         // Expected: malformed URLs will fail to parse, fallback to generic name
-        console.debug(
-            LOG_PREFIX,
-            'Failed to parse URL for filename derivation:',
-            truncateForLog(src),
-            (err as Error)?.message
-        );
+        logger.debug('Failed to parse URL for filename derivation:', truncateForLog(src), (err as Error)?.message);
         return 'image';
     }
 }
@@ -324,12 +320,7 @@ function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
         return `pasted.${fallbackExt}`;
     } catch (err) {
         // Expected: malformed URLs will fail to parse, use fallback filename
-        console.debug(
-            LOG_PREFIX,
-            'Failed to parse URL for filename extraction:',
-            truncateForLog(url),
-            (err as Error)?.message
-        );
+        logger.debug('Failed to parse URL for filename extraction:', truncateForLog(url), (err as Error)?.message);
         return `pasted.${fallbackExt}`;
     }
 }
@@ -388,7 +379,7 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     try {
         fs = joplin.require('fs-extra');
     } catch (e) {
-        console.warn(LOG_PREFIX, 'fs-extra unavailable; skipping image resource conversion');
+        logger.warn('fs-extra unavailable; skipping image resource conversion');
         throw e;
     }
     const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
@@ -415,7 +406,7 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         ]);
         return resource.id;
     } catch (e) {
-        console.warn(LOG_PREFIX, 'Failed to create resource from temp file', e);
+        logger.warn('Failed to create resource from temp file', e);
         throw e;
     } finally {
         if (typeof fsLike.unlink === 'function') {
@@ -424,12 +415,12 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
                     // Resolve even on ENOENT so cleanup remains best-effort
                     fsLike.unlink!(tmpPath, (err) => {
                         if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
-                            console.warn(LOG_PREFIX, 'Temp file cleanup failed', err);
+                            logger.warn('Temp file cleanup failed', err);
                         }
                         resolve();
                     });
                 } catch (cleanupErr) {
-                    console.warn(LOG_PREFIX, 'Temp file cleanup failed', cleanupErr);
+                    logger.warn('Temp file cleanup failed', cleanupErr);
                     resolve();
                 }
             });

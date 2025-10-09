@@ -3,7 +3,7 @@ import { convertImagesToResources } from '../resourceConverter';
 
 // Mock constants to drastically reduce MAX_IMAGE_BYTES for test (e.g., 64 bytes)
 jest.mock('../constants', () => ({
-    LOG_PREFIX: '[paste-as-markdown]',
+    ...(jest.requireActual('../constants') as Record<string, unknown>),
     MAX_IMAGE_BYTES: 64,
 }));
 

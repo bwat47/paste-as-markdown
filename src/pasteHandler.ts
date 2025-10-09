@@ -4,7 +4,8 @@ import { HtmlProcessingError } from './html/processHtml';
 import { showToast, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
 import type { ConversionSuccess, ConversionFailure } from './types';
-import { SETTINGS, LOG_PREFIX } from './constants';
+import { SETTINGS } from './constants';
+import logger from './logger';
 
 async function readClipboardHtml(): Promise<string | null> {
     try {
@@ -20,7 +21,7 @@ async function detectGoogleDocsSource(html: string | null): Promise<boolean> {
         // Primary detection: Google Docs specific MIME type
         formats = await joplin.clipboard.availableFormats();
     } catch (err) {
-        console.warn(LOG_PREFIX, 'Failed to detect clipboard source:', err);
+        logger.warn('Failed to detect clipboard source', err);
     }
 
     if (formats && formats.includes('application/x-vnd.google-docs-document-slice-clip+wrapped')) {
@@ -39,7 +40,7 @@ async function readClipboardText(): Promise<string> {
     try {
         return await joplin.clipboard.readText();
     } catch (err) {
-        console.error(LOG_PREFIX, 'Failed to read text clipboard:', err);
+        logger.error('Failed to read text clipboard', err);
         throw new Error('Unable to access clipboard text');
     }
 }
@@ -61,7 +62,7 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
         }
     }
 
-    console.error(LOG_PREFIX, 'Failed to insert markdown', lastError);
+    logger.error('Failed to insert markdown', lastError);
     throw new Error('Unable to insert markdown into editor');
 }
 
@@ -130,14 +131,14 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
         // Add Google Docs indicator to success message for debugging
         if (isGoogleDocs) {
-            console.debug(LOG_PREFIX, 'Processed Google Docs content');
+            logger.debug('Processed Google Docs content');
         }
 
         await showToast(message, ToastType.Success);
         return { markdown, success: true };
     } catch (err) {
         if (err instanceof HtmlProcessingError) {
-            console.error(LOG_PREFIX, 'HTML processing prerequisites missing; aborting paste.', err);
+            logger.error('HTML processing prerequisites missing; aborting paste', err);
             try {
                 const text = await readClipboardText();
                 if (text) {
@@ -151,7 +152,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
                     };
                 }
             } catch (readErr) {
-                console.error(LOG_PREFIX, 'Failed to read plain text after HTML processing error', readErr);
+                logger.error('Failed to read plain text after HTML processing error', readErr);
             }
             return {
                 markdown: '',
@@ -161,7 +162,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             };
         }
 
-        console.error(LOG_PREFIX, 'Conversion failed, attempting plain text fallback', err);
+        logger.error('Conversion failed, attempting plain text fallback', err);
         const text = await readClipboardText();
         if (text) {
             await insertMarkdownAtCursor(text);
