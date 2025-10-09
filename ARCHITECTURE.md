@@ -58,6 +58,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - No style-based semantic inference (bold/italic from CSS dropped intentionally).
 - Per-invocation Turndown instance (no shared mutable state).
 - Minimal post-processing; only tasks simpler after Markdown emission.
+- Centralized logging via Joplin’s `Logger` utility so messages go through the built-in log targets instead of `console`.
 
 ## Exclusions / Non-Goals
 
