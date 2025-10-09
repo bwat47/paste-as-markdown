@@ -32,7 +32,16 @@ export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
         textNodes.push(textNode);
     }
 
-    // Match simple HTML-like tokens with optional attributes and optional self-closing slash.
+    // Matches HTML-like tokens:
+    // - Opening tags: <tag>, <tag attr="value">
+    // - Closing tags: </tag>
+    // - Self-closing: <tag/>, <tag />
+    // Pattern breakdown:
+    //   <\/? - optional closing slash
+    //   [A-Za-z][A-Za-z0-9-]* - tag name (letters, then alphanumeric/dash)
+    //   (?:\s+[^<>]*?)? - optional attributes (non-greedy)
+    //   \s*\/? - optional self-closing slash
+    //   > - closing bracket
     const tagTokenRe = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/g;
 
     textNodes.forEach((textNode) => {
