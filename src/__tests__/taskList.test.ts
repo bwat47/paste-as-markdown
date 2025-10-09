@@ -64,4 +64,34 @@ describe('task list conversion (GFM)', () => {
         expect(lines[2]).toMatch(/^(?:[ \t]*- \[ \] 456)$/);
         expect(lines[3]).toMatch(/^(?:[ \t]*- \[ \] 789)$/);
     });
+
+    test('checkbox wrapped in paragraph is promoted before conversion', async () => {
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+<h3 id="list-views%2Ffield-chooser">List Views/Field Chooser</h3>
+<ul class="task-list-container">
+<li class="task-list-item">
+<p><input type="checkbox" class="task-list-item-checkbox" id="task-item-0" disabled="disabled"> Verify performance with various Records Per Page settings</p>
+</li>
+<li class="task-list-item">
+<p><input type="checkbox" class="task-list-item-checkbox" id="task-item-1" disabled="disabled"> Both Azure and on-prem</p>
+</li>
+<li class="task-list-item">
+<p><input type="checkbox" class="task-list-item-checkbox" id="task-item-2" disabled="disabled"> Verify Field Chooser has access to all fields (not just in the listing, make sure they are displayed)</p>
+</li>
+</ul>
+</body>
+</html><!--EndFragment-->`;
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(markdown).toContain('### List Views/Field Chooser');
+        const matches = markdown.match(/- \[ \]/g) ?? [];
+        expect(matches.length).toBe(3);
+        expect(markdown).toMatch(/- \[ \]\s+Verify performance with various Records Per Page settings/);
+        expect(markdown).toMatch(/- \[ \]\s+Both Azure and on-prem/);
+        expect(markdown).toMatch(/- \[ \]\s+Verify Field Chooser has access to all fields/);
+    });
 });

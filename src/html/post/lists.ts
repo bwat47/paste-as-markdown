@@ -1,6 +1,7 @@
 const LIST_TAGS = new Set(['UL', 'OL']);
 
 const LI_TAG = 'LI';
+const CHECKBOX_SELECTOR = 'input[type="checkbox"]';
 
 function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
     const parent = list.parentElement;
@@ -45,5 +46,28 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
         const wrapper = ownerDocument.createElement('li');
         parent.insertBefore(wrapper, list);
         wrapper.appendChild(list);
+    });
+}
+
+/**
+ * Some editors wrap task list checkboxes in a paragraph inside the list item:
+ * <li><p><input type="checkbox"> Text</p></li>
+ * Turndown's GFM task list rule expects the checkbox to be a direct child of the <li>.
+ * This helper unwraps those paragraphs so the checkbox sits directly under the list item.
+ */
+export function unwrapCheckboxParagraphs(body: HTMLElement): void {
+    const paragraphs = body.querySelectorAll<HTMLParagraphElement>('li > p');
+    paragraphs.forEach((paragraph) => {
+        const listItem = paragraph.parentElement;
+        if (!listItem || listItem.tagName !== LI_TAG) return;
+
+        const checkbox = paragraph.querySelector<HTMLInputElement>(CHECKBOX_SELECTOR);
+        if (!checkbox) return;
+        if (checkbox.closest('li') !== listItem) return;
+
+        while (paragraph.firstChild) {
+            listItem.insertBefore(paragraph.firstChild, paragraph);
+        }
+        listItem.removeChild(paragraph);
     });
 }
