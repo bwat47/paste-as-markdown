@@ -114,6 +114,12 @@ function removeUIElements(pre: HTMLElement): void {
 }
 
 function shouldRemoveUIElement(element: Element): boolean {
+    if (element.tagName === 'SPAN') {
+        const text = element.textContent ?? '';
+        if (text.replace(/[\s\u00A0]+/g, '') === '') {
+            return true;
+        }
+    }
     return (
         /codeblock-button-wrapper|copy|fullscreen|toolbar/i.test(element.className) ||
         element.tagName === 'DIV' ||
