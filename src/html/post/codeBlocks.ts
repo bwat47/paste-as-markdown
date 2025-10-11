@@ -12,6 +12,8 @@
 import { onlyContains } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
+// Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
+// We replace their text with a sentinel that we later convert back to `&nbsp;` inside markdown cleanup.
 export function markNbspOnlyInlineCode(body: HTMLElement): void {
     const codes = Array.from(body.querySelectorAll('code')) as HTMLElement[];
     codes.forEach((code) => {
