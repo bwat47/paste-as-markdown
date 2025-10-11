@@ -209,4 +209,22 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```html[\s\S]*<script>alert\(1\)<\/script>[\s\S]*```/);
         expect(md).not.toMatch(/class=|tok/);
     });
+
+    test('trims extraneous blank lines around code content', async () => {
+        const html = `
+<div style="background-color: #f0f0f0; border: 1px solid #ccc; padding: 10px;">
+  <pre><code>
+    function greet(name) {
+      console.log("Hello, " + name + "!");
+    }
+    greet("World");
+  </code></pre>
+</div>`;
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const lines = markdown.split('\n');
+        expect(lines[0].startsWith('```')).toBe(true);
+        expect(lines[1].trim().startsWith('function greet')).toBe(true);
+        expect(lines[lines.length - 2].includes('greet("World");')).toBe(true);
+        expect(lines[lines.length - 1]).toBe('```');
+    });
 });

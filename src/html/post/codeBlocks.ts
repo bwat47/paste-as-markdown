@@ -31,6 +31,7 @@ export function normalizeCodeBlocks(body: HTMLElement): void {
         ensureCodeElement(pre);
         removeUIElements(pre);
         const code = pre.querySelector('code')!;
+        trimCodeWhitespace(code);
         if (isEmptyCodeBlock(code)) {
             pre.remove();
             return;
@@ -125,6 +126,22 @@ function shouldRemoveUIElement(element: Element): boolean {
         element.tagName === 'DIV' ||
         element.tagName === 'BUTTON'
     );
+}
+
+function trimCodeWhitespace(code: HTMLElement): void {
+    const text = code.textContent ?? '';
+    if (!text) return;
+    const lines = text.split(/\r?\n/);
+    while (lines.length > 0 && lines[0].trim() === '') {
+        lines.shift();
+    }
+    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+        lines.pop();
+    }
+    const trimmed = lines.join('\n');
+    if (trimmed !== text) {
+        code.textContent = trimmed;
+    }
 }
 
 function isEmptyCodeBlock(code: HTMLElement): boolean {
