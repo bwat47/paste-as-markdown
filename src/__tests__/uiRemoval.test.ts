@@ -11,6 +11,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
             <div role="button">Click me</div>
             <div role="toolbar"><span>Toolbar</span></div>
             <p>Reference (<button>File.ts</button>) inline.</p>
+            <p>Inline role (<span role="button">Beta</span>) label.</p>
             <pre><code><button>UI</button><input type="text" value="x"></code></pre>
         `;
 
@@ -36,8 +37,9 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         expect(html.includes('Click me')).toBe(false);
         expect(html.includes('Toolbar')).toBe(false);
 
-        // Inline button text remains even though the control is removed
+        // Inline button or role=button text remains even though the control is removed
         expect(html.includes('Reference (File.ts) inline.')).toBe(true);
+        expect(html.includes('Inline role (Beta) label.')).toBe(true);
 
         // Inside code/pre should remain as text content (neutralized)
         // We expect the code block to contain the text from the button or input (e.g., "UI")
