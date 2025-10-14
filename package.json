@@ -46,7 +46,7 @@
         "webpack-cli": "^4.10.0"
     },
     "dependencies": {
-        "@bwat47/turndown-plugin-gfm": "1.0.4",
+        "@bwat47/turndown-plugin-gfm": "1.0.5",
         "@joplin/utils": "^3.4.1",
         "dompurify": "^3.2.7",
         "turndown": "7.2.1"
