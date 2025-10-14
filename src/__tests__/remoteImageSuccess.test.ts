@@ -13,12 +13,10 @@ interface JoplinMock {
     data: { post: jest.Mock };
 }
 
-interface GlobalWithFetch extends Global {
+declare const global: Omit<typeof globalThis, 'fetch'> & {
     joplin?: JoplinMock;
     fetch?: jest.Mock;
-}
-
-declare const global: GlobalWithFetch;
+};
 
 describe('remote image success path', () => {
     let dataPostMock: jest.Mock;
