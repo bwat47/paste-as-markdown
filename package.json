@@ -48,7 +48,7 @@
     "dependencies": {
         "@bwat47/turndown-plugin-gfm": "1.0.5",
         "@joplin/utils": "^3.4.1",
-        "dompurify": "^3.2.7",
+        "dompurify": "^3.3.0",
         "turndown": "7.2.1"
     }
 }
