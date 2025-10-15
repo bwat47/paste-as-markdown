@@ -9,7 +9,7 @@
  *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
  */
 
-import { onlyContains } from '../shared/dom';
+import { onlyContains, unwrapElement } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
 // Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
@@ -30,6 +30,9 @@ export function markNbspOnlyInlineCode(body: HTMLElement): void {
 export function normalizeCodeBlocks(body: HTMLElement): void {
     const pres = findAndUnwrapCodeBlocks(body);
     pres.forEach((pre) => {
+        if (unwrapTableWrappedPre(pre)) {
+            return;
+        }
         ensureCodeElement(pre);
         removeUIElements(pre);
         const code = pre.querySelector('code')!;
@@ -80,6 +83,17 @@ function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
         pres.push(pre);
     });
     return pres;
+}
+
+// Some sources (e.g. claude web chat) wrap tables in pre tags
+function unwrapTableWrappedPre(pre: HTMLElement): boolean {
+    const table = pre.querySelector('table');
+    if (!table) return false;
+    if (table.parentElement !== pre) return false;
+    if (!onlyContains(pre, table)) return false;
+    if (!pre.parentElement) return false;
+    unwrapElement(pre);
+    return true;
 }
 
 function ensureCodeElement(pre: HTMLElement): void {

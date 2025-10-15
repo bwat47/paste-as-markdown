@@ -5,6 +5,10 @@
 export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
     const pres = Array.from(body.querySelectorAll('pre')) as HTMLElement[];
     pres.forEach((pre) => {
+        // some sources wrap tables in pre tags
+        if (pre.querySelector('table')) {
+            return;
+        }
         const code = pre.querySelector('code') as HTMLElement | null;
         const target = code || pre;
         if (!target) return;
