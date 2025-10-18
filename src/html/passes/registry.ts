@@ -4,7 +4,7 @@ import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
 import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
-import { unwrapRedundantBoldInHeadings } from '../pre/headingCleanup';
+import { normalizeHeadingStructure } from '../pre/headingCleanup';
 import { removeEmptyAnchors, cleanHeadingAnchors } from '../post/anchors';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
 import { fixOrphanNestedLists, unwrapCheckboxParagraphs } from '../post/lists';
@@ -29,10 +29,10 @@ const PRE_SANITIZE_PASSES: readonly ProcessingPass[] = [
         execute: (body) => removeNonContentUi(body),
     },
     {
-        name: 'Unwrap redundant bolding in headings',
+        name: 'Heading structure normalization',
         phase: 'pre-sanitize',
         priority: 25,
-        execute: (body) => unwrapRedundantBoldInHeadings(body),
+        execute: (body) => normalizeHeadingStructure(body),
     },
     {
         name: 'Image sizing promotion',

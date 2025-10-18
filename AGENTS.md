@@ -1,5 +1,7 @@
 # Repository Guidelines
 
+## Project overview/architecture documentation: ARCHITECTURE.md
+
 ## Project Structure & Module Organization
 
 - `src/` TypeScript sources for the Joplin plugin.

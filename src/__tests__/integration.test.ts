@@ -31,6 +31,23 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\[\s*\n*##/);
     });
 
+    test('unwraps paragraph wrappers nested directly in headings', async () => {
+        const html = `
+            <div class="heading-wrapper" data-heading-level="h3">
+                <h3 id="october-2025" class="heading-anchor">October 2025</h3>
+            </div>
+            <div class="heading-wrapper" data-heading-level="h4">
+                <a class="anchor-link docon docon-link" href="https://learn.microsoft.com/en-us/windows/release-health/status-windows-11-25H2#iis-websites-might-fail-to-load" aria-label="Section titled: IIS websites might fail to load"></a>
+                <h4 class="has-margin-left-none has-padding-left-none has-margin-top-none has-padding-top-none has-border-top heading-anchor" id="iis-websites-might-fail-to-load">
+                    <p>IIS websites might fail to load</p>
+                </h4>
+            </div>
+        `;
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(markdown).toMatch(/### October 2025/);
+        expect(markdown).toMatch(/^#### IIS websites might fail to load$/m);
+    });
+
     test('re-nests orphaned sub-lists to preserve numbering', async () => {
         const html = `
             <ol>
