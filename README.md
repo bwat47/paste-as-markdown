@@ -25,13 +25,16 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 - **Image Handling** - Keep remote/base64 encoded images as-is, convert images to Joplin resources, or remove images entirely.
 
-- **DOM preprocessing** - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements (empty permalink anchors, permalink symbols, bold text inside headings, UI elements, exotic image attributes, etc...).
+- **DOM preprocessing** - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements before turndown conversion (empty permalink anchors, permalink symbols in headings, bold text inside headings, UI elements, exotic image attributes, etc...).
+    - **Code block normalization** - Improved reliability when pasting code blocks. Normalizes known code block wrappers/containers to simple `<code>`/`<pre>` and infers language from common class patterns and applies a normalized class="language-xxx".
 
-- **Code block normalization** - Improved reliability when pasting code blocks.
+    - **Whitspace normalization** - Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
 
-- **Whitspace normalization** - Minimal post-processing to remove leftover `<br>` elements and excess whitespace between paragraphs.
+    - **Text normalization** - Normalizes nbsp and zero width space characters to regular spaces. (Optionally) normalizes smart quotes to regular quotes.
 
-- **List normalization** - Re-nests orphaned lists, so numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote. Uniform spacing (one space) after list markers.
+    - **List normalization** - Re-nests orphaned lists, so numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote. Uniform spacing (one space) after list markers.
+
+    - **Image normalization** - HTML `<img>` embeds will only contain a standardized set of attributes: src, alt, title, width, height. Images that are converted to joplin resources will be unwrapped from external anchor links. Promotes inline css width/height to HTML attributes so that image sizes are maintained through turndown conversion.
 
 - **Table support** - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
 
