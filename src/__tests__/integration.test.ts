@@ -92,6 +92,21 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(normalized).toBe('First para\n\nSecond para');
     });
 
+    test('normalizes zero-width spaces in list items to standard spaces', async () => {
+        const html = `
+<p class="font-size-sm"><strong>Affected platforms:</strong></p>
+<ul>
+    <li class="font-size-sm">\u200BClient: Windows 11, version 25H2; Windows 11, version 24H2</li>
+    <li class="font-size-sm">\u200BServer: Windows Server 2025</li>
+</ul>
+        `;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(md).not.toMatch(/[\u200B\u200C\u200D\u2060\uFEFF]/);
+        expect(md).toMatch(/\*\*Affected platforms:\*\*/);
+        expect(md).toMatch(/^- Client: Windows 11, version 25H2; Windows 11, version 24H2$/m);
+        expect(md).toMatch(/^- Server: Windows Server 2025$/m);
+    });
+
     test('normal link outside heading still converted when images excluded', async () => {
         const html = '<p>Visit <a href="https://example.org/path?q=1">Example</a> now.</p><img src="x.png" alt="X">';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: false });

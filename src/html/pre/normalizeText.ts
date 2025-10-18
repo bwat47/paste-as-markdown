@@ -1,14 +1,17 @@
 /**
  * Normalize text characters commonly found in rich document sources:
  * - Various NBSP representations to regular spaces
+ * - Zero-width space variants to regular spaces
  * - Word/Office smart quotes to regular quotes (optional)
  * - Other problematic encoded characters
  * Skips code elements to preserve literal character examples.
  */
 export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: boolean = true): void {
     const nbspPattern = /[Â\u00A0]|&nbsp;/;
+    const zeroWidthPattern = /[\u200B\u200C\u200D\u2060\uFEFF]/;
     const quotePattern = /&#8220|&#8221|&#8216|&#8217|[\u201C\u201D\u2018\u2019]/;
-    const bailOutPattern = normalizeQuotes ? new RegExp(`${nbspPattern.source}|${quotePattern.source}`) : nbspPattern;
+    const basePattern = new RegExp(`${nbspPattern.source}|${zeroWidthPattern.source}`);
+    const bailOutPattern = normalizeQuotes ? new RegExp(`${basePattern.source}|${quotePattern.source}`) : basePattern;
     const snapshot = body.innerHTML;
     if (!bailOutPattern.test(snapshot)) return;
 
@@ -35,7 +38,8 @@ export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: bool
         let normalizedText = originalText
             .replace(/Â\s/g, ' ')
             .replace(/\u00A0/g, ' ')
-            .replace(/&nbsp;/g, ' ');
+            .replace(/&nbsp;/g, ' ')
+            .replace(/[\u200B\u200C\u200D\u2060\uFEFF]+/g, ' ');
 
         if (normalizeQuotes) {
             normalizedText = normalizedText
