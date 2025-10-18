@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
-import { normalizeCodeBlocks } from './codeBlocks';
-import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
+import { normalizeCodeBlocks } from '../html/post/codeBlocks';
+import { neutralizeCodeBlocksPreSanitize } from '../html/pre/codeNeutralize';
 
 describe('normalizeCodeBlocks', () => {
     it('unwraps tables that are mistakenly wrapped in pre elements', () => {
