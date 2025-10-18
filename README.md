@@ -25,7 +25,9 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 - **Image Handling** - Keep remote/base64 encoded images as-is, convert images to Joplin resources, or remove images entirely.
 
-- **DOM preprocessing** - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements before turndown conversion (empty permalink anchors, permalink symbols in headings, bold text inside headings, UI elements, exotic image attributes, etc...).
+- **DOM preprocessing** - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements before turndown conversion.
+    - **Heading normalization** - Unwraps headings from anchors and removes elements like permalink symbols, bold text and block level wrappers so that turndown emits a clean markdown heading.
+
     - **Code block normalization** - Improved reliability when pasting code blocks. Normalizes known code block wrappers/containers to simple `<code>`/`<pre>` and infers language from common class patterns and applies a normalized class="language-xxx".
 
     - **Text normalization** - Normalizes nbsp and zero width space characters to regular spaces. (Optionally) normalizes smart quotes to regular quotes.
