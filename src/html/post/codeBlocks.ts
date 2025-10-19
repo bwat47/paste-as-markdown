@@ -28,6 +28,7 @@ export function markNbspOnlyInlineCode(body: HTMLElement): void {
 }
 
 export function normalizeCodeBlocks(body: HTMLElement): void {
+    convertCodeMirrorEditors(body);
     const pres = findAndUnwrapCodeBlocks(body);
     pres.forEach((pre) => {
         if (unwrapTableWrappedPre(pre)) {
@@ -43,6 +44,64 @@ export function normalizeCodeBlocks(body: HTMLElement): void {
         }
         normalizeLanguageClass(pre, code);
     });
+}
+
+function convertCodeMirrorEditors(body: HTMLElement): void {
+    const editors = Array.from(body.querySelectorAll('.cm-editor')) as HTMLElement[];
+    editors.forEach((editor) => {
+        const content = editor.querySelector('.cm-content') as HTMLElement | null;
+        if (!content) return;
+        const lineElements = Array.from(content.querySelectorAll('.cm-line')) as HTMLElement[];
+        if (lineElements.length === 0) return;
+
+        const lines = lineElements.map((line) => extractCodeMirrorLineText(line));
+        const meaningfulContent = lines.some((line) => line.trim() !== '');
+        if (!meaningfulContent) return;
+
+        const documentRef = editor.ownerDocument;
+        const pre = documentRef.createElement('pre');
+        const code = documentRef.createElement('code');
+        code.textContent = lines.join('\n');
+        pre.appendChild(code);
+
+        const languageHint = (
+            content.getAttribute('data-language') ||
+            editor.getAttribute('data-language') ||
+            ''
+        ).trim();
+        if (languageHint) {
+            const sanitizedHint = languageHint.replace(/^(text|application)\//i, '');
+            const normalized =
+                normalizeLangAlias(sanitizedHint) ||
+                (sanitizedHint.match(/^[a-z0-9+#_.-]{1,40}$/i) ? sanitizedHint.toLowerCase() : null);
+            if (normalized) {
+                pre.setAttribute('data-pam-wrapper-classes', `language-${normalized}`);
+            }
+        }
+
+        const parent = editor.parentElement;
+        if (parent && onlyContains(parent, editor)) {
+            parent.replaceWith(pre);
+        } else {
+            editor.replaceWith(pre);
+        }
+    });
+}
+
+function extractCodeMirrorLineText(line: HTMLElement): string {
+    let text = '';
+    for (const node of Array.from(line.childNodes)) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            text += node.textContent || '';
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node as HTMLElement;
+            if (el.tagName.toLowerCase() === 'br') {
+                continue;
+            }
+            text += extractCodeMirrorLineText(el);
+        }
+    }
+    return text;
 }
 
 function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
