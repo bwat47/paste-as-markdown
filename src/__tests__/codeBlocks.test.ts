@@ -56,7 +56,6 @@ describe('normalizeCodeBlocks', () => {
         expect(code?.textContent).toContain('const object = { a: 1, b: 2 };');
         expect(code?.textContent).toContain('for (const property in object) {');
         expect(code?.textContent).toContain('console.log(`${property}: ${object[property]}`);');
-        expect(code?.classList.contains('language-javascript')).toBe(true);
         expect(document.querySelector('.cm-editor')).toBeNull();
     });
 });

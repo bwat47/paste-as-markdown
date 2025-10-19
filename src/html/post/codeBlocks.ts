@@ -64,21 +64,6 @@ function convertCodeMirrorEditors(body: HTMLElement): void {
         code.textContent = lines.join('\n');
         pre.appendChild(code);
 
-        const languageHint = (
-            content.getAttribute('data-language') ||
-            editor.getAttribute('data-language') ||
-            ''
-        ).trim();
-        if (languageHint) {
-            const sanitizedHint = languageHint.replace(/^(text|application)\//i, '');
-            const normalized =
-                normalizeLangAlias(sanitizedHint) ||
-                (sanitizedHint.match(/^[a-z0-9+#_.-]{1,40}$/i) ? sanitizedHint.toLowerCase() : null);
-            if (normalized) {
-                pre.setAttribute('data-pam-wrapper-classes', `language-${normalized}`);
-            }
-        }
-
         const parent = editor.parentElement;
         if (parent && onlyContains(parent, editor)) {
             parent.replaceWith(pre);
