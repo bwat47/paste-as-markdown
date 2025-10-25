@@ -1,5 +1,12 @@
 # Repository Guidelines
 
+## Internal Project Documentation
+
+ARCHITECTURE.md
+
+- Keep up to date with architecture changes when applicable.
+- Keep this document concise, it's meant for LLMs to reference.
+
 ## Project overview/architecture documentation: ARCHITECTURE.md
 
 ## Project Structure & Module Organization
