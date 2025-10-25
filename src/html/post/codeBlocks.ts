@@ -261,8 +261,11 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
     if (tag !== 'div' && tag !== 'span') {
         return null;
     }
-    const raw = normalizeNbsp(element.textContent);
-    const trimmed = raw.trim();
+    const content = element.textContent ?? '';
+    if (!content) {
+        return null;
+    }
+    const trimmed = normalizeNbsp(content).trim();
     if (!trimmed) {
         return null;
     }
@@ -281,7 +284,8 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
 }
 
 function hasMeaningfulText(element: HTMLElement): boolean {
-    const text = normalizeNbsp(element.textContent).trim();
+    const content = element.textContent ?? '';
+    const text = normalizeNbsp(content).trim();
     return text.length > 0;
 }
 
@@ -292,7 +296,8 @@ function removeEmptyAncestors(start: HTMLElement): void {
             break;
         }
         if (current.children.length > 0) break;
-        const text = normalizeNbsp(current.textContent).trim();
+        const content = current.textContent ?? '';
+        const text = normalizeNbsp(content).trim();
         if (text) break;
         const parent = current.parentElement as HTMLElement | null;
         current.remove();
