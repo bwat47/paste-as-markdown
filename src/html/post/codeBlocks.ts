@@ -291,22 +291,13 @@ function removeEmptyAncestors(start: HTMLElement): void {
         if (current.tagName === 'BODY' || current.tagName === 'HTML') {
             break;
         }
-        if (current.children.length > 0) {
-            break;
-        }
+        if (current.children.length > 0) break;
         const text = current.textContent ? current.textContent.replace(/\u00A0/g, ' ').trim() : '';
-        if (text) {
-            break;
-        }
+        if (text) break;
         const parent = current.parentElement as HTMLElement | null;
         current.remove();
-        if (!parent) {
-            break;
-        }
-        if (parent.children.length > 0 || (parent.textContent && parent.textContent.replace(/\u00A0/g, ' ').trim())) {
-            break;
-        }
         current = parent;
+        if (!current) break;
     }
 }
 
