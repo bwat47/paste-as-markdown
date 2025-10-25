@@ -36,7 +36,7 @@
         "fs-extra": "^11.3.2",
         "glob": "^8.0.3",
         "jest": "^30.2.0",
-        "jsdom": "27.0.0",
+        "jsdom": "^27.0.1",
         "prettier": "^3.6.2",
         "tar": "^6.1.11",
         "ts-jest": "^29.4.5",
@@ -49,6 +49,9 @@
         "@bwat47/turndown-plugin-gfm": "1.0.5",
         "@joplin/utils": "^3.5.1",
         "dompurify": "^3.3.0",
-        "turndown": "7.2.1"
+        "turndown": "7.2.2"
+    },
+    "overrides": {
+        "parse5": "^7.3.0"
     }
 }
