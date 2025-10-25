@@ -1,6 +1,6 @@
 {
     "name": "joplin-plugin-paste-as-markdown",
-    "version": "1.0.33",
+    "version": "1.0.34",
     "scripts": {
         "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
         "prepare": "npm run dist",
