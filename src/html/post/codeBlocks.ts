@@ -261,7 +261,7 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
     if (tag !== 'div' && tag !== 'span') {
         return null;
     }
-    const raw = element.textContent ? element.textContent.replace(/\u00A0/g, ' ') : '';
+    const raw = normalizeNbsp(element.textContent);
     const trimmed = raw.trim();
     if (!trimmed) {
         return null;
@@ -281,7 +281,7 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
 }
 
 function hasMeaningfulText(element: HTMLElement): boolean {
-    const text = element.textContent ? element.textContent.replace(/\u00A0/g, ' ').trim() : '';
+    const text = normalizeNbsp(element.textContent).trim();
     return text.length > 0;
 }
 
@@ -292,7 +292,7 @@ function removeEmptyAncestors(start: HTMLElement): void {
             break;
         }
         if (current.children.length > 0) break;
-        const text = current.textContent ? current.textContent.replace(/\u00A0/g, ' ').trim() : '';
+        const text = normalizeNbsp(current.textContent).trim();
         if (text) break;
         const parent = current.parentElement as HTMLElement | null;
         current.remove();
@@ -404,4 +404,8 @@ function normalizeLangAlias(raw: string): string | null {
         return null;
     }
     return l;
+}
+
+function normalizeNbsp(text: string | null | undefined): string {
+    return (text ?? '').replace(/\u00A0/g, ' ');
 }
