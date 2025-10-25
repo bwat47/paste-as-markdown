@@ -231,8 +231,12 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
 function consumeLanguageLabel(pre: HTMLElement): string | null {
     let current: HTMLElement | null = pre;
     for (let depth = 0; depth < 3 && current; depth++) {
-        let sibling = current.previousElementSibling as HTMLElement | null;
+        let sibling: Element | null = current.previousElementSibling;
         while (sibling) {
+            if (!isHtmlElement(sibling)) {
+                sibling = sibling.previousElementSibling;
+                continue;
+            }
             const language = extractLanguageFromLabelElement(sibling);
             if (language) {
                 const parent = sibling.parentElement as HTMLElement | null;
@@ -245,7 +249,7 @@ function consumeLanguageLabel(pre: HTMLElement): string | null {
             if (hasMeaningfulText(sibling)) {
                 return null;
             }
-            sibling = sibling.previousElementSibling as HTMLElement | null;
+            sibling = sibling.previousElementSibling;
         }
         const parent = current.parentElement as HTMLElement | null;
         if (!parent || !onlyContains(parent, current)) {
@@ -413,4 +417,15 @@ function normalizeLangAlias(raw: string): string | null {
 
 function normalizeNbsp(text: string | null | undefined): string {
     return (text ?? '').replace(/\u00A0/g, ' ');
+}
+
+function isHtmlElement(node: Element): node is HTMLElement {
+    const view = node.ownerDocument?.defaultView;
+    if (view && view.HTMLElement) {
+        return node instanceof view.HTMLElement;
+    }
+    if (typeof HTMLElement !== 'undefined') {
+        return node instanceof HTMLElement;
+    }
+    return 'tagName' in node && typeof (node as Partial<HTMLElement>).classList !== 'undefined';
 }
