@@ -258,6 +258,8 @@ function isEmptyCodeBlock(code: HTMLElement): boolean {
 function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
     const labelLanguage = consumeLanguageLabel(pre);
     const languageFromClasses = inferLanguageFromClasses(pre, code);
+    // Priority: class-based detection > label-based detection
+    // Rationale: Classes are explicit semantic markers, labels might be decorative headers
     const language = languageFromClasses ?? labelLanguage;
     // Remove existing language markers regardless of inference result so we don't leak invalid fences
     const cleaned = code.className
