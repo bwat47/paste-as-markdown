@@ -58,4 +58,28 @@ describe('normalizeCodeBlocks', () => {
         expect(code?.textContent).toContain('console.log(`${property}: ${object[property]}`);');
         expect(document.querySelector('.cm-editor')).toBeNull();
     });
+
+    it('removes adjacent language labels before code blocks and applies the language class', () => {
+        const dom = new JSDOM(
+            [
+                '<!doctype html><body>',
+                '<div dir="auto">',
+                '  <div data-testid="code-block">',
+                '    <div><span>TypeScript</span></div>',
+                '    <div><div><div></div></div></div>',
+                '    <div><pre tabindex="0"><code>const value = 42;</code></pre></div>',
+                '  </div>',
+                '</div>',
+                '</body>',
+            ].join('')
+        );
+        const { document } = dom.window;
+
+        normalizeCodeBlocks(document.body);
+
+        const code = document.querySelector('pre code') as HTMLElement | null;
+        expect(code).not.toBeNull();
+        expect(code?.classList.contains('language-typescript')).toBe(true);
+        expect(document.body.innerHTML).not.toContain('TypeScript');
+    });
 });

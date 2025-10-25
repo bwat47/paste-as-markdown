@@ -209,7 +209,9 @@ function isEmptyCodeBlock(code: HTMLElement): boolean {
 }
 
 function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
-    const language = inferLanguageFromClasses(pre, code);
+    const labelLanguage = consumeLanguageLabel(pre);
+    const languageFromClasses = inferLanguageFromClasses(pre, code);
+    const language = languageFromClasses ?? labelLanguage;
     // Remove existing language markers regardless of inference result so we don't leak invalid fences
     const cleaned = code.className
         .split(/\s+/)
@@ -223,6 +225,88 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
     if (!language) return;
     if (!code.classList.contains(`language-${language}`)) {
         code.classList.add(`language-${language}`);
+    }
+}
+
+function consumeLanguageLabel(pre: HTMLElement): string | null {
+    let current: HTMLElement | null = pre;
+    for (let depth = 0; depth < 3 && current; depth++) {
+        let sibling = current.previousElementSibling as HTMLElement | null;
+        while (sibling) {
+            const language = extractLanguageFromLabelElement(sibling);
+            if (language) {
+                const parent = sibling.parentElement as HTMLElement | null;
+                sibling.remove();
+                if (parent) {
+                    removeEmptyAncestors(parent);
+                }
+                return language;
+            }
+            if (hasMeaningfulText(sibling)) {
+                return null;
+            }
+            sibling = sibling.previousElementSibling as HTMLElement | null;
+        }
+        const parent = current.parentElement as HTMLElement | null;
+        if (!parent || !onlyContains(parent, current)) {
+            break;
+        }
+        current = parent;
+    }
+    return null;
+}
+
+function extractLanguageFromLabelElement(element: HTMLElement): string | null {
+    const tag = element.tagName.toLowerCase();
+    if (tag !== 'div' && tag !== 'span') {
+        return null;
+    }
+    const raw = element.textContent ? element.textContent.replace(/\u00A0/g, ' ') : '';
+    const trimmed = raw.trim();
+    if (!trimmed) {
+        return null;
+    }
+    const withoutTrailingColon = trimmed.replace(/[:：]+$/, '').trim();
+    if (!withoutTrailingColon || /\s/.test(withoutTrailingColon)) {
+        return null;
+    }
+    const normalized = normalizeLangAlias(withoutTrailingColon);
+    if (!normalized) {
+        return null;
+    }
+    if (!isHighlightLanguage(normalized)) {
+        return null;
+    }
+    return normalized;
+}
+
+function hasMeaningfulText(element: HTMLElement): boolean {
+    const text = element.textContent ? element.textContent.replace(/\u00A0/g, ' ').trim() : '';
+    return text.length > 0;
+}
+
+function removeEmptyAncestors(start: HTMLElement): void {
+    let current: HTMLElement | null = start;
+    for (let depth = 0; depth < 3 && current; depth++) {
+        if (current.tagName === 'BODY' || current.tagName === 'HTML') {
+            break;
+        }
+        if (current.children.length > 0) {
+            break;
+        }
+        const text = current.textContent ? current.textContent.replace(/\u00A0/g, ' ').trim() : '';
+        if (text) {
+            break;
+        }
+        const parent = current.parentElement as HTMLElement | null;
+        current.remove();
+        if (!parent) {
+            break;
+        }
+        if (parent.children.length > 0 || (parent.textContent && parent.textContent.replace(/\u00A0/g, ' ').trim())) {
+            break;
+        }
+        current = parent;
     }
 }
 
