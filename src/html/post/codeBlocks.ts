@@ -200,12 +200,8 @@ function removeAdjacentUIContainers(pre: HTMLElement): void {
         if (!isUiToolbarWrapper(sibling)) {
             break;
         }
-        const parent = sibling.parentElement;
         sibling.remove();
         attempts += 1;
-        if (parent && parent !== pre.parentElement && onlyContains(parent, pre)) {
-            pre = parent;
-        }
         sibling = pre.previousElementSibling;
     }
 }
