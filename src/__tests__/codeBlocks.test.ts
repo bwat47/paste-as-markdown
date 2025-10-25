@@ -82,4 +82,31 @@ describe('normalizeCodeBlocks', () => {
         expect(code?.classList.contains('language-typescript')).toBe(true);
         expect(document.body.innerHTML).not.toContain('TypeScript');
     });
+
+    it('removes sibling copy toolbars that precede the code block', () => {
+        const dom = new JSDOM(
+            [
+                '<!doctype html><body>',
+                '<div class="evo-codeheader">',
+                '  <div class="code-header d-flex align-items-center justify-content-end gap-4">',
+                '    <span class="language"></span>',
+                '    <button class="copy-button d-flex align-items-center">Copy</button>',
+                '  </div>',
+                '</div>',
+                '<pre class="prettyprint language-typescript" tabindex="0">',
+                '  <code>console.log("hello");</code>',
+                '</pre>',
+                '</body>',
+            ].join('')
+        );
+        const { document } = dom.window;
+
+        normalizeCodeBlocks(document.body);
+
+        expect(document.querySelector('button.copy-button')).toBeNull();
+        const pre = document.querySelector('pre');
+        expect(pre).not.toBeNull();
+        const code = pre?.querySelector('code');
+        expect(code?.textContent).toContain('console.log("hello");');
+    });
 });

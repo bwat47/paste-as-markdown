@@ -36,6 +36,7 @@ export function normalizeCodeBlocks(body: HTMLElement): void {
         }
         ensureCodeElement(pre);
         removeUIElements(pre);
+        removeAdjacentUIContainers(pre);
         const code = pre.querySelector('code')!;
         trimCodeWhitespace(code);
         if (isEmptyCodeBlock(code)) {
@@ -186,6 +187,52 @@ function shouldRemoveUIElement(element: Element): boolean {
         element.tagName === 'DIV' ||
         element.tagName === 'BUTTON'
     );
+}
+
+function removeAdjacentUIContainers(pre: HTMLElement): void {
+    let sibling: Element | null = pre.previousElementSibling;
+    let attempts = 0;
+    while (sibling && attempts < 3) {
+        if (!isHtmlElement(sibling)) {
+            sibling = sibling.previousElementSibling;
+            continue;
+        }
+        if (!isUiToolbarWrapper(sibling)) {
+            break;
+        }
+        const parent = sibling.parentElement;
+        sibling.remove();
+        attempts += 1;
+        if (parent && parent !== pre.parentElement && onlyContains(parent, pre)) {
+            pre = parent;
+        }
+        sibling = pre.previousElementSibling;
+    }
+}
+
+function isUiToolbarWrapper(element: HTMLElement): boolean {
+    if (element.querySelector('pre, code')) {
+        return false;
+    }
+    const className = element.className || '';
+    if (
+        /\b(copy|clipboard|code[-_]?header|code[-_]?toolbar|snippet-controls|code-actions|toolbar)\b/i.test(className)
+    ) {
+        return true;
+    }
+    const button = element.querySelector('button, [role="button"]') as HTMLElement | null;
+    if (button) {
+        const buttonClasses = button.className || '';
+        if (/\bcopy|clipboard\b/i.test(buttonClasses)) {
+            return true;
+        }
+        const label = normalizeNbsp(button.textContent).trim().toLowerCase();
+        if (label === 'copy' || label.startsWith('copy ')) {
+            return true;
+        }
+    }
+    const text = normalizeNbsp(element.textContent).trim().toLowerCase();
+    return text === 'copy' || text === 'copy code';
 }
 
 function trimCodeWhitespace(code: HTMLElement): void {
