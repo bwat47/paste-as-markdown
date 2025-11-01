@@ -442,7 +442,6 @@ function normalizeLangAlias(raw: string): string | null {
         plain_text: 'txt',
         plaintext: 'txt',
         text: 'txt',
-        txt: 'txt',
         default: null,
         none: null,
         auto: null,
