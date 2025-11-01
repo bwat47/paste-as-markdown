@@ -4,8 +4,8 @@ import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
 import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
-import { normalizeHeadingStructure } from '../pre/headingCleanup';
 import { removeEmptyAnchors, cleanHeadingAnchors } from '../post/anchors';
+import { stripHeadingFormatting } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
 import { fixOrphanNestedLists, unwrapCheckboxParagraphs } from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
@@ -27,12 +27,6 @@ const PRE_SANITIZE_PASSES: readonly ProcessingPass[] = [
         phase: 'pre-sanitize',
         priority: 20,
         execute: (body) => removeNonContentUi(body),
-    },
-    {
-        name: 'Heading structure normalization',
-        phase: 'pre-sanitize',
-        priority: 25,
-        execute: (body) => normalizeHeadingStructure(body),
     },
     {
         name: 'Image sizing promotion',
@@ -73,6 +67,12 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         phase: 'post-sanitize',
         priority: 20,
         execute: (body) => cleanHeadingAnchors(body),
+    },
+    {
+        name: 'Post-sanitize plain heading text enforcement',
+        phase: 'post-sanitize',
+        priority: 22,
+        execute: (body) => stripHeadingFormatting(body),
     },
     {
         name: 'Post-sanitize checkbox paragraph unwrap',

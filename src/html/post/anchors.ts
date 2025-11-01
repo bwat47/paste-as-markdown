@@ -9,10 +9,8 @@ const MEDIA_TAGS = new Set(['img', 'picture', 'source']);
  */
 function analyzeAnchor(node: HTMLElement): {
     isPermalink: boolean;
-    insideHeading: boolean;
     wrapsHeading: boolean;
 } {
-    const parent = node.parentElement;
     const clsRaw = node.getAttribute('class') || '';
     const classes = clsRaw ? clsRaw.split(/\s+/).filter(Boolean) : [];
     const hasAnchorClass = classes.includes('anchor');
@@ -35,10 +33,9 @@ function analyzeAnchor(node: HTMLElement): {
         isPermalinkClass &&
         (isPermalinkHref || isPermalinkId) &&
         (text.length === 0 || isPermalinkText || isPermalinkTitle);
-    const insideHeading = !!parent && /^H[1-6]$/.test(parent.nodeName);
     const headingChild = node.firstElementChild;
     const wrapsHeading = !!headingChild && /^H[1-6]$/.test(headingChild.tagName) && onlyContains(node, headingChild);
-    return { isPermalink, insideHeading, wrapsHeading };
+    return { isPermalink, wrapsHeading };
 }
 
 function hasMeaningfulDescendant(element: Element, options: PasteOptions): boolean {
@@ -94,11 +91,9 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
 export function cleanHeadingAnchors(body: HTMLElement): void {
     const anchors = body.querySelectorAll('a');
     anchors.forEach((anchor) => {
-        const { isPermalink, insideHeading, wrapsHeading } = analyzeAnchor(anchor as HTMLElement);
+        const { isPermalink, wrapsHeading } = analyzeAnchor(anchor as HTMLElement);
         if (isPermalink) {
             anchor.remove();
-        } else if (insideHeading) {
-            unwrapElement(anchor as HTMLElement);
         } else if (wrapsHeading) {
             const heading = anchor.firstElementChild as HTMLElement | null;
             if (heading) {
