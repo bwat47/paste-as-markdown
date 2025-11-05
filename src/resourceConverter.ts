@@ -139,7 +139,7 @@ export async function convertImagesToResources(
 export function standardizeRemainingImages(body: HTMLElement): void {
     const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
     imgs.forEach((img) => {
-        if (img.hasAttribute('data-pam-converted')) return; // attributes are already standardized before data-pam-converted is added
+        if (img.hasAttribute('data-pam-converted')) return; // attributes are already standardized for converted resources
         const src = img.getAttribute('src') || '';
         const filename = deriveOriginalFilename(src) || 'image';
         standardizeImageElement(img, filename);
