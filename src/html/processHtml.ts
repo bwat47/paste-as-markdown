@@ -250,12 +250,26 @@ export async function processHtml(
         // ====================================================================
         // Global Error Handler: Attempt Secure Fallback
         // ====================================================================
-        logger.warn('HTML processing failed, evaluating secure fallback', err);
+
+        // HtmlProcessingError means we already showed a toast via notifyFailure()
+        // Rethrowing prevents duplicate toasts and preserves the error context
+        if (err instanceof HtmlProcessingError) {
+            throw err;
+        }
+
+        // Unexpected error - attempt graceful degradation with fallbacks
+        logger.warn('Unexpected error in HTML processing, attempting secure fallback', err);
+
+        // Try sanitized HTML fallback if we have it
         if (sanitizedHtml !== null) {
             return createSanitizedOnlyResult(sanitizedHtml)!;
         }
+
+        // Try best-effort sanitization as last resort
         const fallback = await attemptSanitizedFallback(html, options.includeImages);
         if (fallback) return fallback;
+
+        // All fallbacks exhausted - show error toast
         return await notifyFailure('sanitize-failed');
     }
 }
