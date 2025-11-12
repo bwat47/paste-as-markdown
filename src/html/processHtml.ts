@@ -273,7 +273,8 @@ export async function processHtml(
 
         // Try sanitized HTML fallback if we have it
         if (sanitizedHtml !== null) {
-            return createSanitizedOnlyResult(sanitizedHtml)!;
+            const result = createSanitizedOnlyResult(sanitizedHtml);
+            if (result) return result;
         }
 
         // Try best-effort sanitization as last resort
