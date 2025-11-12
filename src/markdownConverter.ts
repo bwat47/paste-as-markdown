@@ -110,14 +110,15 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
 }
 
 /**
- * Converts clipboard HTML into Markdown by running the project’s end-to-end pipeline:
+ * Converts clipboard HTML into Markdown by running the project's end-to-end pipeline:
  * wraps orphaned tables, sanitizes and normalizes the DOM, feeds the result through Turndown,
  * and performs final Markdown cleanup.
  *
  * @param html Raw HTML fragment captured from the clipboard.
  * @param options Paste behavior flags. Supports `includeImages`, `convertImagesToResources`,
  * `normalizeQuotes`, `forceTightLists`, and `isGoogleDocs` to tailor preprocessing.
- * @returns Markdown output alongside resource metadata and a plain-text fallback indicator.
+ * @returns Markdown output alongside resource metadata and a degraded processing indicator.
+ * The `plainTextFallback` field indicates degraded processing (processed as HTML string rather than DOM).
  */
 export async function convertHtmlToMarkdown(
     html: string,
@@ -143,12 +144,16 @@ export async function convertHtmlToMarkdown(
     };
     const processed = await processHtml(input, pasteOptions, isGoogleDocs);
 
-    const turndownInput = (processed.body ?? processed.sanitizedHtml ?? '') as Parameters<
-        TurndownService['turndown']
-    >[0];
+    // Determine if processing was degraded (no DOM body, only sanitized HTML string)
+    const isDegraded = processed.body === null;
+
+    // Get input for Turndown: prefer DOM body, fallback to sanitized HTML string
+    const turndownInput = processed.body ?? processed.sanitizedHtml;
 
     if (!turndownInput) {
-        return { markdown: '', resources: processed.resources, plainTextFallback: false };
+        // Both body and sanitizedHtml are null/empty - this violates ProcessHtmlResult invariant
+        // Return empty markdown rather than crashing
+        return { markdown: '', resources: processed.resources, plainTextFallback: true };
     }
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
@@ -158,7 +163,7 @@ export async function convertHtmlToMarkdown(
     // Post-process the markdown for final cleanup
     markdown = cleanupMarkdown(markdown, forceTightLists);
 
-    return { markdown, resources: processed.resources, plainTextFallback: false };
+    return { markdown, resources: processed.resources, plainTextFallback: isDegraded };
 }
 
 /**
