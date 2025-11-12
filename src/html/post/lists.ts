@@ -71,3 +71,64 @@ export function unwrapCheckboxParagraphs(body: HTMLElement): void {
         listItem.removeChild(paragraph);
     });
 }
+
+/**
+ * Some editors (e.g., OneNote) wrap ordered lists inside unordered list tags, producing
+ * invalid HTML like: <ul><p>...</p><ol>...</ol></ul>
+ *
+ * According to the HTML spec, <ul> and <ol> elements can only contain <li> elements
+ * as direct children. When Turndown encounters these invalid wrappers, it produces
+ * incorrect Markdown like "- 1. item" (both UL and OL markers).
+ *
+ * This helper detects and unwraps such invalid list wrappers by promoting their
+ * children to siblings, allowing proper conversion. It also unwraps any orphaned
+ * <li> elements that end up outside of a list after unwrapping.
+ */
+export function unwrapInvalidListWrappers(body: HTMLElement): void {
+    // Convert to array to avoid live collection issues during DOM modification
+    const lists = Array.from(body.querySelectorAll<HTMLElement>('ul, ol'));
+
+    lists.forEach((list) => {
+        const children = Array.from(list.children);
+
+        // Check if any direct children are not <li> elements (which is invalid HTML)
+        const hasInvalidChildren = children.some((child) => child.tagName !== LI_TAG);
+
+        // Check if this list has ANY valid <li> children
+        const hasAnyValidChildren = children.some((child) => child.tagName === LI_TAG);
+
+        // Only unwrap if the list has invalid children AND no valid children.
+        // This means it's a pure wrapper (e.g., <ul><p>...</p><ol>...</ol></ul>).
+        // If it has SOME valid children, it's a real list with orphaned sublists,
+        // which should be handled by fixOrphanNestedLists instead.
+        if (!hasInvalidChildren || hasAnyValidChildren) return;
+
+        const parent = list.parentElement;
+        if (!parent) return;
+
+        // Unwrap: move all children to be siblings of the invalid list wrapper
+        while (list.firstChild) {
+            parent.insertBefore(list.firstChild, list);
+        }
+
+        // Remove the now-empty invalid wrapper
+        parent.removeChild(list);
+    });
+
+    // After unwrapping invalid lists, we may have orphaned <li> elements that are no longer
+    // inside a list. These should also be unwrapped to avoid incorrect Markdown conversion.
+    const orphanedListItems = Array.from(body.querySelectorAll<HTMLElement>('li'));
+    orphanedListItems.forEach((li) => {
+        const parent = li.parentElement;
+        if (!parent) return;
+
+        // If the <li> is inside a <ul> or <ol>, it's not orphaned
+        if (LIST_TAGS.has(parent.tagName)) return;
+
+        // This <li> is orphaned - unwrap it
+        while (li.firstChild) {
+            parent.insertBefore(li.firstChild, li);
+        }
+        parent.removeChild(li);
+    });
+}

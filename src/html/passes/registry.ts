@@ -7,7 +7,7 @@ import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
 import { removeEmptyAnchors, cleanHeadingAnchors } from '../post/anchors';
 import { stripHeadingFormatting } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
-import { fixOrphanNestedLists, unwrapCheckboxParagraphs } from '../post/lists';
+import { fixOrphanNestedLists, unwrapCheckboxParagraphs, unwrapInvalidListWrappers } from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { standardizeRemainingImages } from '../../resourceConverter';
@@ -79,6 +79,12 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         phase: 'post-sanitize',
         priority: 23,
         execute: (body) => unwrapCheckboxParagraphs(body),
+    },
+    {
+        name: 'Post-sanitize invalid list wrapper unwrap',
+        phase: 'post-sanitize',
+        priority: 24,
+        execute: (body) => unwrapInvalidListWrappers(body),
     },
     {
         name: 'Post-sanitize orphaned sub-list fix',
