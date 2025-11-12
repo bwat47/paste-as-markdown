@@ -7,6 +7,11 @@
  * - Post-sanitize/image passes fail gracefully, falling back to sanitized HTML.
  * - Pass execution order is centralized in `passes/registry.ts`.
  *
+ * Error handling contract:
+ * - Throws HtmlProcessingError when processing cannot proceed (missing DOM APIs or sanitization failure)
+ * - Callers should catch HtmlProcessingError, show appropriate toast, and attempt plain text fallback
+ * - Never returns unsafe/unsanitized HTML
+ *
  * See processHtml() function below for the 8-phase pipeline structure.
  */
 
@@ -40,6 +45,15 @@ const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
     'sanitize-failed': TOAST_MESSAGES.HTML_PROCESSING_FAILED,
 };
 
+/**
+ * Thrown when HTML processing cannot proceed due to missing prerequisites
+ * (DOM APIs unavailable) or sanitization failure.
+ *
+ * Callers should:
+ * 1. Show an appropriate error toast to the user
+ * 2. Attempt plain text fallback
+ * 3. Return a ConversionFailure result
+ */
 export class HtmlProcessingError extends Error {
     readonly reason: HtmlProcessingFailureReason;
 
@@ -210,6 +224,7 @@ export async function processHtml(
         if (!body) {
             logger.warn('Sanitized HTML lacked <body>, using sanitized HTML fallback.');
             const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
+            // Defensive check: sanitizedHtml was just set in Phase 3, so this should never be null
             if (fallbackResult) return fallbackResult;
             notifyFailure('sanitize-failed');
         }
@@ -228,6 +243,7 @@ export async function processHtml(
         } catch (err) {
             logger.warn('Image resource conversion failed, using sanitized HTML fallback', err);
             const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
+            // Defensive check: sanitizedHtml was set in Phase 3, so this should never be null
             if (fallbackResult) return fallbackResult;
             notifyFailure('sanitize-failed');
         }

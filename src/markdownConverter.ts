@@ -151,8 +151,8 @@ export async function convertHtmlToMarkdown(
     const turndownInput = processed.body ?? processed.sanitizedHtml;
 
     if (!turndownInput) {
-        // Both body and sanitizedHtml are null/empty - this violates ProcessHtmlResult invariant
-        // Return empty markdown rather than crashing
+        // Both body and sanitizedHtml are null/empty - this shouldn't happen per processHtml's contract
+        // (it either returns valid result or throws HtmlProcessingError), but handle gracefully
         return { markdown: '', resources: processed.resources, degradedProcessing: true };
     }
 
