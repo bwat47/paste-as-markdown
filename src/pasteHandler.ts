@@ -140,7 +140,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
         // Log degraded processing for debugging
         if (degradedProcessing) {
-            logger.debug('HTML conversion used degraded string-based processing (no DOM available)');
+            logger.debug('HTML conversion used degraded string-based processing (sanitized HTML fallback)');
         }
 
         // Add Google Docs indicator to success message for debugging

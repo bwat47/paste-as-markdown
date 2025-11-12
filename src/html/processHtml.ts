@@ -264,8 +264,6 @@ export async function processHtml(
         // Global Error Handler: Attempt Secure Fallback
         // ====================================================================
 
-        // HtmlProcessingError means we already showed a toast via notifyFailure()
-        // Rethrowing prevents duplicate toasts and preserves the error context
         if (err instanceof HtmlProcessingError) {
             throw err;
         }
