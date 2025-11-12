@@ -98,10 +98,7 @@ describe('pasteHandler', () => {
                 forceTightLists: false,
                 isGoogleDocs: false,
             });
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [expectedMarkdown],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', expectedMarkdown);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
@@ -284,10 +281,7 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [plainText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted plain text (no HTML found)', ToastType.Info);
             expect(result).toEqual({
                 markdown: plainText,
@@ -305,10 +299,7 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [plainText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted plain text (no HTML found)', ToastType.Info);
             expect(result).toEqual({
                 markdown: plainText,
@@ -349,10 +340,7 @@ describe('pasteHandler', () => {
                 forceTightLists: false,
                 isGoogleDocs: false,
             });
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [plainText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(result).toEqual({
                 markdown: plainText,
@@ -374,10 +362,7 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [fallbackText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', fallbackText);
             // Only ONE toast: the user-facing fallback result (technical error is logged only)
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(mockShowToast).toHaveBeenCalledTimes(1);
@@ -431,10 +416,7 @@ describe('pasteHandler', () => {
 
             await handlePasteAsMarkdown();
 
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [markdown],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', markdown);
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(1);
         });
 
@@ -454,14 +436,8 @@ describe('pasteHandler', () => {
 
             await handlePasteAsMarkdown();
 
-            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(1, 'editor.execCommand', {
-                name: 'insertText',
-                args: [markdown],
-            });
-            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(2, 'editor.execCommand', {
-                name: 'replaceSelection',
-                args: [markdown],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(1, 'insertText', markdown);
+            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(2, 'replaceSelection', markdown);
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(2);
         });
 

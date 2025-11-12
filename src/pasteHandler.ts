@@ -48,14 +48,13 @@ async function readClipboardText(): Promise<string> {
 async function insertMarkdownAtCursor(markdown: string): Promise<void> {
     // First, try 'insertText'. If that fails, fall back to 'replaceSelection'.
     // This provides compatibility with different editor implementations in Joplin.
-    const attempts = [
-        { name: 'insertText', args: [markdown] },
-        { name: 'replaceSelection', args: [markdown] },
-    ];
+    // Use Joplin's high-level commands directly rather than editor.execCommand to ensure
+    // compatibility with both CodeMirror 5 (legacy) and CodeMirror 6 editors.
+    const attempts = ['insertText', 'replaceSelection'];
     let lastError: unknown;
     for (const cmd of attempts) {
         try {
-            await joplin.commands.execute('editor.execCommand', cmd);
+            await joplin.commands.execute(cmd, markdown);
             return;
         } catch (err) {
             lastError = err;
