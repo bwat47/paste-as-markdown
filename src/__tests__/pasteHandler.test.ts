@@ -378,6 +378,8 @@ describe('pasteHandler', () => {
                 name: 'insertText',
                 args: [fallbackText],
             });
+            // Now expect TWO toasts: first the error message, then the fallback success
+            expect(mockShowToast).toHaveBeenCalledWith(error.message, ToastType.Error);
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(result).toEqual({
                 markdown: fallbackText,
@@ -399,10 +401,9 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
-            expect(mockShowToast).toHaveBeenCalledWith(
-                'Paste failed: unable to process HTML or read plain text',
-                ToastType.Error
-            );
+            // Now expect TWO toasts: first the error message, then the fallback failure
+            expect(mockShowToast).toHaveBeenCalledWith(error.message, ToastType.Error);
+            expect(mockShowToast).toHaveBeenCalledWith('Plain text fallback also failed', ToastType.Error);
             expect(result).toEqual({
                 markdown: '',
                 success: false,
@@ -483,10 +484,11 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(3); // 2 failed attempts + 1 successful fallback
+            expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(result).toEqual({
                 markdown: plainText,
                 success: false,
-                warnings: ['HTML conversion failed'],
+                warnings: ['Editor insertion failed'],
                 plainTextFallback: true,
             });
         });
@@ -512,13 +514,13 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(2);
             expect(mockShowToast).toHaveBeenCalledWith(
-                'Paste failed: no HTML or plain text available',
+                'Paste failed: unable to insert content into editor',
                 ToastType.Error
             );
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                warnings: ['HTML conversion failed', 'No plain text available'],
+                warnings: ['Editor insertion failed', 'Plain text fallback also failed'],
                 plainTextFallback: true,
             });
         });

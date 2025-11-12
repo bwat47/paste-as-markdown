@@ -18,8 +18,6 @@ import { buildSanitizerConfig } from '../sanitizerConfig';
 import { getProcessingPasses } from './passes/registry';
 import { runPasses } from './passes/runner';
 import type { PassContext } from './passes/types';
-import { showToast } from '../utils';
-import { ToastType } from 'api/types';
 import logger from '../logger';
 
 export interface ProcessHtmlResult {
@@ -52,8 +50,7 @@ export class HtmlProcessingError extends Error {
     }
 }
 
-const notifyFailure = async (reason: HtmlProcessingFailureReason): Promise<never> => {
-    await showToast(FAILURE_MESSAGES[reason], ToastType.Error);
+const notifyFailure = (reason: HtmlProcessingFailureReason): never => {
     throw new HtmlProcessingError(reason);
 };
 
@@ -172,7 +169,7 @@ export async function processHtml(
     // ========================================================================
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
         logger.warn('DOM APIs unavailable; cannot process HTML safely.');
-        return await notifyFailure('dom-unavailable');
+        notifyFailure('dom-unavailable');
     }
 
     const passContext: PassContext = { isGoogleDocs };
@@ -188,7 +185,7 @@ export async function processHtml(
         if (!rawBody) {
             const fallback = await attemptSanitizedFallback(html, options.includeImages);
             if (fallback) return fallback;
-            return await notifyFailure('sanitize-failed');
+            notifyFailure('sanitize-failed');
         }
 
         // ====================================================================
@@ -203,7 +200,7 @@ export async function processHtml(
             sanitizedHtml = performSanitization(rawBody.innerHTML, options.includeImages);
         } catch (err) {
             logger.warn('Sanitization failed; no safe HTML output available', err);
-            return await notifyFailure('sanitize-failed');
+            notifyFailure('sanitize-failed');
         }
 
         // ====================================================================
@@ -214,7 +211,7 @@ export async function processHtml(
             logger.warn('Sanitized HTML lacked <body>, using sanitized HTML fallback.');
             const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
             if (fallbackResult) return fallbackResult;
-            return await notifyFailure('sanitize-failed');
+            notifyFailure('sanitize-failed');
         }
 
         // ====================================================================
@@ -232,7 +229,7 @@ export async function processHtml(
             logger.warn('Image resource conversion failed, using sanitized HTML fallback', err);
             const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
             if (fallbackResult) return fallbackResult;
-            return await notifyFailure('sanitize-failed');
+            notifyFailure('sanitize-failed');
         }
 
         // ====================================================================
@@ -273,7 +270,7 @@ export async function processHtml(
         const fallback = await attemptSanitizedFallback(html, options.includeImages);
         if (fallback) return fallback;
 
-        // All fallbacks exhausted - show error toast
-        return await notifyFailure('sanitize-failed');
+        // All fallbacks exhausted - throw error
+        notifyFailure('sanitize-failed');
     }
 }

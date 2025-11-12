@@ -107,7 +107,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
     if (!validation.isValid || !validation.value) {
         const msg = validation.error || 'Invalid settings';
         await showToast(msg, ToastType.Error);
-        return { markdown: '', success: false, warnings: [msg] };
+        return { markdown: '', success: false, warnings: [msg], plainTextFallback: false };
     }
     const options = validation.value;
 
@@ -138,7 +138,35 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             isGoogleDocs,
         });
 
-        await insertMarkdownAtCursor(markdown);
+        // Log degraded processing for debugging
+        if (degradedProcessing) {
+            logger.debug('HTML conversion used degraded string-based processing (no DOM available)');
+        }
+
+        // Add Google Docs indicator to success message for debugging
+        if (isGoogleDocs) {
+            logger.debug('Processed Google Docs content');
+        }
+
+        // Separate try-catch for editor insertion to distinguish from conversion errors
+        try {
+            await insertMarkdownAtCursor(markdown);
+        } catch (insertErr) {
+            // Conversion succeeded but insertion failed - try plain text fallback
+            logger.error('Failed to insert converted markdown, attempting plain text fallback', insertErr);
+            const fallbackResult = await attemptPlainTextFallback('Editor insertion failed');
+            if (fallbackResult) {
+                return fallbackResult;
+            }
+            // Both markdown insertion and plain text insertion failed
+            await showToast('Paste failed: unable to insert content into editor', ToastType.Error);
+            return {
+                markdown: '',
+                success: false,
+                warnings: ['Editor insertion failed', 'Plain text fallback also failed'],
+                plainTextFallback: true,
+            };
+        }
 
         let message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
         if (options.includeImages && options.convertImagesToResources) {
@@ -154,27 +182,19 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             }
         }
 
-        // Log degraded processing for debugging
-        if (degradedProcessing) {
-            logger.debug('HTML conversion used degraded string-based processing (no DOM available)');
-        }
-
-        // Add Google Docs indicator to success message for debugging
-        if (isGoogleDocs) {
-            logger.debug('Processed Google Docs content');
-        }
-
         await showToast(message, ToastType.Success);
         return { markdown, success: true, plainTextFallback: false };
     } catch (err) {
         if (err instanceof HtmlProcessingError) {
             logger.error('HTML processing prerequisites missing; aborting paste', err);
+            // Show the error message from the HtmlProcessingError
+            await showToast(err.message, ToastType.Error);
             const fallbackResult = await attemptPlainTextFallback(err.message);
             if (fallbackResult) {
                 return fallbackResult;
             }
             // Plain text fallback failed
-            await showToast('Paste failed: unable to process HTML or read plain text', ToastType.Error);
+            await showToast('Plain text fallback also failed', ToastType.Error);
             return {
                 markdown: '',
                 success: false,
