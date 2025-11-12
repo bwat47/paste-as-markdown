@@ -186,15 +186,14 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         return { markdown, success: true, plainTextFallback: false };
     } catch (err) {
         if (err instanceof HtmlProcessingError) {
+            // Technical error details logged for debugging, user sees only actionable result
             logger.error('HTML processing prerequisites missing; aborting paste', err);
-            // Show the error message from the HtmlProcessingError
-            await showToast(err.message, ToastType.Error);
             const fallbackResult = await attemptPlainTextFallback(err.message);
             if (fallbackResult) {
                 return fallbackResult;
             }
-            // Plain text fallback failed
-            await showToast('Plain text fallback also failed', ToastType.Error);
+            // Plain text fallback failed - show user-facing error
+            await showToast('Paste failed: unable to process HTML or read plain text', ToastType.Error);
             return {
                 markdown: '',
                 success: false,

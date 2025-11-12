@@ -378,9 +378,9 @@ describe('pasteHandler', () => {
                 name: 'insertText',
                 args: [fallbackText],
             });
-            // Now expect TWO toasts: first the error message, then the fallback success
-            expect(mockShowToast).toHaveBeenCalledWith(error.message, ToastType.Error);
+            // Only ONE toast: the user-facing fallback result (technical error is logged only)
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
+            expect(mockShowToast).toHaveBeenCalledTimes(1);
             expect(result).toEqual({
                 markdown: fallbackText,
                 success: false,
@@ -401,9 +401,12 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
-            // Now expect TWO toasts: first the error message, then the fallback failure
-            expect(mockShowToast).toHaveBeenCalledWith(error.message, ToastType.Error);
-            expect(mockShowToast).toHaveBeenCalledWith('Plain text fallback also failed', ToastType.Error);
+            // Only ONE toast: the user-facing error (technical error is logged only)
+            expect(mockShowToast).toHaveBeenCalledWith(
+                'Paste failed: unable to process HTML or read plain text',
+                ToastType.Error
+            );
+            expect(mockShowToast).toHaveBeenCalledTimes(1);
             expect(result).toEqual({
                 markdown: '',
                 success: false,
