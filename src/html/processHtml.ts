@@ -212,7 +212,9 @@ export async function processHtml(
         const body = parseHtmlToBody(sanitizedHtml, 'Sanitized HTML parse');
         if (!body) {
             logger.warn('Sanitized HTML lacked <body>, using sanitized HTML fallback.');
-            return createSanitizedOnlyResult(sanitizedHtml)!;
+            const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
+            if (fallbackResult) return fallbackResult;
+            return await notifyFailure('sanitize-failed');
         }
 
         // ====================================================================
@@ -228,7 +230,9 @@ export async function processHtml(
             resources = await handleImageConversion(body, options);
         } catch (err) {
             logger.warn('Image resource conversion failed, using sanitized HTML fallback', err);
-            return createSanitizedOnlyResult(sanitizedHtml)!;
+            const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
+            if (fallbackResult) return fallbackResult;
+            return await notifyFailure('sanitize-failed');
         }
 
         // ====================================================================
