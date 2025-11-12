@@ -2,7 +2,7 @@ import TurndownService from 'turndown';
 import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
 import { getGfmPlugin } from './gfmPlugin';
-import type { PasteOptions, ResourceConversionMeta } from './types';
+import type { PasteOptions, HtmlToMarkdownResult } from './types';
 
 async function createTurndownService(includeImages: boolean): Promise<TurndownService> {
     const service = new TurndownService(TURNDOWN_OPTIONS);
@@ -118,12 +118,12 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
  * @param options Paste behavior flags. Supports `includeImages`, `convertImagesToResources`,
  * `normalizeQuotes`, `forceTightLists`, and `isGoogleDocs` to tailor preprocessing.
  * @returns Markdown output alongside resource metadata and a degraded processing indicator.
- * The `plainTextFallback` field indicates degraded processing (processed as HTML string rather than DOM).
+ * The `degradedProcessing` field indicates degraded processing (processed as HTML string rather than DOM).
  */
 export async function convertHtmlToMarkdown(
     html: string,
     options: Partial<PasteOptions> & { isGoogleDocs?: boolean } = {}
-): Promise<{ markdown: string; resources: ResourceConversionMeta; plainTextFallback: boolean }> {
+): Promise<HtmlToMarkdownResult> {
     const {
         includeImages = true,
         convertImagesToResources = false,
@@ -153,7 +153,7 @@ export async function convertHtmlToMarkdown(
     if (!turndownInput) {
         // Both body and sanitizedHtml are null/empty - this violates ProcessHtmlResult invariant
         // Return empty markdown rather than crashing
-        return { markdown: '', resources: processed.resources, plainTextFallback: true };
+        return { markdown: '', resources: processed.resources, degradedProcessing: true };
     }
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
@@ -163,7 +163,7 @@ export async function convertHtmlToMarkdown(
     // Post-process the markdown for final cleanup
     markdown = cleanupMarkdown(markdown, forceTightLists);
 
-    return { markdown, resources: processed.resources, plainTextFallback: isDegraded };
+    return { markdown, resources: processed.resources, degradedProcessing: isDegraded };
 }
 
 /**

@@ -25,6 +25,13 @@ export interface ResourceConversionMeta {
     readonly failed: number;
 }
 
+// Result from HTML-to-Markdown conversion
+export interface HtmlToMarkdownResult {
+    readonly markdown: string;
+    readonly resources: ResourceConversionMeta;
+    readonly degradedProcessing: boolean; // true when DOM parsing failed but string-based sanitization succeeded
+}
+
 // Generic validation result for user inputs/settings or parsed data
 export interface ValidationResult<T> {
     readonly isValid: boolean;
