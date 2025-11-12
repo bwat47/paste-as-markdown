@@ -219,10 +219,8 @@ export async function processHtml(
         const body = parseHtmlToBody(sanitizedHtml, 'Sanitized HTML parse');
         if (!body) {
             logger.warn('Sanitized HTML lacked <body>, using sanitized HTML fallback.');
-            const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
-            // Defensive check: sanitizedHtml was just set in Phase 3, so this should never be null
-            if (fallbackResult) return fallbackResult;
-            throw new HtmlProcessingError('sanitize-failed');
+            // sanitizedHtml was successfully set in Phase 3, so this cannot return null
+            return createSanitizedOnlyResult(sanitizedHtml)!;
         }
 
         // ====================================================================
@@ -238,10 +236,8 @@ export async function processHtml(
             resources = await handleImageConversion(body, options);
         } catch (err) {
             logger.warn('Image resource conversion failed, using sanitized HTML fallback', err);
-            const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
-            // Defensive check: sanitizedHtml was set in Phase 3, so this should never be null
-            if (fallbackResult) return fallbackResult;
-            throw new HtmlProcessingError('sanitize-failed');
+            // sanitizedHtml was successfully set in Phase 3, so this cannot return null
+            return createSanitizedOnlyResult(sanitizedHtml)!;
         }
 
         // ====================================================================
