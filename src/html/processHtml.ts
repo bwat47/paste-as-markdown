@@ -104,7 +104,10 @@ function performSanitization(html: string, includeImages: boolean): string {
  * based on POST_IMAGE_PASS_PRIORITY threshold.
  * POST_IMAGE_PASS_PRIORITY is defined in constants.ts to keep registry/test usage in sync.
  */
-function splitPassesByPriority(passes: ReturnType<typeof getProcessingPasses>['postSanitize']) {
+function splitPassesByPriority(passes: ReturnType<typeof getProcessingPasses>['postSanitize']): {
+    preImage: typeof passes;
+    postImage: typeof passes;
+} {
     return {
         preImage: passes.filter((p) => p.priority < POST_IMAGE_PASS_PRIORITY),
         postImage: passes.filter((p) => p.priority >= POST_IMAGE_PASS_PRIORITY),
