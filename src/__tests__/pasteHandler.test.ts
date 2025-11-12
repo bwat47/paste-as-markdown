@@ -357,7 +357,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: plainText,
                 success: false,
-                warnings: ['HTML conversion failed'],
+                warnings: ['Conversion failed'],
                 plainTextFallback: true,
             });
         });
@@ -491,7 +491,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: plainText,
                 success: false,
-                warnings: ['Editor insertion failed'],
+                warnings: ['Unable to insert markdown into editor'],
                 plainTextFallback: true,
             });
         });
@@ -523,7 +523,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                warnings: ['Editor insertion failed', 'Plain text fallback also failed'],
+                warnings: ['Unable to insert markdown into editor', 'Plain text fallback also failed'],
                 plainTextFallback: false,
             });
         });
@@ -570,7 +570,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                warnings: ['HTML conversion failed', 'No plain text available'],
+                warnings: ['Conversion failed', 'No plain text available'],
                 plainTextFallback: false,
             });
         });
@@ -591,7 +591,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                warnings: ['HTML conversion failed', 'No plain text available'],
+                warnings: ['Conversion failed', 'No plain text available'],
                 plainTextFallback: false,
             });
         });

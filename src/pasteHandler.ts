@@ -154,7 +154,8 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         } catch (insertErr) {
             // Conversion succeeded but insertion failed - try plain text fallback
             logger.error('Failed to insert converted markdown, attempting plain text fallback', insertErr);
-            const fallbackResult = await attemptPlainTextFallback('Editor insertion failed');
+            const errorMessage = (insertErr as Error)?.message || 'Editor insertion failed';
+            const fallbackResult = await attemptPlainTextFallback(errorMessage);
             if (fallbackResult) {
                 return fallbackResult;
             }
@@ -163,7 +164,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             return {
                 markdown: '',
                 success: false,
-                warnings: ['Editor insertion failed', 'Plain text fallback also failed'],
+                warnings: [errorMessage, 'Plain text fallback also failed'],
                 plainTextFallback: false,
             };
         }
@@ -203,7 +204,8 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         }
 
         logger.error('Conversion failed, attempting plain text fallback', err);
-        const fallbackResult = await attemptPlainTextFallback('HTML conversion failed');
+        const errorMessage = (err as Error)?.message || 'HTML conversion failed';
+        const fallbackResult = await attemptPlainTextFallback(errorMessage);
         if (fallbackResult) {
             return fallbackResult;
         }
@@ -213,7 +215,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         return {
             markdown: '',
             success: false,
-            warnings: ['HTML conversion failed', 'No plain text available'],
+            warnings: [errorMessage, 'No plain text available'],
             plainTextFallback: false,
         };
     }
