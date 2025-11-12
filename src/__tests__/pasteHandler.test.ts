@@ -327,7 +327,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                plainTextFallback: true,
+                plainTextFallback: false,
                 warnings: ['Clipboard empty'],
             });
         });
@@ -411,7 +411,7 @@ describe('pasteHandler', () => {
                 markdown: '',
                 success: false,
                 warnings: [error.message, 'Plain text fallback failed'],
-                plainTextFallback: true,
+                plainTextFallback: false,
             });
         });
     });
@@ -524,7 +524,7 @@ describe('pasteHandler', () => {
                 markdown: '',
                 success: false,
                 warnings: ['Editor insertion failed', 'Plain text fallback also failed'],
-                plainTextFallback: true,
+                plainTextFallback: false,
             });
         });
     });
@@ -571,7 +571,7 @@ describe('pasteHandler', () => {
                 markdown: '',
                 success: false,
                 warnings: ['HTML conversion failed', 'No plain text available'],
-                plainTextFallback: true,
+                plainTextFallback: false,
             });
         });
 
@@ -592,7 +592,7 @@ describe('pasteHandler', () => {
                 markdown: '',
                 success: false,
                 warnings: ['HTML conversion failed', 'No plain text available'],
-                plainTextFallback: true,
+                plainTextFallback: false,
             });
         });
     });

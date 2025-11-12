@@ -121,7 +121,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         const text = await readClipboardText();
         if (!text) {
             await showToast('Clipboard is empty', ToastType.Info);
-            return { markdown: '', success: false, plainTextFallback: true, warnings: ['Clipboard empty'] };
+            return { markdown: '', success: false, plainTextFallback: false, warnings: ['Clipboard empty'] };
         }
         await insertMarkdownAtCursor(text);
         await showToast('Pasted plain text (no HTML found)', ToastType.Info);
@@ -164,7 +164,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
                 markdown: '',
                 success: false,
                 warnings: ['Editor insertion failed', 'Plain text fallback also failed'],
-                plainTextFallback: true,
+                plainTextFallback: false,
             };
         }
 
@@ -198,7 +198,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
                 markdown: '',
                 success: false,
                 warnings: [err.message, 'Plain text fallback failed'],
-                plainTextFallback: true,
+                plainTextFallback: false,
             };
         }
 
@@ -214,7 +214,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             markdown: '',
             success: false,
             warnings: ['HTML conversion failed', 'No plain text available'],
-            plainTextFallback: true,
+            plainTextFallback: false,
         };
     }
 }
