@@ -101,18 +101,18 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         // This means it's a pure wrapper (e.g., <ul><p>...</p><ol>...</ol></ul>).
         // If it has SOME valid children, it's a real list with orphaned sublists,
         // which should be handled by fixOrphanNestedLists instead.
-        if (!hasInvalidChildren || hasAnyValidChildren) return;
+        if (hasInvalidChildren && !hasAnyValidChildren) {
+            const parent = list.parentElement;
+            if (!parent) return;
 
-        const parent = list.parentElement;
-        if (!parent) return;
+            // Unwrap: move all children to be siblings of the invalid list wrapper
+            while (list.firstChild) {
+                parent.insertBefore(list.firstChild, list);
+            }
 
-        // Unwrap: move all children to be siblings of the invalid list wrapper
-        while (list.firstChild) {
-            parent.insertBefore(list.firstChild, list);
+            // Remove the now-empty invalid wrapper
+            parent.removeChild(list);
         }
-
-        // Remove the now-empty invalid wrapper
-        parent.removeChild(list);
     });
 
     // After unwrapping invalid lists, we may have orphaned <li> elements that are no longer
