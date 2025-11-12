@@ -48,14 +48,13 @@ async function readClipboardText(): Promise<string> {
 async function insertMarkdownAtCursor(markdown: string): Promise<void> {
     // First, try 'insertText'. If that fails, fall back to 'replaceSelection'.
     // This provides compatibility with different editor implementations in Joplin.
-    const attempts = [
-        { name: 'insertText', args: [markdown] },
-        { name: 'replaceSelection', args: [markdown] },
-    ];
+    // Use Joplin's high-level commands directly rather than editor.execCommand to ensure
+    // compatibility with both CodeMirror 5 (legacy) and CodeMirror 6 editors.
+    const attempts = ['insertText', 'replaceSelection'];
     let lastError: unknown;
     for (const cmd of attempts) {
         try {
-            await joplin.commands.execute('editor.execCommand', cmd);
+            await joplin.commands.execute(cmd, markdown);
             return;
         } catch (err) {
             lastError = err;
@@ -64,6 +63,31 @@ async function insertMarkdownAtCursor(markdown: string): Promise<void> {
 
     logger.error('Failed to insert markdown', lastError);
     throw new Error('Unable to insert markdown into editor');
+}
+
+/**
+ * Attempts to read plain text from clipboard, insert it, and notify the user.
+ * Returns a ConversionFailure result on success (successful fallback is still a conversion failure).
+ * Returns null if plain text cannot be read or inserted.
+ */
+async function attemptPlainTextFallback(errorMessage: string): Promise<ConversionFailure | null> {
+    try {
+        const text = await readClipboardText();
+        if (!text) {
+            return null;
+        }
+        await insertMarkdownAtCursor(text);
+        await showToast('Conversion failed; pasted plain text', ToastType.Error);
+        return {
+            markdown: text,
+            success: false,
+            warnings: [errorMessage],
+            plainTextFallback: true,
+        };
+    } catch (err) {
+        logger.error('Failed to read or insert plain text during fallback', err);
+        return null;
+    }
 }
 
 /**
@@ -82,7 +106,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
     if (!validation.isValid || !validation.value) {
         const msg = validation.error || 'Invalid settings';
         await showToast(msg, ToastType.Error);
-        return { markdown: '', success: false, warnings: [msg] };
+        return { markdown: '', success: false, warnings: [msg], plainTextFallback: false };
     }
     const options = validation.value;
 
@@ -96,7 +120,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         const text = await readClipboardText();
         if (!text) {
             await showToast('Clipboard is empty', ToastType.Info);
-            return { markdown: '', success: false, plainTextFallback: true, warnings: ['Clipboard empty'] };
+            return { markdown: '', success: false, plainTextFallback: false, warnings: ['Clipboard empty'] };
         }
         await insertMarkdownAtCursor(text);
         await showToast('Pasted plain text (no HTML found)', ToastType.Info);
@@ -105,7 +129,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
     try {
         // Pass detection result to conversion
-        const { markdown, resources } = await convertHtmlToMarkdown(html!, {
+        const { markdown, resources, degradedProcessing } = await convertHtmlToMarkdown(html!, {
             includeImages: options.includeImages,
             convertImagesToResources: options.convertImagesToResources,
             normalizeQuotes: options.normalizeQuotes,
@@ -113,7 +137,36 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             isGoogleDocs,
         });
 
-        await insertMarkdownAtCursor(markdown);
+        // Log degraded processing for debugging
+        if (degradedProcessing) {
+            logger.debug('HTML conversion used degraded string-based processing (sanitized HTML fallback)');
+        }
+
+        // Add Google Docs indicator to success message for debugging
+        if (isGoogleDocs) {
+            logger.debug('Processed Google Docs content');
+        }
+
+        // Separate try-catch for editor insertion to distinguish from conversion errors
+        try {
+            await insertMarkdownAtCursor(markdown);
+        } catch (insertErr) {
+            // Conversion succeeded but insertion failed - try plain text fallback
+            logger.error('Failed to insert converted markdown, attempting plain text fallback', insertErr);
+            const errorMessage = (insertErr as Error)?.message || 'Editor insertion failed';
+            const fallbackResult = await attemptPlainTextFallback(errorMessage);
+            if (fallbackResult) {
+                return fallbackResult;
+            }
+            // Both markdown insertion and plain text insertion failed
+            await showToast('Paste failed: unable to insert content into editor', ToastType.Error);
+            return {
+                markdown: '',
+                success: false,
+                warnings: [errorMessage, 'Plain text fallback also failed'],
+                plainTextFallback: false,
+            };
+        }
 
         let message = options.includeImages ? 'Pasted as Markdown' : 'Pasted as Markdown (images excluded)';
         if (options.includeImages && options.convertImagesToResources) {
@@ -129,51 +182,40 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             }
         }
 
-        // Add Google Docs indicator to success message for debugging
-        if (isGoogleDocs) {
-            logger.debug('Processed Google Docs content');
-        }
-
         await showToast(message, ToastType.Success);
-        return { markdown, success: true };
+        return { markdown, success: true, plainTextFallback: false };
     } catch (err) {
         if (err instanceof HtmlProcessingError) {
+            // Technical error details logged for debugging, user sees only actionable result
             logger.error('HTML processing prerequisites missing; aborting paste', err);
-            try {
-                const text = await readClipboardText();
-                if (text) {
-                    await insertMarkdownAtCursor(text);
-                    await showToast('Conversion failed; pasted plain text', ToastType.Error);
-                    return {
-                        markdown: text,
-                        success: false,
-                        warnings: [err.message],
-                        plainTextFallback: true,
-                    };
-                }
-            } catch (readErr) {
-                logger.error('Failed to read plain text after HTML processing error', readErr);
+            const fallbackResult = await attemptPlainTextFallback(err.message);
+            if (fallbackResult) {
+                return fallbackResult;
             }
+            // Plain text fallback failed - show user-facing error
+            await showToast('Paste failed: unable to process HTML or read plain text', ToastType.Error);
             return {
                 markdown: '',
                 success: false,
-                warnings: [err.message],
+                warnings: [err.message, 'Plain text fallback failed'],
                 plainTextFallback: false,
             };
         }
 
         logger.error('Conversion failed, attempting plain text fallback', err);
-        const text = await readClipboardText();
-        if (text) {
-            await insertMarkdownAtCursor(text);
-            await showToast('Conversion failed; pasted plain text', ToastType.Error);
-            return {
-                markdown: text,
-                success: false,
-                warnings: ['HTML conversion failed'],
-                plainTextFallback: true,
-            };
+        const errorMessage = (err as Error)?.message || 'HTML conversion failed';
+        const fallbackResult = await attemptPlainTextFallback(errorMessage);
+        if (fallbackResult) {
+            return fallbackResult;
         }
-        throw new Error('Failed to convert HTML and no plain text available');
+
+        // Both HTML conversion and plain text fallback failed
+        await showToast('Paste failed: no HTML or plain text available', ToastType.Error);
+        return {
+            markdown: '',
+            success: false,
+            warnings: [errorMessage, 'No plain text available'],
+            plainTextFallback: false,
+        };
     }
 }

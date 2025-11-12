@@ -85,7 +85,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: expectedMarkdown,
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
 
             const result = await handlePasteAsMarkdown();
@@ -98,14 +98,12 @@ describe('pasteHandler', () => {
                 forceTightLists: false,
                 isGoogleDocs: false,
             });
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [expectedMarkdown],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', expectedMarkdown);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
                 success: true,
+                plainTextFallback: false,
             });
         });
 
@@ -127,7 +125,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: expectedMarkdown,
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
 
             const result = await handlePasteAsMarkdown();
@@ -143,6 +141,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: expectedMarkdown,
                 success: true,
+                plainTextFallback: false,
             });
         });
 
@@ -169,7 +168,7 @@ describe('pasteHandler', () => {
                     attempted: 1,
                     failed: 0,
                 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
 
             const result = await handlePasteAsMarkdown();
@@ -188,6 +187,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: expectedMarkdown,
                 success: true,
+                plainTextFallback: false,
             });
         });
 
@@ -214,7 +214,7 @@ describe('pasteHandler', () => {
                     attempted: 2,
                     failed: 1,
                 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
 
             const result = await handlePasteAsMarkdown();
@@ -226,6 +226,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: expectedMarkdown,
                 success: true,
+                plainTextFallback: false,
             });
         });
 
@@ -252,7 +253,7 @@ describe('pasteHandler', () => {
                     attempted: 2,
                     failed: 0,
                 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
 
             const result = await handlePasteAsMarkdown();
@@ -264,6 +265,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: expectedMarkdown,
                 success: true,
+                plainTextFallback: false,
             });
         });
     });
@@ -279,10 +281,7 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [plainText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted plain text (no HTML found)', ToastType.Info);
             expect(result).toEqual({
                 markdown: plainText,
@@ -300,10 +299,7 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [plainText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted plain text (no HTML found)', ToastType.Info);
             expect(result).toEqual({
                 markdown: plainText,
@@ -322,7 +318,7 @@ describe('pasteHandler', () => {
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                plainTextFallback: true,
+                plainTextFallback: false,
                 warnings: ['Clipboard empty'],
             });
         });
@@ -344,15 +340,12 @@ describe('pasteHandler', () => {
                 forceTightLists: false,
                 isGoogleDocs: false,
             });
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [plainText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(result).toEqual({
                 markdown: plainText,
                 success: false,
-                warnings: ['HTML conversion failed'],
+                warnings: ['Conversion failed'],
                 plainTextFallback: true,
             });
         });
@@ -369,11 +362,10 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [fallbackText],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', fallbackText);
+            // Only ONE toast: the user-facing fallback result (technical error is logged only)
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
+            expect(mockShowToast).toHaveBeenCalledTimes(1);
             expect(result).toEqual({
                 markdown: fallbackText,
                 success: false,
@@ -394,10 +386,16 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
+            // Only ONE toast: the user-facing error (technical error is logged only)
+            expect(mockShowToast).toHaveBeenCalledWith(
+                'Paste failed: unable to process HTML or read plain text',
+                ToastType.Error
+            );
+            expect(mockShowToast).toHaveBeenCalledTimes(1);
             expect(result).toEqual({
                 markdown: '',
                 success: false,
-                warnings: [error.message],
+                warnings: [error.message, 'Plain text fallback failed'],
                 plainTextFallback: false,
             });
         });
@@ -412,16 +410,13 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
             mockJoplin.commands.execute.mockResolvedValueOnce(undefined);
 
             await handlePasteAsMarkdown();
 
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
-                name: 'insertText',
-                args: [markdown],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', markdown);
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(1);
         });
 
@@ -433,7 +428,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
             mockJoplin.commands.execute
                 .mockRejectedValueOnce(new Error('insertText failed'))
@@ -441,14 +436,8 @@ describe('pasteHandler', () => {
 
             await handlePasteAsMarkdown();
 
-            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(1, 'editor.execCommand', {
-                name: 'insertText',
-                args: [markdown],
-            });
-            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(2, 'editor.execCommand', {
-                name: 'replaceSelection',
-                args: [markdown],
-            });
+            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(1, 'insertText', markdown);
+            expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(2, 'replaceSelection', markdown);
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(2);
         });
 
@@ -461,7 +450,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
             mockJoplin.clipboard.readText.mockResolvedValue(plainText);
 
@@ -474,15 +463,16 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(3); // 2 failed attempts + 1 successful fallback
+            expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(result).toEqual({
                 markdown: plainText,
                 success: false,
-                warnings: ['HTML conversion failed'],
+                warnings: ['Unable to insert markdown into editor'],
                 plainTextFallback: true,
             });
         });
 
-        test('editor insertion completely fails - throws error', async () => {
+        test('editor insertion completely fails - returns failure with toast', async () => {
             const html = '<p>Test</p>';
             const markdown = 'Test';
 
@@ -490,7 +480,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown,
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
             mockJoplin.clipboard.readText.mockResolvedValue(''); // No fallback text available
 
@@ -499,9 +489,19 @@ describe('pasteHandler', () => {
                 .mockRejectedValueOnce(new Error('insertText failed'))
                 .mockRejectedValueOnce(new Error('replaceSelection failed'));
 
-            await expect(handlePasteAsMarkdown()).rejects.toThrow('Failed to convert HTML and no plain text available');
+            const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(2);
+            expect(mockShowToast).toHaveBeenCalledWith(
+                'Paste failed: unable to insert content into editor',
+                ToastType.Error
+            );
+            expect(result).toEqual({
+                markdown: '',
+                success: false,
+                warnings: ['Unable to insert markdown into editor', 'Plain text fallback also failed'],
+                plainTextFallback: false,
+            });
         });
     });
 
@@ -530,24 +530,46 @@ describe('pasteHandler', () => {
             await expect(handlePasteAsMarkdown()).rejects.toThrow('Unable to access clipboard text');
         });
 
-        test('HTML conversion fails and readText fails - throws error', async () => {
+        test('HTML conversion fails and readText fails - returns failure with toast', async () => {
             const html = '<p>HTML content</p>';
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockRejectedValue(new Error('Conversion failed'));
             mockJoplin.clipboard.readText.mockRejectedValue(new Error('Text clipboard not available'));
 
-            await expect(handlePasteAsMarkdown()).rejects.toThrow('Unable to access clipboard text');
+            const result = await handlePasteAsMarkdown();
+
+            expect(mockShowToast).toHaveBeenCalledWith(
+                'Paste failed: no HTML or plain text available',
+                ToastType.Error
+            );
+            expect(result).toEqual({
+                markdown: '',
+                success: false,
+                warnings: ['Conversion failed', 'No plain text available'],
+                plainTextFallback: false,
+            });
         });
 
-        test('HTML conversion fails and readText returns empty - throws error', async () => {
+        test('HTML conversion fails and readText returns empty - returns failure with toast', async () => {
             const html = '<p>HTML content</p>';
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockRejectedValue(new Error('Conversion failed'));
             mockJoplin.clipboard.readText.mockResolvedValue('');
 
-            await expect(handlePasteAsMarkdown()).rejects.toThrow('Failed to convert HTML and no plain text available');
+            const result = await handlePasteAsMarkdown();
+
+            expect(mockShowToast).toHaveBeenCalledWith(
+                'Paste failed: no HTML or plain text available',
+                ToastType.Error
+            );
+            expect(result).toEqual({
+                markdown: '',
+                success: false,
+                warnings: ['Conversion failed', 'No plain text available'],
+                plainTextFallback: false,
+            });
         });
     });
 
@@ -580,7 +602,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: 'Test',
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-                plainTextFallback: false,
+                degradedProcessing: false,
             });
 
             await handlePasteAsMarkdown();
