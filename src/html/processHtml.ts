@@ -16,7 +16,7 @@
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
-import { TOAST_MESSAGES, POST_IMAGE_PASS_PRIORITY } from '../constants';
+import { POST_IMAGE_PASS_PRIORITY } from '../constants';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
@@ -41,8 +41,8 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
 type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed';
 
 const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
-    'dom-unavailable': TOAST_MESSAGES.DOM_UNAVAILABLE,
-    'sanitize-failed': TOAST_MESSAGES.HTML_PROCESSING_FAILED,
+    'dom-unavailable': 'DOM APIs unavailable; cannot process HTML safely.',
+    'sanitize-failed': 'HTML sanitization failed; unable to continue processing.',
 };
 
 /**
@@ -63,10 +63,6 @@ export class HtmlProcessingError extends Error {
         this.reason = reason;
     }
 }
-
-const notifyFailure = (reason: HtmlProcessingFailureReason): never => {
-    throw new HtmlProcessingError(reason);
-};
 
 // ============================================================================
 // Helper Functions
@@ -183,7 +179,7 @@ export async function processHtml(
     // ========================================================================
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
         logger.warn('DOM APIs unavailable; cannot process HTML safely.');
-        notifyFailure('dom-unavailable');
+        throw new HtmlProcessingError('dom-unavailable');
     }
 
     const passContext: PassContext = { isGoogleDocs };
@@ -199,7 +195,7 @@ export async function processHtml(
         if (!rawBody) {
             const fallback = await attemptSanitizedFallback(html, options.includeImages);
             if (fallback) return fallback;
-            notifyFailure('sanitize-failed');
+            throw new HtmlProcessingError('sanitize-failed');
         }
 
         // ====================================================================
@@ -214,7 +210,7 @@ export async function processHtml(
             sanitizedHtml = performSanitization(rawBody.innerHTML, options.includeImages);
         } catch (err) {
             logger.warn('Sanitization failed; no safe HTML output available', err);
-            notifyFailure('sanitize-failed');
+            throw new HtmlProcessingError('sanitize-failed');
         }
 
         // ====================================================================
@@ -226,7 +222,7 @@ export async function processHtml(
             const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
             // Defensive check: sanitizedHtml was just set in Phase 3, so this should never be null
             if (fallbackResult) return fallbackResult;
-            notifyFailure('sanitize-failed');
+            throw new HtmlProcessingError('sanitize-failed');
         }
 
         // ====================================================================
@@ -245,7 +241,7 @@ export async function processHtml(
             const fallbackResult = createSanitizedOnlyResult(sanitizedHtml);
             // Defensive check: sanitizedHtml was set in Phase 3, so this should never be null
             if (fallbackResult) return fallbackResult;
-            notifyFailure('sanitize-failed');
+            throw new HtmlProcessingError('sanitize-failed');
         }
 
         // ====================================================================
@@ -287,6 +283,6 @@ export async function processHtml(
         if (fallback) return fallback;
 
         // All fallbacks exhausted - throw error
-        notifyFailure('sanitize-failed');
+        throw new HtmlProcessingError('sanitize-failed');
     }
 }
