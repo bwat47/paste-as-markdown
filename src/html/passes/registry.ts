@@ -80,6 +80,8 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         priority: 23,
         execute: (body) => unwrapCheckboxParagraphs(body),
     },
+    // This pass must run after checkbox paragraph unwrap (23) and before orphaned sub-list fix (25)
+    // to ensure that invalid wrappers are removed before nested list structure is corrected.
     {
         name: 'Post-sanitize invalid list wrapper unwrap',
         phase: 'post-sanitize',

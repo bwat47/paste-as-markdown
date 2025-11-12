@@ -99,8 +99,8 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
 
         // Only unwrap if the list has invalid children AND no valid children.
         // This means it's a pure wrapper (e.g., <ul><p>...</p><ol>...</ol></ul>).
-        // If it has SOME valid children, it's a real list with orphaned sublists,
-        // which should be handled by fixOrphanNestedLists instead.
+        // If it has BOTH valid and invalid children, it's a real list with orphaned sublists,
+        // and those cases are handled by fixOrphanNestedLists (not here).
         if (hasInvalidChildren && !hasAnyValidChildren) {
             const parent = list.parentElement;
             if (!parent) return;
