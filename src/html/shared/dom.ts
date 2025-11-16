@@ -31,7 +31,7 @@ export function isHtmlElement(node: Element): node is HTMLElement {
     if (typeof HTMLElement !== 'undefined') {
         return node instanceof HTMLElement;
     }
-    return 'tagName' in node && typeof (node as Partial<HTMLElement>).classList !== 'undefined';
+    return false;
 }
 
 /**
