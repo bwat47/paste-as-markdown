@@ -9,7 +9,7 @@
  *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
  */
 
-import { onlyContains, unwrapElement } from '../shared/dom';
+import { onlyContains, unwrapElement, isHtmlElement } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
 // Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
@@ -455,15 +455,4 @@ function normalizeLangAlias(raw: string): string | null {
 
 function normalizeNbsp(text: string | null | undefined): string {
     return (text ?? '').replace(/\u00A0/g, ' ');
-}
-
-function isHtmlElement(node: Element): node is HTMLElement {
-    const view = node.ownerDocument?.defaultView;
-    if (view && view.HTMLElement) {
-        return node instanceof view.HTMLElement;
-    }
-    if (typeof HTMLElement !== 'undefined') {
-        return node instanceof HTMLElement;
-    }
-    return 'tagName' in node && typeof (node as Partial<HTMLElement>).classList !== 'undefined';
 }

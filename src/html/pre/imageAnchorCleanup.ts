@@ -14,11 +14,19 @@
  *   (e.g., resource conversion unwrapping) to remove the anchor entirely.
  */
 export function pruneNonImageAnchorChildren(body: HTMLElement): void {
-    const anchors = Array.from(body.querySelectorAll('a')) as HTMLAnchorElement[];
+    // Find all images inside anchors, then build a Set of their parent anchors
+    // This avoids iterating through text links that never contain images
+    const imgsInAnchors = body.querySelectorAll('a img');
+    const anchorsWithImages = new Set<HTMLAnchorElement>();
 
-    anchors.forEach((anchor) => {
-        const img = anchor.querySelector('img');
-        if (!img) return; // Only target anchors that contain an image
+    imgsInAnchors.forEach((img) => {
+        const anchor = img.closest('a');
+        if (anchor) anchorsWithImages.add(anchor);
+    });
+
+    // Process only anchors that actually contain images
+    anchorsWithImages.forEach((anchor) => {
+        const img = anchor.querySelector('img')!; // Non-null: we know this anchor has an img
 
         const keepElement = (el: Element): boolean => {
             const tagName = el.tagName.toLowerCase();

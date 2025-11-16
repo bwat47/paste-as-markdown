@@ -2,16 +2,18 @@ import { isInCode } from '../shared/dom';
 
 // Remove generic UI elements that are noise in Markdown exports.
 export function removeNonContentUi(body: HTMLElement): void {
+    // Early exit: check if any UI elements exist before doing work
+    const uiSelector =
+        'button, [role="button"], [role="toolbar"], [role="tablist"], [role="tab"], [role="menu"], [role="menubar"], [role="combobox"], [role="switch"], input, select';
+    if (!body.querySelector(uiSelector)) return;
+
     const doc = body.ownerDocument;
 
     // 1) Remove button-like elements entirely when they're standalone UI, but keep inline text labels.
-    const buttonLikeElements = new Set<HTMLElement>();
-    Array.from(body.querySelectorAll('button')).forEach((btn) => buttonLikeElements.add(btn as HTMLElement));
-    Array.from(body.querySelectorAll('[role="button"]')).forEach((btn) => buttonLikeElements.add(btn as HTMLElement));
-
-    buttonLikeElements.forEach((btn) => {
+    // Merged query: both <button> and [role="button"] in one pass
+    Array.from(body.querySelectorAll('button, [role="button"]')).forEach((btn) => {
         if (isInCode(btn)) return;
-        const replacementText = extractInlineButtonText(btn);
+        const replacementText = extractInlineButtonText(btn as HTMLElement);
         if (replacementText && doc) {
             const textNode = doc.createTextNode(replacementText);
             btn.parentNode?.replaceChild(textNode, btn);
@@ -21,11 +23,11 @@ export function removeNonContentUi(body: HTMLElement): void {
     });
 
     // 2) Remove common role-based UI controls
+    // Merged query: all roles in one pass
     const roles = ['toolbar', 'tablist', 'tab', 'menu', 'menubar', 'combobox', 'switch'];
-    roles.forEach((role) => {
-        Array.from(body.querySelectorAll(`[role="${role}"]`)).forEach((el) => {
-            if (!isInCode(el)) (el as HTMLElement).remove();
-        });
+    const roleSelector = roles.map((r) => `[role="${r}"]`).join(', ');
+    Array.from(body.querySelectorAll(roleSelector)).forEach((el) => {
+        if (!isInCode(el)) (el as HTMLElement).remove();
     });
 
     // 3) Remove non-checkbox inputs (preserve checkboxes for GFM task lists)
