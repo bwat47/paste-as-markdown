@@ -1,3 +1,5 @@
+import { walkTextNodes } from '../shared/dom';
+
 /**
  * Protect literal HTML tag mentions in prose by wrapping them in <code>...</code> so that
  * Turndown will emit inline code (for example, `<table>`) instead of raw HTML that Joplin
@@ -10,27 +12,15 @@ export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
     const doc = body.ownerDocument;
     if (!doc) return;
 
-    const walker = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
     const textNodes: Text[] = [];
 
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-        const textNode = node as Text;
-        const parentElement = textNode.parentElement;
-        if (!parentElement) continue;
-        if (
-            parentElement.tagName.toLowerCase() === 'code' ||
-            parentElement.tagName.toLowerCase() === 'pre' ||
-            parentElement.closest('code, pre')
-        ) {
-            continue;
-        }
+    walkTextNodes(body, (textNode) => {
         const text = textNode.textContent || '';
-        if (!text || text.indexOf('<') === -1 || text.indexOf('>') === -1) continue;
+        if (!text || text.indexOf('<') === -1 || text.indexOf('>') === -1) return;
         // Quick check for patterns like <tag>, </tag>, <tag/>, and <tag attr="v"> in text
-        if (!/<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/.test(text)) continue;
+        if (!/<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/.test(text)) return;
         textNodes.push(textNode);
-    }
+    });
 
     // Matches HTML-like tokens:
     // - Opening tags: <tag>, <tag attr="value">

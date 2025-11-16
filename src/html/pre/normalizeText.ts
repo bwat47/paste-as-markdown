@@ -1,3 +1,5 @@
+import { walkTextNodes } from '../shared/dom';
+
 /**
  * Normalize text characters commonly found in rich document sources:
  * - Various NBSP representations to regular spaces
@@ -20,26 +22,11 @@ export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: bool
     const snapshot = body.innerHTML;
     if (!bailOutPattern.test(snapshot)) return;
 
-    const doc = body.ownerDocument;
-    if (!doc) return;
-
-    const walker = doc.createTreeWalker(body, NodeFilter.SHOW_TEXT, null);
     const textNodesToUpdate: { node: Text; newText: string }[] = [];
 
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-        const textNode = node as Text;
+    walkTextNodes(body, (textNode) => {
         const originalText = textNode.textContent || '';
 
-        const parentElement = textNode.parentElement;
-        if (
-            parentElement &&
-            (parentElement.tagName.toLowerCase() === 'code' ||
-                parentElement.tagName.toLowerCase() === 'pre' ||
-                parentElement.closest('code, pre'))
-        ) {
-            continue;
-        }
         let normalizedText = originalText
             .replace(/Â\s/g, ' ')
             .replace(/\u00A0/g, ' ')
@@ -60,7 +47,7 @@ export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: bool
         if (normalizedText !== originalText) {
             textNodesToUpdate.push({ node: textNode, newText: normalizedText });
         }
-    }
+    });
 
     textNodesToUpdate.forEach(({ node, newText }) => {
         node.textContent = newText;
