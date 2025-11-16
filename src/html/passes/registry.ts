@@ -122,6 +122,9 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         name: 'Image alt normalization (pre-conversion)',
         phase: 'post-sanitize',
         priority: 70,
+        // Runs unconditionally so includeImages=false scenarios get normalized alts.
+        // Images that go through standardization (priority 80) will be normalized again there,
+        // but this ensures alt text is clean even when image processing is disabled.
         execute: (body) => normalizeImageAltAttributes(body),
     },
     {
@@ -137,13 +140,6 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         priority: 85,
         condition: (options) => options.includeImages && options.convertImagesToResources,
         execute: (body) => unwrapAllConvertedImageLinks(body),
-    },
-    {
-        name: 'Image alt normalization (post-conversion)',
-        phase: 'post-sanitize',
-        priority: 90,
-        condition: (options) => options.includeImages,
-        execute: (body) => normalizeImageAltAttributes(body),
     },
 ];
 
