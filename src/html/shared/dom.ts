@@ -21,7 +21,6 @@ export function isInCode(el: Element): boolean {
 
 /**
  * Type guard to check if a node is an HTMLElement.
- * Handles multiple document contexts (iframe, jsdom, etc.).
  */
 export function isHtmlElement(node: Element): node is HTMLElement {
     const view = node.ownerDocument?.defaultView;
