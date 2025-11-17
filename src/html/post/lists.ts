@@ -1,8 +1,7 @@
-import { $all } from '../shared/dom';
+import { $all, hasTag } from '../shared/dom';
 
 const LIST_TAGS = new Set(['UL', 'OL']);
 
-const LI_TAG = 'LI';
 const CHECKBOX_SELECTOR = 'input[type="checkbox"]';
 
 function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
@@ -15,7 +14,7 @@ function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
 
     for (let i = index - 1; i >= 0; i -= 1) {
         const candidate = siblings[i] as HTMLElement;
-        if (candidate.tagName === LI_TAG) return candidate;
+        if (hasTag(candidate, 'li')) return candidate;
     }
     return null;
 }
@@ -30,12 +29,12 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
     $all<HTMLElement>(body, 'ul, ol').forEach((list) => {
         const parent = list.parentElement;
         if (!parent) return;
-        if (parent.tagName === LI_TAG) return;
+        if (hasTag(parent, 'li')) return;
         if (!LIST_TAGS.has(parent.tagName)) return;
 
         const previousElement = list.previousElementSibling as HTMLElement | null;
         const targetLi =
-            (previousElement && previousElement.tagName === LI_TAG && previousElement) || getPrecedingListItem(list);
+            (previousElement && hasTag(previousElement, 'li') && previousElement) || getPrecedingListItem(list);
 
         if (targetLi) {
             targetLi.appendChild(list);
@@ -59,7 +58,7 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
 export function unwrapCheckboxParagraphs(body: HTMLElement): void {
     $all<HTMLParagraphElement>(body, 'li > p').forEach((paragraph) => {
         const listItem = paragraph.parentElement;
-        if (!listItem || listItem.tagName !== LI_TAG) return;
+        if (!listItem || !hasTag(listItem, 'li')) return;
 
         const checkbox = paragraph.querySelector<HTMLInputElement>(CHECKBOX_SELECTOR);
         if (!checkbox) return;
@@ -90,10 +89,10 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         const children = Array.from(list.children);
 
         // Check if any direct children are not <li> elements (which is invalid HTML)
-        const hasInvalidChildren = children.some((child) => child.tagName !== LI_TAG);
+        const hasInvalidChildren = children.some((child) => !hasTag(child, 'li'));
 
         // Check if this list has ANY valid <li> children
-        const hasAnyValidChildren = children.some((child) => child.tagName === LI_TAG);
+        const hasAnyValidChildren = children.some((child) => hasTag(child, 'li'));
 
         // Only unwrap if the list has invalid children AND no valid children.
         // This means it's a pure wrapper (e.g., <ul><p>...</p><ol>...</ol></ul>).

@@ -1,4 +1,4 @@
-import { $all } from '../shared/dom';
+import { $all, hasTag } from '../shared/dom';
 
 /**
  * Unwrap anchors that only wrap converted image resources so the resulting Markdown
@@ -16,7 +16,7 @@ function unwrapConvertedImageLink(img: HTMLImageElement): void {
     let anchor: HTMLElement | null = null;
     let cur: HTMLElement | null = img.parentElement;
     while (cur) {
-        if (cur.tagName.toLowerCase() === 'a') {
+        if (hasTag(cur, 'a')) {
             anchor = cur;
             break;
         }

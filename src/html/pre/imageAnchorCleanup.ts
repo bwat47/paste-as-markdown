@@ -1,3 +1,5 @@
+import { hasTag } from '../shared/dom';
+
 /**
  * Prune non-image children from anchors that wrap images.
  *
@@ -29,9 +31,8 @@ export function pruneNonImageAnchorChildren(body: HTMLElement): void {
         const img = anchor.querySelector('img')!; // Non-null: we know this anchor has an img
 
         const keepElement = (el: Element): boolean => {
-            const tagName = el.tagName.toLowerCase();
             // Keep image-related elements and any element that contains the image
-            return tagName === 'img' || tagName === 'picture' || tagName === 'source' || el.contains(img);
+            return hasTag(el, 'img', 'picture', 'source') || el.contains(img);
         };
 
         // Remove non-image children (iterate over a copy since we're modifying)

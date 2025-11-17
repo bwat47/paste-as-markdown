@@ -9,7 +9,7 @@
  *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
  */
 
-import { onlyContains, unwrapElement, isHtmlElement, $all } from '../shared/dom';
+import { onlyContains, unwrapElement, isHtmlElement, $all, hasTag } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
 // Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
@@ -17,7 +17,7 @@ import { isHighlightLanguage } from './highlightLanguages';
 export function markNbspOnlyInlineCode(body: HTMLElement): void {
     const codes = $all<HTMLElement>(body, 'code');
     codes.forEach((code) => {
-        if (code.parentElement && code.parentElement.tagName === 'PRE') return;
+        if (code.parentElement && hasTag(code.parentElement, 'pre')) return;
         const text = code.textContent || '';
         if (!text) return;
         const hasNbsp = /\u00A0/.test(text);
@@ -81,7 +81,7 @@ function extractCodeMirrorLineText(line: HTMLElement): string {
             text += node.textContent || '';
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const el = node as HTMLElement;
-            if (el.tagName.toLowerCase() === 'br') {
+            if (hasTag(el, 'br')) {
                 continue;
             }
             text += extractCodeMirrorLineText(el);
@@ -105,10 +105,7 @@ function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
     const wrappers = $all<HTMLElement>(body, selectors.join(', '));
     const pres: HTMLElement[] = [];
     wrappers.forEach((wrapperEl) => {
-        const pre =
-            wrapperEl.tagName.toLowerCase() === 'pre'
-                ? wrapperEl
-                : (wrapperEl.querySelector('pre') as HTMLElement | null);
+        const pre = hasTag(wrapperEl, 'pre') ? wrapperEl : (wrapperEl.querySelector('pre') as HTMLElement | null);
         if (!pre) return;
         const wrapperClasses = wrapperEl.getAttribute('class');
         if (wrapperClasses) {
@@ -155,7 +152,7 @@ function removeUIElements(pre: HTMLElement): void {
     // hoist the first descendant <code> to be the sole code child before stripping UI wrappers.
     let code: HTMLElement | null = null;
     for (const child of Array.from(pre.children)) {
-        if (child.tagName.toLowerCase() === 'code') {
+        if (hasTag(child, 'code')) {
             code = child as HTMLElement;
             break;
         }
@@ -176,16 +173,14 @@ function removeUIElements(pre: HTMLElement): void {
 }
 
 function shouldRemoveUIElement(element: Element): boolean {
-    if (element.tagName === 'SPAN') {
+    if (hasTag(element, 'span')) {
         const text = element.textContent ?? '';
         if (text.replace(/[\s\u00A0]+/g, '') === '') {
             return true;
         }
     }
     return (
-        /codeblock-button-wrapper|copy|fullscreen|toolbar/i.test(element.className) ||
-        element.tagName === 'DIV' ||
-        element.tagName === 'BUTTON'
+        /codeblock-button-wrapper|copy|fullscreen|toolbar/i.test(element.className) || hasTag(element, 'div', 'button')
     );
 }
 
@@ -306,8 +301,7 @@ function consumeLanguageLabel(pre: HTMLElement): string | null {
 }
 
 function extractLanguageFromLabelElement(element: HTMLElement): string | null {
-    const tag = element.tagName.toLowerCase();
-    if (tag !== 'div' && tag !== 'span') {
+    if (!hasTag(element, 'div', 'span')) {
         return null;
     }
     const content = element.textContent ?? '';
@@ -341,7 +335,7 @@ function hasMeaningfulText(element: HTMLElement): boolean {
 function removeEmptyAncestors(start: HTMLElement): void {
     let current: HTMLElement | null = start;
     for (let depth = 0; depth < 3 && current; depth++) {
-        if (current.tagName === 'BODY' || current.tagName === 'HTML') {
+        if (hasTag(current, 'body', 'html')) {
             break;
         }
         if (current.children.length > 0) break;

@@ -75,3 +75,32 @@ export function unwrapElement(element: HTMLElement): void {
 export function $all<T extends Element = Element>(root: ParentNode, selector: string): T[] {
     return Array.from(root.querySelectorAll<T>(selector));
 }
+
+/**
+ * Check if an element has one of the specified tag names (case-insensitive).
+ * More readable and consistent than manual tagName comparisons.
+ *
+ * @example
+ * hasTag(element, 'li') // instead of element.tagName === 'LI'
+ * hasTag(element, 'ul', 'ol') // instead of element.tagName === 'UL' || element.tagName === 'OL'
+ */
+export function hasTag(element: Element, ...tags: string[]): boolean {
+    const upperTag = element.tagName.toUpperCase();
+    return tags.some((tag) => tag.toUpperCase() === upperTag);
+}
+
+/**
+ * Type guard to check if a node is an Element, optionally matching a specific tag name.
+ *
+ * @example
+ * if (isElement(node, 'div')) { // node is narrowed to HTMLElement with tagName 'DIV'
+ *   ...
+ * }
+ */
+export function isElement(node: Node, tag?: string): node is HTMLElement {
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    const element = node as Element;
+    if (!isHtmlElement(element)) return false;
+    if (tag === undefined) return true;
+    return hasTag(element, tag);
+}

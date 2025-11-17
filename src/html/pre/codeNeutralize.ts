@@ -1,4 +1,4 @@
-import { $all } from '../shared/dom';
+import { $all, hasTag } from '../shared/dom';
 
 /**
  * Neutralize raw code block content prior to sanitization so literal examples of tags like
@@ -18,7 +18,7 @@ export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
             if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
             if (node.nodeType === Node.ELEMENT_NODE) {
                 const el = node as HTMLElement;
-                if (el.tagName.toLowerCase() === 'br') return '\n';
+                if (hasTag(el, 'br')) return '\n';
                 let out = '';
                 for (const child of Array.from(el.childNodes)) out += collect(child);
                 return out;

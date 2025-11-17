@@ -1,4 +1,4 @@
-import { onlyContains, unwrapElement, $all } from '../shared/dom';
+import { onlyContains, unwrapElement, $all, hasTag } from '../shared/dom';
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
@@ -51,7 +51,7 @@ function hasMeaningfulDescendant(element: Element, options: PasteOptions): boole
         const tag = child.tagName.toLowerCase();
 
         if (MEDIA_TAGS.has(tag) && options.includeImages) return true;
-        if (tag === 'svg') {
+        if (hasTag(child, 'svg')) {
             const ariaLabel = child.getAttribute('aria-label') || child.getAttribute('aria-labelledby');
             if (ariaLabel && ariaLabel.trim().length > 0) return true;
 

@@ -1,4 +1,4 @@
-import { unwrapElement } from '../shared/dom';
+import { unwrapElement, hasTag } from '../shared/dom';
 import logger from '../../logger';
 
 /**
@@ -26,8 +26,7 @@ export function removeGoogleDocsWrappers(body: HTMLElement): void {
     // If no marker is present, we still allow unwrapping wrapper tags at top-level (Docs detection gates this).
     while (true) {
         const candidates = Array.from(body.children).filter((el) => {
-            const tag = el.tagName.toLowerCase();
-            return WRAPPER_TAGS.has(tag) && markerContainedBy(el);
+            return WRAPPER_TAGS.has(el.tagName.toLowerCase()) && markerContainedBy(el);
         }) as HTMLElement[];
         if (candidates.length === 0) break;
         // Unwrap each candidate once per pass; in typical Docs HTML this is a single element
