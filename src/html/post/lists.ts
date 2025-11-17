@@ -1,4 +1,4 @@
-import { $all, hasTag } from '../shared/dom';
+import { $all, hasTag, unwrapElement } from '../shared/dom';
 
 const LIST_TAGS = new Set(['UL', 'OL']);
 
@@ -64,10 +64,7 @@ export function unwrapCheckboxParagraphs(body: HTMLElement): void {
         if (!checkbox) return;
         if (checkbox.closest('li') !== listItem) return;
 
-        while (paragraph.firstChild) {
-            listItem.insertBefore(paragraph.firstChild, paragraph);
-        }
-        listItem.removeChild(paragraph);
+        unwrapElement(paragraph);
     });
 }
 
@@ -99,16 +96,7 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         // If it has BOTH valid and invalid children, it's a real list with orphaned sublists,
         // and those cases are handled by fixOrphanNestedLists (not here).
         if (hasInvalidChildren && !hasAnyValidChildren) {
-            const parent = list.parentElement;
-            if (!parent) return;
-
-            // Unwrap: move all children to be siblings of the invalid list wrapper
-            while (list.firstChild) {
-                parent.insertBefore(list.firstChild, list);
-            }
-
-            // Remove the now-empty invalid wrapper
-            parent.removeChild(list);
+            unwrapElement(list);
         }
     });
 
@@ -122,9 +110,6 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         if (LIST_TAGS.has(parent.tagName)) return;
 
         // This <li> is orphaned - unwrap it
-        while (li.firstChild) {
-            parent.insertBefore(li.firstChild, li);
-        }
-        parent.removeChild(li);
+        unwrapElement(li);
     });
 }
