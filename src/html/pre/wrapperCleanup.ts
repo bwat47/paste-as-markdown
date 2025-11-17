@@ -1,4 +1,4 @@
-import { unwrapElement, hasTag } from '../shared/dom';
+import { unwrapElement } from '../shared/dom';
 import logger from '../../logger';
 
 /**
