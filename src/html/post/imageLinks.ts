@@ -1,9 +1,11 @@
+import { $all } from '../shared/dom';
+
 /**
  * Unwrap anchors that only wrap converted image resources so the resulting Markdown
  * does not leave resource-backed images as clickable external links.
  */
 export function unwrapAllConvertedImageLinks(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[data-pam-converted="true"]')) as HTMLImageElement[];
+    const imgs = $all<HTMLImageElement>(body, 'img[data-pam-converted="true"]');
     imgs.forEach((img) => {
         img.removeAttribute('data-pam-converted');
         unwrapConvertedImageLink(img);

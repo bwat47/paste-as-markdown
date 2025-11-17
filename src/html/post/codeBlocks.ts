@@ -9,13 +9,13 @@
  *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
  */
 
-import { onlyContains, unwrapElement, isHtmlElement } from '../shared/dom';
+import { onlyContains, unwrapElement, isHtmlElement, $all } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
 // Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
 // We replace their text with a sentinel that we later convert back to `&nbsp;` inside markdown cleanup.
 export function markNbspOnlyInlineCode(body: HTMLElement): void {
-    const codes = Array.from(body.querySelectorAll('code')) as HTMLElement[];
+    const codes = $all<HTMLElement>(body, 'code');
     codes.forEach((code) => {
         if (code.parentElement && code.parentElement.tagName === 'PRE') return;
         const text = code.textContent || '';
@@ -48,11 +48,11 @@ export function normalizeCodeBlocks(body: HTMLElement): void {
 }
 
 function convertCodeMirrorEditors(body: HTMLElement): void {
-    const editors = Array.from(body.querySelectorAll('.cm-editor')) as HTMLElement[];
+    const editors = $all<HTMLElement>(body, '.cm-editor');
     editors.forEach((editor) => {
         const content = editor.querySelector('.cm-content') as HTMLElement | null;
         if (!content) return;
-        const lineElements = Array.from(content.querySelectorAll('.cm-line')) as HTMLElement[];
+        const lineElements = $all<HTMLElement>(content, '.cm-line');
         if (lineElements.length === 0) return;
 
         const lines = lineElements.map((line) => extractCodeMirrorLineText(line));
@@ -102,7 +102,7 @@ function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
         'figure[class*=" highlight-"]',
         'pre',
     ];
-    const wrappers = Array.from(body.querySelectorAll(selectors.join(', '))) as HTMLElement[];
+    const wrappers = $all<HTMLElement>(body, selectors.join(', '));
     const pres: HTMLElement[] = [];
     wrappers.forEach((wrapperEl) => {
         const pre =

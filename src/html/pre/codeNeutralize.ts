@@ -1,9 +1,11 @@
+import { $all } from '../shared/dom';
+
 /**
  * Neutralize raw code block content prior to sanitization so literal examples of tags like
  * <script> or <style> are preserved as text instead of being removed by DOMPurify.
  */
 export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
-    const pres = Array.from(body.querySelectorAll('pre')) as HTMLElement[];
+    const pres = $all<HTMLElement>(body, 'pre');
     pres.forEach((pre) => {
         // some sources wrap tables in pre tags
         if (pre.querySelector('table')) {

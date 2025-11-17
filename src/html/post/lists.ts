@@ -1,3 +1,5 @@
+import { $all } from '../shared/dom';
+
 const LIST_TAGS = new Set(['UL', 'OL']);
 
 const LI_TAG = 'LI';
@@ -25,8 +27,7 @@ function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
  * orphaned lists under the nearest preceding list item before conversion.
  */
 export function fixOrphanNestedLists(body: HTMLElement): void {
-    const lists = body.querySelectorAll<HTMLElement>('ul, ol');
-    lists.forEach((list) => {
+    $all<HTMLElement>(body, 'ul, ol').forEach((list) => {
         const parent = list.parentElement;
         if (!parent) return;
         if (parent.tagName === LI_TAG) return;
@@ -56,8 +57,7 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
  * This helper unwraps those paragraphs so the checkbox sits directly under the list item.
  */
 export function unwrapCheckboxParagraphs(body: HTMLElement): void {
-    const paragraphs = body.querySelectorAll<HTMLParagraphElement>('li > p');
-    paragraphs.forEach((paragraph) => {
+    $all<HTMLParagraphElement>(body, 'li > p').forEach((paragraph) => {
         const listItem = paragraph.parentElement;
         if (!listItem || listItem.tagName !== LI_TAG) return;
 
@@ -86,9 +86,7 @@ export function unwrapCheckboxParagraphs(body: HTMLElement): void {
  */
 export function unwrapInvalidListWrappers(body: HTMLElement): void {
     // Convert to array to avoid live collection issues during DOM modification
-    const lists = Array.from(body.querySelectorAll<HTMLElement>('ul, ol'));
-
-    lists.forEach((list) => {
+    $all<HTMLElement>(body, 'ul, ol').forEach((list) => {
         const children = Array.from(list.children);
 
         // Check if any direct children are not <li> elements (which is invalid HTML)
@@ -117,8 +115,7 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
 
     // After unwrapping invalid lists, we may have orphaned <li> elements that are no longer
     // inside a list. These should also be unwrapped to avoid incorrect Markdown conversion.
-    const orphanedListItems = Array.from(body.querySelectorAll<HTMLElement>('li'));
-    orphanedListItems.forEach((li) => {
+    $all<HTMLElement>(body, 'li').forEach((li) => {
         const parent = li.parentElement;
         if (!parent) return;
 

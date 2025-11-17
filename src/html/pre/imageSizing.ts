@@ -1,10 +1,12 @@
+import { $all } from '../shared/dom';
+
 /**
  * Promote inline style width/height on <img> elements to HTML attributes before sanitization.
  * This ensures sizing survives DOMPurify (which may drop style) and allows our Turndown rule
  * to treat sized images as raw HTML embeds instead of Markdown images.
  */
 export function promoteImageSizingStylesToAttributes(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[style]')) as HTMLImageElement[];
+    const imgs = $all<HTMLImageElement>(body, 'img[style]');
     imgs.forEach((img) => {
         const style = img.getAttribute('style')!; // Non-null: selector guarantees style exists
         const hasAttrWidth = img.hasAttribute('width');

@@ -1,4 +1,4 @@
-import { isInCode } from '../shared/dom';
+import { isInCode, $all } from '../shared/dom';
 
 // Remove generic UI elements that are noise in Markdown exports.
 export function removeNonContentUi(body: HTMLElement): void {
@@ -11,7 +11,7 @@ export function removeNonContentUi(body: HTMLElement): void {
 
     // 1) Remove button-like elements entirely when they're standalone UI, but keep inline text labels.
     // Merged query: both <button> and [role="button"] in one pass
-    Array.from(body.querySelectorAll('button, [role="button"]')).forEach((btn) => {
+    $all(body, 'button, [role="button"]').forEach((btn) => {
         if (isInCode(btn)) return;
         const replacementText = extractInlineButtonText(btn as HTMLElement);
         if (replacementText && doc) {
@@ -26,19 +26,19 @@ export function removeNonContentUi(body: HTMLElement): void {
     // Merged query: all roles in one pass
     const roles = ['toolbar', 'tablist', 'tab', 'menu', 'menubar', 'combobox', 'switch'];
     const roleSelector = roles.map((r) => `[role="${r}"]`).join(', ');
-    Array.from(body.querySelectorAll(roleSelector)).forEach((el) => {
+    $all(body, roleSelector).forEach((el) => {
         if (!isInCode(el)) (el as HTMLElement).remove();
     });
 
     // 3) Remove non-checkbox inputs (preserve checkboxes for GFM task lists)
-    Array.from(body.querySelectorAll('input')).forEach((el) => {
+    $all(body, 'input').forEach((el) => {
         if (isInCode(el)) return;
         const type = (el.getAttribute('type') || '').toLowerCase();
         if (type !== 'checkbox') (el as HTMLElement).remove();
     });
 
     // 4) Remove <select>; keep <textarea> so its text content survives
-    Array.from(body.querySelectorAll('select')).forEach((el) => {
+    $all(body, 'select').forEach((el) => {
         if (!isInCode(el)) (el as HTMLElement).remove();
     });
 }

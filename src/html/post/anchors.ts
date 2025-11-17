@@ -1,4 +1,4 @@
-import { onlyContains, unwrapElement } from '../shared/dom';
+import { onlyContains, unwrapElement, $all } from '../shared/dom';
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
@@ -69,8 +69,7 @@ function hasMeaningfulDescendant(element: Element, options: PasteOptions): boole
  * Remove anchor elements that lack visible content after sanitization.
  */
 export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): void {
-    const anchors = body.querySelectorAll('a[href]');
-    anchors.forEach((anchor) => {
+    $all(body, 'a[href]').forEach((anchor) => {
         const textContent = anchor.textContent?.trim() || '';
         if (textContent.length > 0) return;
 
@@ -89,8 +88,7 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
  * Clean GitHub-style permalink anchors and heading links.
  */
 export function cleanHeadingAnchors(body: HTMLElement): void {
-    const anchors = body.querySelectorAll('a');
-    anchors.forEach((anchor) => {
+    $all(body, 'a').forEach((anchor) => {
         const { isPermalink, wrapsHeading } = analyzeAnchor(anchor as HTMLElement);
         if (isPermalink) {
             anchor.remove();

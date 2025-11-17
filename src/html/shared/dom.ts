@@ -67,3 +67,11 @@ export function unwrapElement(element: HTMLElement): void {
     }
     parent.removeChild(element);
 }
+
+/**
+ * Query selector helper that returns an array instead of NodeList.
+ * Eliminates the need for Array.from() boilerplate throughout the codebase.
+ */
+export function $all<T extends Element = Element>(root: ParentNode, selector: string): T[] {
+    return Array.from(root.querySelectorAll<T>(selector));
+}
