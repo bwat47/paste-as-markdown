@@ -90,17 +90,12 @@ export function hasTag(element: Element, ...tags: string[]): boolean {
 }
 
 /**
- * Type guard to check if a node is an Element, optionally matching a specific tag name.
+ * Check if an element is a heading (h1-h6).
+ * More semantic than regex or manual tag checks.
  *
  * @example
- * if (isElement(node, 'div')) { // node is narrowed to HTMLElement with tagName 'DIV'
- *   ...
- * }
+ * isHeading(element) // instead of /^H[1-6]$/.test(element.tagName)
  */
-export function isElement(node: Node, tag?: string): node is HTMLElement {
-    if (node.nodeType !== Node.ELEMENT_NODE) return false;
-    const element = node as Element;
-    if (!isHtmlElement(element)) return false;
-    if (tag === undefined) return true;
-    return hasTag(element, tag);
+export function isHeading(element: Element): boolean {
+    return hasTag(element, 'h1', 'h2', 'h3', 'h4', 'h5', 'h6');
 }

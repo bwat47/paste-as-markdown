@@ -1,7 +1,5 @@
 import { $all, hasTag, unwrapElement } from '../shared/dom';
 
-const LIST_TAGS = new Set(['UL', 'OL']);
-
 const CHECKBOX_SELECTOR = 'input[type="checkbox"]';
 
 function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
@@ -30,7 +28,7 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
         const parent = list.parentElement;
         if (!parent) return;
         if (hasTag(parent, 'li')) return;
-        if (!LIST_TAGS.has(parent.tagName)) return;
+        if (!hasTag(parent, 'ul', 'ol')) return;
 
         const previousElement = list.previousElementSibling as HTMLElement | null;
         const targetLi =
@@ -107,7 +105,7 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         if (!parent) return;
 
         // If the <li> is inside a <ul> or <ol>, it's not orphaned
-        if (LIST_TAGS.has(parent.tagName)) return;
+        if (hasTag(parent, 'ul', 'ol')) return;
 
         // This <li> is orphaned - unwrap it
         unwrapElement(li);

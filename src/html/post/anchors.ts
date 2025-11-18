@@ -1,4 +1,4 @@
-import { onlyContains, unwrapElement, $all, hasTag } from '../shared/dom';
+import { onlyContains, unwrapElement, $all, hasTag, isHeading } from '../shared/dom';
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
@@ -34,7 +34,7 @@ function analyzeAnchor(node: HTMLElement): {
         (isPermalinkHref || isPermalinkId) &&
         (text.length === 0 || isPermalinkText || isPermalinkTitle);
     const headingChild = node.firstElementChild;
-    const wrapsHeading = !!headingChild && /^H[1-6]$/.test(headingChild.tagName) && onlyContains(node, headingChild);
+    const wrapsHeading = !!headingChild && isHeading(headingChild) && onlyContains(node, headingChild);
     return { isPermalink, wrapsHeading };
 }
 
