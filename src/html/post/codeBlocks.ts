@@ -9,7 +9,7 @@
  *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
  */
 
-import { onlyContains, unwrapElement, isHtmlElement, $all, hasTag, isTextNode, isElement } from '../shared/dom';
+import { onlyContains, unwrapElement, isHtmlElement, $all, hasTag, isTextNode } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
 // Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
@@ -79,13 +79,12 @@ function extractCodeMirrorLineText(line: HTMLElement): string {
     for (const node of Array.from(line.childNodes)) {
         if (isTextNode(node)) {
             text += node.textContent || '';
-        } else if (isElement(node)) {
-            if (hasTag(node, 'br')) {
+        } else if (isHtmlElement(node as Element)) {
+            const el = node as HTMLElement;
+            if (hasTag(el, 'br')) {
                 continue;
             }
-            if (isHtmlElement(node)) {
-                text += extractCodeMirrorLineText(node);
-            }
+            text += extractCodeMirrorLineText(el);
         }
     }
     return text;
