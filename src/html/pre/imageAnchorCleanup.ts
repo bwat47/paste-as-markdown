@@ -1,4 +1,4 @@
-import { hasTag, isElement, isTextNode } from '../shared/dom';
+import { hasTag, isElement, isTextNode, $all } from '../shared/dom';
 
 /**
  * Prune non-image children from anchors that wrap images.
@@ -18,7 +18,7 @@ import { hasTag, isElement, isTextNode } from '../shared/dom';
 export function pruneNonImageAnchorChildren(body: HTMLElement): void {
     // Find all images inside anchors, then build a Set of their parent anchors
     // This avoids iterating through text links that never contain images
-    const imgsInAnchors = body.querySelectorAll('a img');
+    const imgsInAnchors = $all<HTMLImageElement>(body, 'a img');
     const anchorsWithImages = new Set<HTMLAnchorElement>();
 
     imgsInAnchors.forEach((img) => {
