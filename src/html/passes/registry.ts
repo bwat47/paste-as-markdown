@@ -5,7 +5,7 @@ import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
 import { removeEmptyAnchors, cleanHeadingAnchors } from '../post/anchors';
-import { stripHeadingFormatting } from '../post/headings';
+import { stripHeadingFormatting, normalizeHeadingLevels } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
 import { fixOrphanNestedLists, unwrapCheckboxParagraphs, unwrapInvalidListWrappers } from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
@@ -67,6 +67,12 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         phase: 'post-sanitize',
         priority: 20,
         execute: (body) => cleanHeadingAnchors(body),
+    },
+    {
+        name: 'Post-sanitize heading level normalization',
+        phase: 'post-sanitize',
+        priority: 21,
+        execute: (body) => normalizeHeadingLevels(body),
     },
     {
         name: 'Post-sanitize plain heading text enforcement',
