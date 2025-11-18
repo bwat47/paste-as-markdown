@@ -25,36 +25,36 @@ export function stripHeadingFormatting(body: HTMLElement): void {
 }
 
 /**
- * Normalizes heading levels to be sequential.
- * E.g. if a document has h2, then h5, then h6, it will be normalized to h2, h3, h4.
+ * Normalizes heading levels to follow a proper hierarchy.
+ * Ensures each heading is at most 1 level deeper than the previous heading.
+ * E.g. if a document has h2, h5, h6, it will be normalized to h2, h3, h4.
  * The starting level is preserved (so if it starts at h2, it stays h2).
  */
 export function normalizeHeadingLevels(body: HTMLElement): void {
     const headings = Array.from(body.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6'));
     if (headings.length === 0) return;
 
-    // 1. Identify unique levels present
-    const levels = new Set<number>();
+    // Track the previous heading level to ensure proper hierarchy
+    let previousLevel = 0;
+
     headings.forEach((h) => {
-        const level = parseInt(h.tagName.substring(1), 10);
-        levels.add(level);
-    });
+        const currentLevel = parseInt(h.tagName.substring(1), 10);
 
-    // 2. Create mapping from old level to new level
-    const sortedLevels = Array.from(levels).sort((a, b) => a - b);
-    const mapping = new Map<number, number>();
-    const startLevel = sortedLevels[0];
+        // Determine the new level based on the previous heading
+        let newLevel: number;
+        if (previousLevel === 0) {
+            // First heading - keep its level
+            newLevel = currentLevel;
+        } else if (currentLevel <= previousLevel + 1) {
+            // Level is acceptable (same, up by 1, or going back up)
+            newLevel = currentLevel;
+        } else {
+            // Level jumps too much (e.g., h2 -> h5), normalize to previousLevel + 1
+            newLevel = previousLevel + 1;
+        }
 
-    sortedLevels.forEach((oldLevel, index) => {
-        mapping.set(oldLevel, startLevel + index);
-    });
-
-    // 3. Apply mapping
-    headings.forEach((h) => {
-        const oldLevel = parseInt(h.tagName.substring(1), 10);
-        const newLevel = mapping.get(oldLevel);
-
-        if (newLevel && newLevel !== oldLevel) {
+        // Apply the new level if it changed
+        if (newLevel !== currentLevel) {
             const newTag = `H${newLevel}`;
             const newHeading = h.ownerDocument.createElement(newTag);
 
@@ -70,5 +70,8 @@ export function normalizeHeadingLevels(body: HTMLElement): void {
 
             h.replaceWith(newHeading);
         }
+
+        // Update the previous level for the next iteration
+        previousLevel = newLevel;
     });
 }

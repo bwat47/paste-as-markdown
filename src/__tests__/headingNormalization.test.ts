@@ -69,7 +69,7 @@ describe('normalizeHeadingLevels', () => {
         expect(h3?.getAttribute('data-test')).toBe('value');
     });
 
-    it('should handle mixed levels correctly', () => {
+    it('should handle mixed levels correctly (context-aware)', () => {
         const body = parse(`
             <h2>1</h2>
             <h5>2</h5>
@@ -77,9 +77,11 @@ describe('normalizeHeadingLevels', () => {
             <h6>4</h6>
         `);
 
-        // Levels present: 2, 5, 6
-        // Sorted: 2, 5, 6
-        // Mapping: 2->2, 5->3, 6->4
+        // Context-aware normalization:
+        // h2 (first) -> h2, previousLevel=2
+        // h5 (jumps from 2) -> h3, previousLevel=3
+        // h2 (goes back down) -> h2, previousLevel=2
+        // h6 (jumps from 2) -> h3, previousLevel=3
 
         normalizeHeadingLevels(body);
 
@@ -88,12 +90,44 @@ describe('normalizeHeadingLevels', () => {
         expect(headings[0].tagName).toBe('H2');
         expect(headings[1].tagName).toBe('H3');
         expect(headings[2].tagName).toBe('H2');
-        expect(headings[3].tagName).toBe('H4');
+        expect(headings[3].tagName).toBe('H3');
     });
 
     it('should do nothing if no headings present', () => {
         const body = parse('<p>Just text</p>');
         normalizeHeadingLevels(body);
         expect(body.innerHTML).toBe('<p>Just text</p>');
+    });
+
+    it('should handle ChatGPT-style conversation with h2, h4, h5 pattern', () => {
+        const body = parse(`
+            <h2>Example Unit Tests</h2>
+            <p>Some content</p>
+            <h4>You said:</h4>
+            <p>User message</p>
+            <h5>ChatGPT said:</h5>
+            <p>Assistant response</p>
+            <h2>What You Did Well</h2>
+            <h3>Structure</h3>
+        `);
+
+        // Context-aware normalization:
+        // h2 (first) -> h2, previousLevel=2
+        // h4 (jumps from 2) -> h3, previousLevel=3
+        // h5 (jumps from 3) -> h4, previousLevel=4
+        // h2 (goes back down) -> h2, previousLevel=2
+        // h3 (valid step from 2) -> h3, previousLevel=3
+
+        normalizeHeadingLevels(body);
+
+        const headings = body.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        expect(headings.length).toBe(5);
+        expect(headings[0].tagName).toBe('H2'); // Example Unit Tests
+        expect(headings[1].tagName).toBe('H3'); // You said: (was h4)
+        expect(headings[2].tagName).toBe('H4'); // ChatGPT said: (was h5)
+        expect(headings[3].tagName).toBe('H2'); // What You Did Well
+        expect(headings[4].tagName).toBe('H3'); // Structure
+
+        expect(body.innerHTML).not.toContain('<h5>');
     });
 });
