@@ -1,4 +1,4 @@
-import { onlyContains, unwrapElement, $all, hasTag, isHeading } from '../shared/dom';
+import { onlyContains, unwrapElement, $all, hasTag, isHeading, isTextNode, isElement } from '../shared/dom';
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
@@ -41,26 +41,25 @@ function analyzeAnchor(node: HTMLElement): {
 function hasMeaningfulDescendant(element: Element, options: PasteOptions): boolean {
     const childNodes = Array.from(element.childNodes);
     for (const node of childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) {
+        if (isTextNode(node)) {
             if ((node.textContent || '').trim().length > 0) return true;
             continue;
         }
-        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        if (!isElement(node)) continue;
 
-        const child = node as Element;
-        const tag = child.tagName.toLowerCase();
+        const tag = node.tagName.toLowerCase();
 
         if (MEDIA_TAGS.has(tag) && options.includeImages) return true;
-        if (hasTag(child, 'svg')) {
-            const ariaLabel = child.getAttribute('aria-label') || child.getAttribute('aria-labelledby');
+        if (hasTag(node, 'svg')) {
+            const ariaLabel = node.getAttribute('aria-label') || node.getAttribute('aria-labelledby');
             if (ariaLabel && ariaLabel.trim().length > 0) return true;
 
-            const accessibleNode = child.querySelector('title, desc');
+            const accessibleNode = node.querySelector('title, desc');
             if (accessibleNode && (accessibleNode.textContent || '').trim().length > 0) return true;
         }
         if (DECORATIVE_SVG_TAGS.has(tag)) continue;
 
-        if (hasMeaningfulDescendant(child, options)) return true;
+        if (hasMeaningfulDescendant(node, options)) return true;
     }
     return false;
 }

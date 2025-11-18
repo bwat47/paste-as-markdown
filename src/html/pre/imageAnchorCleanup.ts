@@ -1,4 +1,4 @@
-import { hasTag } from '../shared/dom';
+import { hasTag, isElement, isTextNode } from '../shared/dom';
 
 /**
  * Prune non-image children from anchors that wrap images.
@@ -38,12 +38,11 @@ export function pruneNonImageAnchorChildren(body: HTMLElement): void {
         // Remove non-image children (iterate over a copy since we're modifying)
         const childrenToCheck = Array.from(anchor.childNodes);
         for (const child of childrenToCheck) {
-            if (child.nodeType === Node.ELEMENT_NODE) {
-                const el = child as Element;
-                if (!keepElement(el)) {
-                    el.remove();
+            if (isElement(child)) {
+                if (!keepElement(child)) {
+                    child.remove();
                 }
-            } else if (child.nodeType === Node.TEXT_NODE) {
+            } else if (isTextNode(child)) {
                 // Remove whitespace-only text nodes
                 if (!child.textContent || child.textContent.trim() === '') {
                     child.remove();

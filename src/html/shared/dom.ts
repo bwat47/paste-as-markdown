@@ -1,11 +1,37 @@
 /**
+ * Type guard to check if a node is an Element.
+ * Provides type narrowing without instanceof checks that break in JSDOM.
+ *
+ * @example
+ * if (isElement(node)) {
+ *   // node is narrowed to Element
+ *   console.log(node.tagName);
+ * }
+ */
+export function isElement(node: Node): node is Element {
+    return node.nodeType === Node.ELEMENT_NODE;
+}
+
+/**
+ * Type guard to check if a node is a Text node.
+ * Provides type narrowing for text content operations.
+ *
+ * @example
+ * if (isTextNode(node)) {
+ *   // node is narrowed to Text
+ *   return node.textContent || '';
+ * }
+ */
+export function isTextNode(node: Node): node is Text {
+    return node.nodeType === Node.TEXT_NODE;
+}
+
+/**
  * Check if a wrapper element contains only a specific child element.
  * Ignores whitespace-only text nodes when counting children.
  */
 export function onlyContains(wrapper: Element, child: Element): boolean {
-    const kids = Array.from(wrapper.childNodes).filter(
-        (n) => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim())
-    );
+    const kids = Array.from(wrapper.childNodes).filter((n) => !(isTextNode(n) && !n.textContent?.trim()));
     return kids.length === 1 && kids[0] === child;
 }
 
