@@ -17,10 +17,9 @@ export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
         const collect = (node: Node): string => {
             if (isTextNode(node)) return node.textContent || '';
             if (isElement(node)) {
-                const el = node as HTMLElement;
-                if (el.tagName.toLowerCase() === 'br') return '\n';
+                if (node.tagName.toLowerCase() === 'br') return '\n';
                 let out = '';
-                for (const child of Array.from(el.childNodes)) out += collect(child);
+                for (const child of Array.from(node.childNodes)) out += collect(child);
                 return out;
             }
             return '';

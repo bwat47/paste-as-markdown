@@ -74,7 +74,7 @@ function extractInlineButtonText(element: HTMLElement): string | null {
     if (parentTag === 'div') {
         const hasInlineSiblings = Array.from(parent.childNodes).some((node) => {
             if (node === element) return false;
-            if (isTextNode(node)) return !!node.textContent.trim();
+            if (isTextNode(node)) return !!node.textContent?.trim();
             if (isElement(node)) {
                 const tag = node.tagName.toLowerCase();
                 return tag !== 'br';

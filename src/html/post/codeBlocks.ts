@@ -74,17 +74,16 @@ function convertCodeMirrorEditors(body: HTMLElement): void {
     });
 }
 
-function extractCodeMirrorLineText(line: HTMLElement): string {
+function extractCodeMirrorLineText(line: Element): string {
     let text = '';
     for (const node of Array.from(line.childNodes)) {
         if (isTextNode(node)) {
             text += node.textContent || '';
         } else if (isElement(node)) {
-            const el = node as HTMLElement;
-            if (el.tagName.toLowerCase() === 'br') {
+            if (node.tagName.toLowerCase() === 'br') {
                 continue;
             }
-            text += extractCodeMirrorLineText(el);
+            text += extractCodeMirrorLineText(node);
         }
     }
     return text;
