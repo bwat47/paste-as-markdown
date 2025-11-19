@@ -1,3 +1,5 @@
+import { isTextNode } from '../shared/dom';
+
 /**
  * Unwrap anchors that only wrap converted image resources so the resulting Markdown
  * does not leave resource-backed images as clickable external links.
@@ -26,7 +28,7 @@ function unwrapConvertedImageLink(img: HTMLImageElement): void {
     if (!/^https?:\/\//i.test(href)) return;
     if (!img.getAttribute('src')?.startsWith(':/')) return;
 
-    const isWhitespace = (n: Node) => n.nodeType === Node.TEXT_NODE && !(n.textContent || '').trim();
+    const isWhitespace = (n: Node) => isTextNode(n) && !n.textContent.trim();
     const childrenWithoutWs = (el: Element) => Array.from(el.childNodes).filter((n) => !isWhitespace(n));
 
     let node: Node = img;

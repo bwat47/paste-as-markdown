@@ -1,4 +1,4 @@
-import { onlyContains, unwrapElement } from '../shared/dom';
+import { onlyContains, unwrapElement, isTextNode, isElement } from '../shared/dom';
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
@@ -41,13 +41,13 @@ function analyzeAnchor(node: HTMLElement): {
 function hasMeaningfulDescendant(element: Element, options: PasteOptions): boolean {
     const childNodes = Array.from(element.childNodes);
     for (const node of childNodes) {
-        if (node.nodeType === Node.TEXT_NODE) {
-            if ((node.textContent || '').trim().length > 0) return true;
+        if (isTextNode(node)) {
+            if (node.textContent.trim().length > 0) return true;
             continue;
         }
-        if (node.nodeType !== Node.ELEMENT_NODE) continue;
+        if (!isElement(node)) continue;
 
-        const child = node as Element;
+        const child = node;
         const tag = child.tagName.toLowerCase();
 
         if (MEDIA_TAGS.has(tag) && options.includeImages) return true;

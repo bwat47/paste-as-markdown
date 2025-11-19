@@ -1,3 +1,5 @@
+import { isTextNode, isElement } from '../shared/dom';
+
 /**
  * Neutralize raw code block content prior to sanitization so literal examples of tags like
  * <script> or <style> are preserved as text instead of being removed by DOMPurify.
@@ -13,8 +15,8 @@ export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
         const target = code || pre;
         if (!target) return;
         const collect = (node: Node): string => {
-            if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';
-            if (node.nodeType === Node.ELEMENT_NODE) {
+            if (isTextNode(node)) return node.textContent || '';
+            if (isElement(node)) {
                 const el = node as HTMLElement;
                 if (el.tagName.toLowerCase() === 'br') return '\n';
                 let out = '';
