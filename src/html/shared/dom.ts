@@ -3,9 +3,7 @@
  * Ignores whitespace-only text nodes when counting children.
  */
 export function onlyContains(wrapper: Element, child: Element): boolean {
-    const kids = Array.from(wrapper.childNodes).filter(
-        (n) => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim())
-    );
+    const kids = Array.from(wrapper.childNodes).filter((n) => !(isTextNode(n) && !n.textContent?.trim()));
     return kids.length === 1 && kids[0] === child;
 }
 
@@ -17,6 +15,20 @@ export function isInCode(el: Element): boolean {
     const tag = el.tagName.toLowerCase();
     if (tag === 'code' || tag === 'pre') return true;
     return !!el.closest && !!el.closest('code, pre');
+}
+
+/**
+ * Type guard to check if a node is an Element.
+ */
+export function isElement(node: Node): node is Element {
+    return node.nodeType === Node.ELEMENT_NODE;
+}
+
+/**
+ * Type guard to check if a node is a Text node.
+ */
+export function isTextNode(node: Node): node is Text {
+    return node.nodeType === Node.TEXT_NODE;
 }
 
 /**

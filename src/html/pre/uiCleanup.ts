@@ -1,4 +1,4 @@
-import { isInCode } from '../shared/dom';
+import { isInCode, isTextNode, isElement } from '../shared/dom';
 
 // Remove generic UI elements that are noise in Markdown exports.
 export function removeNonContentUi(body: HTMLElement): void {
@@ -74,9 +74,9 @@ function extractInlineButtonText(element: HTMLElement): string | null {
     if (parentTag === 'div') {
         const hasInlineSiblings = Array.from(parent.childNodes).some((node) => {
             if (node === element) return false;
-            if (node.nodeType === Node.TEXT_NODE) return !!node.textContent?.trim();
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                const tag = (node as Element).tagName.toLowerCase();
+            if (isTextNode(node)) return !!node.textContent?.trim();
+            if (isElement(node)) {
+                const tag = node.tagName.toLowerCase();
                 return tag !== 'br';
             }
             return false;
