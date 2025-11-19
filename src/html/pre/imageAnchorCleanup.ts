@@ -45,7 +45,7 @@ export function pruneNonImageAnchorChildren(body: HTMLElement): void {
                 }
             } else if (isTextNode(child)) {
                 // Remove whitespace-only text nodes
-                if (!child.textContent.trim()) {
+                if (!child.textContent?.trim()) {
                     child.remove();
                 }
             }

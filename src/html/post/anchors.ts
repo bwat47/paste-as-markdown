@@ -42,7 +42,7 @@ function hasMeaningfulDescendant(element: Element, options: PasteOptions): boole
     const childNodes = Array.from(element.childNodes);
     for (const node of childNodes) {
         if (isTextNode(node)) {
-            if (node.textContent.trim().length > 0) return true;
+            if ((node.textContent || '').trim().length > 0) return true;
             continue;
         }
         if (!isElement(node)) continue;
