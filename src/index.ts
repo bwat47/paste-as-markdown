@@ -42,7 +42,7 @@ joplin.plugins.register({
                 public: true,
                 label: 'Include images',
                 description:
-                    'If enabled, images from HTML will be converted to markdown image syntax. If disabled, images will be removed entirely.',
+                    'If enabled, images will be included in the pasted markdown. If disabled, images will be removed entirely.',
             },
             [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: {
                 value: false,
