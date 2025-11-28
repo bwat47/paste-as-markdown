@@ -245,6 +245,28 @@ describe('integration: convertHtmlToMarkdown', () => {
         );
     });
 
+    test('unwraps block-level elements from anchors to prevent newlines in link syntax', async () => {
+        const html = `
+            <div>
+                <a href="https://about.gitlab.com/blog/tags/security/">
+                    <p>security</p>
+                </a>
+                <a href="https://about.gitlab.com/blog/tags/security-research/">
+                    <p>security research</p>
+                </a>
+            </div>
+        `;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        // Links should be on single lines without dangling brackets
+        expect(md).toContain('[security](https://about.gitlab.com/blog/tags/security/)');
+        expect(md).toContain('[security research](https://about.gitlab.com/blog/tags/security-research/)');
+
+        // Should not have newlines inside link syntax
+        expect(md).not.toMatch(/\[\s*\n/);
+        expect(md).not.toMatch(/\n\s*\]\(/);
+    });
+
     test('code blocks with special replacement patterns ($`, $&, etc.) do not cause content duplication', async () => {
         // Regression test for bug where JavaScript's String.replace() special patterns in code blocks
         // would cause content before the code block to be duplicated inside it.

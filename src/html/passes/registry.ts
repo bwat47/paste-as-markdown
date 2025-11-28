@@ -4,7 +4,7 @@ import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
 import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
-import { removeEmptyAnchors, cleanHeadingAnchors } from '../post/anchors';
+import { removeEmptyAnchors, normalizeAnchors } from '../post/anchors';
 import { stripHeadingFormatting, normalizeHeadingLevels } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
 import { fixOrphanNestedLists, unwrapCheckboxParagraphs, unwrapInvalidListWrappers } from '../post/lists';
@@ -63,10 +63,10 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         execute: (body, options) => removeEmptyAnchors(body, options),
     },
     {
-        name: 'Post-sanitize heading anchor cleanup',
+        name: 'Post-sanitize anchor normalization',
         phase: 'post-sanitize',
         priority: 20,
-        execute: (body) => cleanHeadingAnchors(body),
+        execute: (body) => normalizeAnchors(body),
     },
     {
         name: 'Post-sanitize heading level normalization',
