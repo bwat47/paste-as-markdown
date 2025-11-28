@@ -28,8 +28,8 @@ export const SHORTCUTS = {
 
 export const TOAST_DURATION = 4000; // ms
 
-// Hard cap for image resource conversion to avoid excessive memory/disk usage (approx 15MB)
-export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+// Hard cap for image resource conversion to avoid excessive memory/disk usage (approx 25MB)
+export const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
 // Resource conversion timeouts and limits
 export const DOWNLOAD_TIMEOUT_MS = 15000; // 15 seconds for image downloads
