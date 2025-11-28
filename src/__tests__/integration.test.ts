@@ -244,4 +244,56 @@ describe('integration: convertHtmlToMarkdown', () => {
             /```(?:html)?[\s\S]*<script src=\"https:\/\/unpkg.com\/turndown\/dist\/turndown.js\"><\/script>[\s\S]*```/
         );
     });
+
+    test('code blocks with special replacement patterns ($`, $&, etc.) do not cause content duplication', async () => {
+        // Regression test for bug where JavaScript's String.replace() special patterns in code blocks
+        // would cause content before the code block to be duplicated inside it.
+        // The pattern `$`` means "insert everything before the matched substring" in replacement strings.
+        const html = `
+            <h3>Supply chain propagation</h3>
+            <p>Using stolen npm tokens, the malware:</p>
+            <ol>
+                <li>Downloads all packages maintained by the victim</li>
+                <li>Injects the <code>setup_bun.js</code> loader into each package's preinstall scripts</li>
+                <li>Bundles the malicious <code>bun_environment.js</code> payload</li>
+                <li>Increments the package version number</li>
+                <li>Republishes the infected packages to npm</li>
+            </ol>
+            <pre><code>async function updatePackage(packageInfo) {
+  // Download original package
+  let tarball = await fetch(packageInfo.tarballUrl);
+
+  // Repackage and publish
+  await Bun.$\`npm publish \${modifiedPackage}\`.env({
+    NPM_CONFIG_TOKEN: this.token
+  });
+}</code></pre>
+            <h2>The dead man's switch</h2>
+            <p>Our analysis uncovered a destructive payload.</p>
+        `;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        // The code block should appear exactly once
+        const codeBlockMatches = md.match(/```[\s\S]*?```/g);
+        expect(codeBlockMatches).toHaveLength(1);
+
+        // The heading and list should NOT appear inside the code block
+        const codeBlock = codeBlockMatches![0];
+        expect(codeBlock).not.toContain('Supply chain propagation');
+        expect(codeBlock).not.toContain('Downloads all packages');
+        expect(codeBlock).not.toContain('Injects the');
+
+        // The code block should contain the actual code with Bun.$`
+        expect(codeBlock).toContain('await Bun.$`npm publish');
+        expect(codeBlock).toContain('NPM_CONFIG_TOKEN: this.token');
+
+        // The heading and list should appear in the correct positions outside the code block
+        expect(md).toMatch(/### Supply chain propagation/);
+        expect(md).toMatch(/1\. Downloads all packages maintained by the victim/);
+        expect(md).toMatch(/## The dead man's switch/);
+
+        // The heading should appear exactly once (not duplicated)
+        const headingMatches = md.match(/### Supply chain propagation/g);
+        expect(headingMatches).toHaveLength(1);
+    });
 });

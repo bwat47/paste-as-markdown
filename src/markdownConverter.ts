@@ -280,7 +280,8 @@ function withFencedCodeProtection(markdown: string, transform: (segment: string)
         return token(fences.length - 1);
     });
     const transformed = transform(protectedMd);
-    return fences.reduce((acc, fence, i) => acc.replace(token(i), fence), transformed);
+    // Use callback function to prevent interpretation of special replacement patterns ($&, $`, $', etc.)
+    return fences.reduce((acc, fence, i) => acc.replace(token(i), () => fence), transformed);
 }
 
 /**
