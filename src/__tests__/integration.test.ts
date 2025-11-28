@@ -250,26 +250,26 @@ describe('integration: convertHtmlToMarkdown', () => {
         // would cause content before the code block to be duplicated inside it.
         // The pattern `$`` means "insert everything before the matched substring" in replacement strings.
         const html = `
-            <h3>Supply chain propagation</h3>
-            <p>Using stolen npm tokens, the malware:</p>
+            <h3>Build automation workflow</h3>
+            <p>The deployment script performs these steps:</p>
             <ol>
-                <li>Downloads all packages maintained by the victim</li>
-                <li>Injects the <code>setup_bun.js</code> loader into each package's preinstall scripts</li>
-                <li>Bundles the malicious <code>bun_environment.js</code> payload</li>
-                <li>Increments the package version number</li>
-                <li>Republishes the infected packages to npm</li>
+                <li>Validates the package configuration</li>
+                <li>Runs the test suite with <code>npm test</code></li>
+                <li>Builds the production bundle</li>
+                <li>Increments the version number</li>
+                <li>Publishes to the package registry</li>
             </ol>
-            <pre><code>async function updatePackage(packageInfo) {
-  // Download original package
-  let tarball = await fetch(packageInfo.tarballUrl);
+            <pre><code>async function deployPackage(config) {
+  // Validate configuration
+  const isValid = await validateConfig(config);
 
-  // Repackage and publish
-  await Bun.$\`npm publish \${modifiedPackage}\`.env({
-    NPM_CONFIG_TOKEN: this.token
+  // Deploy using Bun's shell
+  await Bun.$\`npm publish \${config.packagePath}\`.env({
+    NODE_ENV: 'production'
   });
 }</code></pre>
-            <h2>The dead man's switch</h2>
-            <p>Our analysis uncovered a destructive payload.</p>
+            <h2>Post-deployment tasks</h2>
+            <p>After deployment completes, update the changelog and notify the team.</p>
         `;
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
 
@@ -279,21 +279,21 @@ describe('integration: convertHtmlToMarkdown', () => {
 
         // The heading and list should NOT appear inside the code block
         const codeBlock = codeBlockMatches![0];
-        expect(codeBlock).not.toContain('Supply chain propagation');
-        expect(codeBlock).not.toContain('Downloads all packages');
-        expect(codeBlock).not.toContain('Injects the');
+        expect(codeBlock).not.toContain('Build automation workflow');
+        expect(codeBlock).not.toContain('Validates the package');
+        expect(codeBlock).not.toContain('Runs the test suite');
 
         // The code block should contain the actual code with Bun.$`
         expect(codeBlock).toContain('await Bun.$`npm publish');
-        expect(codeBlock).toContain('NPM_CONFIG_TOKEN: this.token');
+        expect(codeBlock).toContain("NODE_ENV: 'production'");
 
         // The heading and list should appear in the correct positions outside the code block
-        expect(md).toMatch(/### Supply chain propagation/);
-        expect(md).toMatch(/1\. Downloads all packages maintained by the victim/);
-        expect(md).toMatch(/## The dead man's switch/);
+        expect(md).toMatch(/### Build automation workflow/);
+        expect(md).toMatch(/1\. Validates the package configuration/);
+        expect(md).toMatch(/## Post-deployment tasks/);
 
         // The heading should appear exactly once (not duplicated)
-        const headingMatches = md.match(/### Supply chain propagation/g);
+        const headingMatches = md.match(/### Build automation workflow/g);
         expect(headingMatches).toHaveLength(1);
     });
 });
