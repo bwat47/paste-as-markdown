@@ -30,9 +30,9 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
     - **Code block normalization** - Improved reliability when pasting code blocks. Normalizes known code block wrappers/containers to simple `<pre>`/`<code>` and infers language from common class patterns and applies a normalized class="language-xxx".
 
-    - **Text normalization** - Normalizes nbsp and zero width space characters to regular spaces. (Optionally) normalizes smart quotes to regular quotes.
+    - **Text normalization** - Removes zero width spaces and replaces "thin" spaces with normal spaces. (Optionally) normalizes smart quotes to regular quotes.
 
-    - **List normalization** - Re-nests orphaned lists, so numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote. Uniform spacing (one space) after list markers.
+    - **List normalization** - Corrects invalid list HTML such as orphaned lists and ordered lists inside unordered list tags so that numbering/indentation is properly preserved when pasting nested lists from sources like Outlook/Google Docs/Onenote. Uniform spacing (one space) after list markers.
 
     - **Image normalization** - HTML `<img>` embeds will only contain a standardized set of attributes: src, alt, title, width, height. Images that are converted to joplin resources will be unwrapped from external anchor links. Promotes inline css width/height to HTML attributes so that image sizes are maintained through turndown conversion.
 
