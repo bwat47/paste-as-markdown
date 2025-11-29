@@ -1,4 +1,26 @@
-import { isInCode, isTextNode, isElement } from '../shared/dom';
+import { isInCode, isTextNode, isElement, unwrapElement } from '../shared/dom';
+
+/**
+ * Check if an element contains meaningful content like images, videos, or accessible SVGs.
+ */
+function hasMeaningfulContent(element: HTMLElement): boolean {
+    // Check for images
+    if (element.querySelector('img, picture, source, video, audio, canvas')) {
+        return true;
+    }
+
+    // Check for SVGs with accessible labels
+    const svg = element.querySelector('svg');
+    if (svg) {
+        const ariaLabel = svg.getAttribute('aria-label') || svg.getAttribute('aria-labelledby');
+        if (ariaLabel && ariaLabel.trim().length > 0) return true;
+
+        const accessibleNode = svg.querySelector('title, desc');
+        if (accessibleNode && (accessibleNode.textContent || '').trim().length > 0) return true;
+    }
+
+    return false;
+}
 
 // Remove generic UI elements that are noise in Markdown exports.
 export function removeNonContentUi(body: HTMLElement): void {
@@ -9,10 +31,18 @@ export function removeNonContentUi(body: HTMLElement): void {
 
     const doc = body.ownerDocument;
 
-    // 1) Remove button-like elements entirely when they're standalone UI, but keep inline text labels.
+    // 1) Remove button-like elements entirely when they're standalone UI, but keep inline text labels
+    // and unwrap elements with meaningful content (images, videos, etc.).
     // Merged query: both <button> and [role="button"] in one pass
     Array.from(body.querySelectorAll('button, [role="button"]')).forEach((btn) => {
         if (isInCode(btn)) return;
+
+        // If button contains meaningful content (images, etc.), unwrap it to preserve the content
+        if (hasMeaningfulContent(btn as HTMLElement)) {
+            unwrapElement(btn as HTMLElement);
+            return;
+        }
+
         const replacementText = extractInlineButtonText(btn as HTMLElement);
         if (replacementText && doc) {
             const textNode = doc.createTextNode(replacementText);

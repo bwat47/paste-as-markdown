@@ -267,6 +267,17 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\n\s*\]\(/);
     });
 
+    test('preserves images inside divs with role=button', async () => {
+        // This is the actual clipboard HTML after browser auto-correction
+        const html = `<p>So without any more delay, here are the results of my not-very-scientific at all benchmark using the experimentation platform inside of Skald.</p><p></p><div class="cursor-pointer rounded-lg overflow-hidden transition-opacity hover:opacity-90" role="button" tabindex="0"><img alt="skald experiments" class="rounded-lg" src="https://blog.yakkomajuri.com/images/voyage-claude.png"></div><p></p><h3 id="voyage-claude"><a class="anchor" href="https://blog.yakkomajuri.com/blog/local-rag#voyage-claude"></a>Voyage + Claude</h3><p>This is our default Cloud setup.</p>`;
+
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        // Image should be present in the output (div wrapper removed, image preserved)
+        expect(md).toContain('![skald experiments](https://blog.yakkomajuri.com/images/voyage-claude.png)');
+        expect(md).toContain('Voyage + Claude');
+    });
+
     test('code blocks with special replacement patterns ($`, $&, etc.) do not cause content duplication', async () => {
         // Regression test for bug where JavaScript's String.replace() special patterns in code blocks
         // would cause content before the code block to be duplicated inside it.
