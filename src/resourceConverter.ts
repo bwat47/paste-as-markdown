@@ -24,7 +24,7 @@ import logger from './logger';
 declare const joplin: Joplin;
 // Minimal interface for the fs-extra module methods we use
 interface FileSystem {
-    writeFileSync(path: string, data: Uint8Array | Buffer): void;
+    writeFileSync(path: string, data: Buffer): void;
     unlink(path: string, cb: (err: NodeJS.ErrnoException | null) => void): void;
 }
 type ResourceImageSource = { kind: 'resource'; url: string };
@@ -54,10 +54,6 @@ function isDataSource(source: ImageSource): source is DataImageSource {
 
 function isRemoteSource(source: ImageSource): source is RemoteImageSource {
     return source.kind === 'remote';
-}
-
-async function writeFileSafe(fs: FileSystem, filePath: string, data: Uint8Array | Buffer): Promise<void> {
-    fs.writeFileSync(filePath, data);
 }
 
 /**
@@ -291,7 +287,7 @@ async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promi
     }
     try {
         const buffer = Buffer.from(img.buffer);
-        await writeFileSafe(fs, tmpPath, buffer);
+        fs.writeFileSync(tmpPath, buffer);
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
         ]);
