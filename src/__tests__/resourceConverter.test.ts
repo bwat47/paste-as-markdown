@@ -171,18 +171,20 @@ describe('resourceConverter edge cases', () => {
         expect(fsExtraMock.unlink).toHaveBeenCalled(); // called for each attempt (best effort)
     });
 
-    test('attribute normalization & alt fallback', async () => {
-        const body = makeBody(`<img src="${PNG_DATA_URL}" class="c" style="x:y" data-x="1" width="100">`);
-        await convertImagesToResources(body); // will convert and then standardize
+    test('converts src to resource ID and marks as converted', async () => {
+        // Note: Attribute filtering (class, style, data-*) is handled by DOMPurify in processHtml,
+        // and alt fallback is handled by normalizeImageAltAttributes in post-sanitize passes.
+        // convertImagesToResources only updates src and adds the conversion marker.
+        const body = makeBody(`<img src="${PNG_DATA_URL}" alt="test" width="100">`);
+        await convertImagesToResources(body);
         const img = body.querySelector('img')!;
-        const attrs = Array.from(img.attributes).map((a) => `${a.name}=${a.value}`);
-        expect(attrs[0].startsWith('src=')).toBe(true);
-        expect(attrs[1].startsWith('alt=')).toBe(true);
-        // width preserved, height absent, no extraneous attrs
-        expect(attrs.some((a) => a.startsWith('width='))).toBe(true);
-        expect(attrs.find((a) => a.startsWith('class='))).toBeUndefined();
-        expect(attrs.find((a) => a.startsWith('style='))).toBeUndefined();
-        expect(attrs.find((a) => a.startsWith('data-x='))).toBeUndefined();
+        // src updated to resource reference
+        expect(img.getAttribute('src')).toMatch(/^:\/res-/);
+        // conversion marker added
+        expect(img.getAttribute('data-pam-converted')).toBe('true');
+        // other attributes preserved (not modified by convertImagesToResources)
+        expect(img.getAttribute('alt')).toBe('test');
+        expect(img.getAttribute('width')).toBe('100');
     });
 
     test('existing resource image ignored', async () => {

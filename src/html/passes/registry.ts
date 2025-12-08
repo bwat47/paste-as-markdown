@@ -10,7 +10,6 @@ import { protectLiteralHtmlTagMentions } from '../post/literals';
 import { fixOrphanNestedLists, unwrapCheckboxParagraphs, unwrapInvalidListWrappers } from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
-import { standardizeRemainingImages } from '../../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
 import type { ProcessingPass } from './types';
@@ -125,20 +124,12 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         execute: (body) => markNbspOnlyInlineCode(body),
     },
     {
-        name: 'Image alt normalization (pre-conversion)',
+        name: 'Image alt normalization',
         phase: 'post-sanitize',
         priority: 70,
-        // Runs unconditionally so includeImages=false scenarios get normalized alts.
-        // Images that go through standardization (priority 80) will be normalized again there,
-        // but this ensures alt text is clean even when image processing is disabled.
+        // Normalizes existing alt text and generates fallback alts from src URLs.
+        // Runs unconditionally so all images get proper alt text regardless of settings.
         execute: (body) => normalizeImageAltAttributes(body),
-    },
-    {
-        name: 'Image standardization',
-        phase: 'post-sanitize',
-        priority: 80,
-        condition: (options) => options.includeImages,
-        execute: (body) => standardizeRemainingImages(body),
     },
     {
         name: 'Converted image link unwrap',

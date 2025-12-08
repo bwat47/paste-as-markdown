@@ -5,16 +5,16 @@
  *  - Identify eligible <img> elements (data: URLs or http/https sources not already Joplin resources)
  *  - Safely obtain binary data (base64 decode or streamed network download with size enforcement)
  *  - Create Joplin resources using a temporary file (sandbox requires a filepath for resource creation)
- *  - Sanitize & normalize resulting <img> tags (attribute whitelist + ordering + alt text fallback)
  *  - Provide metrics (attempted / failed counts) for user feedback
+ *
+ * Note: Image attribute normalization is handled by the post-sanitize pass in src/html/post/images.ts
  *
  * Security Considerations:
  *  - Only processes image MIME types (content-type or data: prefix)
  *  - Enforces strict base64 and size limits
  */
 
-import { MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
-import { normalizeAltText } from './textUtils';
+import { MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS } from './constants';
 import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
@@ -113,8 +113,7 @@ export async function convertImagesToResources(
             if (!data) continue;
             const id = await createJoplinResource(data);
             img.setAttribute('src', `:/${id}`);
-            standardizeImageElement(img, data.filename);
-            // data-pam-converted is used by imageLinks DOM pre-processing step to unwrap converted images from links
+            // data-pam-converted is used by imageLinks post-processing step to unwrap converted images from links
             img.setAttribute('data-pam-converted', 'true');
             ids.push(id);
         } catch (e) {
@@ -128,85 +127,6 @@ export async function convertImagesToResources(
         }
     }
     return { ids, attempted, failed };
-}
-
-/**
- * Standardize every <img> element regardless of conversion outcome so output HTML is uniform.
- * - Ensures only whitelisted attributes remain
- * - Applies canonical ordering (src, alt, title, width, height)
- * - Fills missing alt from an inferred filename
- */
-export function standardizeRemainingImages(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
-    imgs.forEach((img) => {
-        if (img.hasAttribute('data-pam-converted')) return; // attributes are already standardized for converted resources
-        const src = img.getAttribute('src') || '';
-        const filename = deriveOriginalFilename(src) || 'image';
-        standardizeImageElement(img, filename);
-    });
-}
-
-/**
- * Apply normalization rules to a single <img> element.
- * Internal helper – not exported to keep surface minimal.
- */
-function standardizeImageElement(img: HTMLImageElement, originalFilename: string): void {
-    // Normalize any existing alt to ensure consistent whitespace/control handling
-    const existingAltRaw = img.getAttribute('alt');
-    const existingAlt = existingAltRaw ? normalizeAltText(existingAltRaw) : '';
-    if (!existingAlt) {
-        const base = originalFilename.replace(/\.[a-z0-9]{2,5}$/i, '');
-        img.setAttribute('alt', sanitizeAltText(base));
-    } else if (existingAlt !== existingAltRaw) {
-        // If normalization changed the value, write it back
-        img.setAttribute('alt', existingAlt);
-    }
-    const allowed = new Set(['src', 'alt', 'title', 'width', 'height']);
-    for (const attr of Array.from(img.attributes)) {
-        if (!allowed.has(attr.name.toLowerCase())) img.removeAttribute(attr.name);
-    }
-    const srcVal = img.getAttribute('src') || '';
-    const altVal = img.getAttribute('alt');
-    const titleVal = img.getAttribute('title');
-    const widthVal = img.getAttribute('width');
-    const heightVal = img.getAttribute('height');
-    ['src', 'alt', 'title', 'width', 'height'].forEach((a) => img.removeAttribute(a));
-    if (srcVal) img.setAttribute('src', srcVal);
-    if (altVal) img.setAttribute('alt', altVal);
-    if (titleVal) img.setAttribute('title', titleVal);
-    if (widthVal) img.setAttribute('width', widthVal);
-    if (heightVal) img.setAttribute('height', heightVal);
-}
-
-/**
- * Infer a stable pseudo filename from a source URL or data URI for alt text fallback.
- */
-function deriveOriginalFilename(src: string): string {
-    if (src.startsWith('data:')) return 'pasted';
-    if (src.startsWith(':/')) return 'resource';
-    try {
-        const u = new URL(src, 'https://placeholder.local');
-        const last = u.pathname.split('/').filter(Boolean).pop() || 'image';
-        const cleaned = last.split('?')[0].split('#')[0];
-        // Sanitize: remove path traversal and dangerous characters
-        const sanitized = cleaned.replace(/[^a-zA-Z0-9._-]/g, '');
-        return sanitized || 'image';
-    } catch (err) {
-        // Expected: malformed URLs will fail to parse, fallback to generic name
-        logger.debug('Failed to parse URL for filename derivation:', truncateForLog(src), (err as Error)?.message);
-        return 'image';
-    }
-}
-
-/**
- * Sanitize derived alt text: strip control chars, collapse whitespace, cap length.
- */
-function sanitizeAltText(raw: string): string {
-    // Reuse shared normalization and then apply length cap and fallback
-    let out = normalizeAltText(raw);
-    if (!out) out = 'image';
-    if (out.length > MAX_ALT_TEXT_LENGTH) out = out.slice(0, MAX_ALT_TEXT_LENGTH - 3) + '...';
-    return out;
 }
 
 /**
