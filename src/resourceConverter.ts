@@ -150,9 +150,7 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
     } catch {
         throw new Error('Base64 decode failed');
     }
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
     if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
     return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
 }
