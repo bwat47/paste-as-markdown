@@ -316,8 +316,7 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     }
     const fsLike: FsExtraLike = fs;
     try {
-        const buffer =
-            typeof Buffer !== 'undefined' ? Buffer.from(new Uint8Array(img.buffer)) : new Uint8Array(img.buffer);
+        const buffer = Buffer.from(img.buffer);
         await writeFileSafe(fsLike, tmpPath, buffer);
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
