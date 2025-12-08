@@ -22,14 +22,11 @@ import logger from './logger';
 
 // Global joplin API (available at runtime in Joplin plugin environment)
 declare const joplin: Joplin;
-
-interface FsExtraLike {
-    writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
-    writeFile?: (path: string, data: Uint8Array | Buffer, cb: (err?: Error | null) => void) => void;
-    existsSync?: (path: string) => boolean;
-    unlink?: (path: string, cb: (err?: Error | null) => void) => void;
+// Minimal interface for the fs-extra module methods we use
+interface FileSystem {
+    writeFileSync(path: string, data: Uint8Array | Buffer): void;
+    unlink(path: string, cb: (err: NodeJS.ErrnoException | null) => void): void;
 }
-
 type ResourceImageSource = { kind: 'resource'; url: string };
 type DataImageSource = { kind: 'data'; url: string };
 type RemoteImageSource = { kind: 'remote'; url: string; protocol: 'http' | 'https' };
@@ -59,18 +56,8 @@ function isRemoteSource(source: ImageSource): source is RemoteImageSource {
     return source.kind === 'remote';
 }
 
-async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8Array | Buffer): Promise<void> {
-    if (typeof fsLike.writeFileSync === 'function') {
-        fsLike.writeFileSync(filePath, data);
-        return;
-    }
-    if (typeof fsLike.writeFile === 'function') {
-        await new Promise<void>((resolve, reject) => {
-            fsLike.writeFile!(filePath, data, (err) => (err ? reject(err) : resolve()));
-        });
-        return;
-    }
-    throw new Error('fs write unavailable');
+async function writeFileSafe(fs: FileSystem, filePath: string, data: Uint8Array | Buffer): Promise<void> {
+    fs.writeFileSync(filePath, data);
 }
 
 /**
@@ -86,16 +73,11 @@ async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8A
 export async function convertImagesToResources(
     body: HTMLElement
 ): Promise<{ ids: string[]; attempted: number; failed: number }> {
-    let fsExtraAvailable = true;
+    let fs: FileSystem;
     try {
-        joplin.require('fs-extra');
+        fs = joplin.require('fs-extra');
     } catch (err) {
-        // Expected: fs-extra module may not be available in some Joplin environments
-        fsExtraAvailable = false;
-        logger.debug('fs-extra not available:', (err as Error)?.message || 'unknown error');
-    }
-    if (!fsExtraAvailable) {
-        logger.info('fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
+        logger.info('fs-extra unavailable; skipping resource conversion', (err as Error)?.message);
         return { ids: [], attempted: 0, failed: 0 };
     }
     const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
@@ -111,7 +93,7 @@ export async function convertImagesToResources(
             if (isDataSource(source)) data = await parseBase64Image(source.url);
             else if (isRemoteSource(source)) data = await downloadExternalImage(source.url);
             if (!data) continue;
-            const id = await createJoplinResource(data);
+            const id = await createJoplinResource(fs, data);
             img.setAttribute('src', `:/${id}`);
             // data-pam-converted is used by imageLinks post-processing step to unwrap converted images from links
             img.setAttribute('data-pam-converted', 'true');
@@ -291,15 +273,8 @@ function truncateForLog(input: string, keep: number = 80): string {
  *  - Uses synchronous write when available for simplicity (files are small & sequential).
  *  - Best-effort cleanup of temp file (errors during cleanup are logged but not rethrown).
  */
-async function createJoplinResource(img: ParsedImageData): Promise<string> {
+async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promise<string> {
     const dataDir: string = await joplin.plugins.dataDir();
-    let fs: FsExtraLike;
-    try {
-        fs = joplin.require('fs-extra');
-    } catch (e) {
-        logger.warn('fs-extra unavailable; skipping image resource conversion');
-        throw e;
-    }
     const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
     const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
     const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
@@ -314,10 +289,9 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     if (traversesUp) {
         throw new Error('Invalid file path: potential path traversal detected');
     }
-    const fsLike: FsExtraLike = fs;
     try {
         const buffer = Buffer.from(img.buffer);
-        await writeFileSafe(fsLike, tmpPath, buffer);
+        await writeFileSafe(fs, tmpPath, buffer);
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
         ]);
@@ -326,21 +300,18 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         logger.warn('Failed to create resource from temp file', e);
         throw e;
     } finally {
-        if (typeof fsLike.unlink === 'function') {
-            await new Promise<void>((resolve) => {
-                try {
-                    // Resolve even on ENOENT so cleanup remains best-effort
-                    fsLike.unlink!(tmpPath, (err) => {
-                        if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
-                            logger.warn('Temp file cleanup failed', err);
-                        }
-                        resolve();
-                    });
-                } catch (cleanupErr) {
-                    logger.warn('Temp file cleanup failed', cleanupErr);
+        await new Promise<void>((resolve) => {
+            try {
+                fs.unlink(tmpPath, (err: NodeJS.ErrnoException | null) => {
+                    if (err && err.code !== 'ENOENT') {
+                        logger.warn('Temp file cleanup failed', err);
+                    }
                     resolve();
-                }
-            });
-        }
+                });
+            } catch (e) {
+                logger.warn('Temp file cleanup failed', e);
+                resolve();
+            }
+        });
     }
 }
