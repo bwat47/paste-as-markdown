@@ -150,13 +150,7 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
         const asInt = parseInt(contentLengthHeader, 10);
         if (!isNaN(asInt) && asInt > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
     }
-    const reader = resp.body?.getReader();
-    if (!reader) {
-        const buffer = await resp.arrayBuffer();
-        if (buffer.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
-        const filenameImmediate = deriveFilenameFromUrl(url, extensionForMime(contentType));
-        return { buffer, mime: contentType, filename: filenameImmediate, size: buffer.byteLength };
-    }
+    const reader = resp.body!.getReader();
     const chunks: Uint8Array[] = [];
     let received = 0;
     while (true) {
