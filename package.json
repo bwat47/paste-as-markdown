@@ -1,6 +1,6 @@
 {
     "name": "joplin-plugin-paste-as-markdown",
-    "version": "1.1.6",
+    "version": "1.1.7",
     "scripts": {
         "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
         "prepare": "npm run dist",
@@ -24,10 +24,10 @@
         "@jest/globals": "^30.2.0",
         "@types/jest": "^30.0.0",
         "@types/jsdom": "^27.0.0",
-        "@types/node": "^24.10.1",
+        "@types/node": "^24.10.2",
         "@types/turndown": "^5.0.6",
-        "@typescript-eslint/eslint-plugin": "^8.46.4",
-        "@typescript-eslint/parser": "^8.46.4",
+        "@typescript-eslint/eslint-plugin": "^8.49.0",
+        "@typescript-eslint/parser": "^8.49.0",
         "chalk": "^4.1.0",
         "copy-webpack-plugin": "^13.0.1",
         "eslint": "^9.39.1",
@@ -36,18 +36,18 @@
         "fs-extra": "^11.3.2",
         "glob": "^8.0.3",
         "jest": "^30.2.0",
-        "jsdom": "^27.2.0",
-        "prettier": "^3.6.2",
+        "jsdom": "^27.3.0",
+        "prettier": "^3.7.4",
         "tar": "^6.1.11",
-        "ts-jest": "^29.4.5",
+        "ts-jest": "^29.4.6",
         "ts-loader": "^9.3.1",
         "typescript": "^5.9.3",
-        "webpack": "^5.102.1",
+        "webpack": "^5.103.0",
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
         "@bwat47/turndown-plugin-gfm": "1.0.5",
-        "dompurify": "^3.3.0",
+        "dompurify": "^3.3.1",
         "turndown": "7.2.2"
     },
     "overrides": {
