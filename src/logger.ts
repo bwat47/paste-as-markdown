@@ -1,5 +1,5 @@
 /**
- * @fileoverview Centralized logger with configurable log levels.
+ * Centralized logger with configurable log levels.
  *
  * Provides consistent prefixing for all plugin logs and exposes runtime
  * controls via the browser console for dynamic log level adjustment.

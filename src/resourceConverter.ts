@@ -5,16 +5,16 @@
  *  - Identify eligible <img> elements (data: URLs or http/https sources not already Joplin resources)
  *  - Safely obtain binary data (base64 decode or streamed network download with size enforcement)
  *  - Create Joplin resources using a temporary file (sandbox requires a filepath for resource creation)
- *  - Sanitize & normalize resulting <img> tags (attribute whitelist + ordering + alt text fallback)
  *  - Provide metrics (attempted / failed counts) for user feedback
+ *
+ * Note: Image attribute normalization is handled by the post-sanitize pass in src/html/post/images.ts
  *
  * Security Considerations:
  *  - Only processes image MIME types (content-type or data: prefix)
  *  - Enforces strict base64 and size limits
  */
 
-import { MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS, MAX_ALT_TEXT_LENGTH } from './constants';
-import { normalizeAltText } from './textUtils';
+import { MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS } from './constants';
 import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
@@ -22,14 +22,11 @@ import logger from './logger';
 
 // Global joplin API (available at runtime in Joplin plugin environment)
 declare const joplin: Joplin;
-
-interface FsExtraLike {
-    writeFileSync?: (path: string, data: Uint8Array | Buffer) => void;
-    writeFile?: (path: string, data: Uint8Array | Buffer, cb: (err?: Error | null) => void) => void;
-    existsSync?: (path: string) => boolean;
-    unlink?: (path: string, cb: (err?: Error | null) => void) => void;
+// Minimal interface for the fs-extra module methods we use
+interface FileSystem {
+    writeFileSync(path: string, data: Buffer): void;
+    unlink(path: string, cb: (err: NodeJS.ErrnoException | null) => void): void;
 }
-
 type ResourceImageSource = { kind: 'resource'; url: string };
 type DataImageSource = { kind: 'data'; url: string };
 type RemoteImageSource = { kind: 'remote'; url: string; protocol: 'http' | 'https' };
@@ -59,20 +56,6 @@ function isRemoteSource(source: ImageSource): source is RemoteImageSource {
     return source.kind === 'remote';
 }
 
-async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8Array | Buffer): Promise<void> {
-    if (typeof fsLike.writeFileSync === 'function') {
-        fsLike.writeFileSync(filePath, data);
-        return;
-    }
-    if (typeof fsLike.writeFile === 'function') {
-        await new Promise<void>((resolve, reject) => {
-            fsLike.writeFile!(filePath, data, (err) => (err ? reject(err) : resolve()));
-        });
-        return;
-    }
-    throw new Error('fs write unavailable');
-}
-
 /**
  * Convert eligible <img> tags to Joplin resources.
  *
@@ -86,16 +69,11 @@ async function writeFileSafe(fsLike: FsExtraLike, filePath: string, data: Uint8A
 export async function convertImagesToResources(
     body: HTMLElement
 ): Promise<{ ids: string[]; attempted: number; failed: number }> {
-    let fsExtraAvailable = true;
+    let fs: FileSystem;
     try {
-        joplin.require('fs-extra');
+        fs = joplin.require('fs-extra');
     } catch (err) {
-        // Expected: fs-extra module may not be available in some Joplin environments
-        fsExtraAvailable = false;
-        logger.debug('fs-extra not available:', (err as Error)?.message || 'unknown error');
-    }
-    if (!fsExtraAvailable) {
-        logger.info('fs-extra unavailable; skipping resource conversion (leaving image sources intact)');
+        logger.info('fs-extra unavailable; skipping resource conversion', (err as Error)?.message);
         return { ids: [], attempted: 0, failed: 0 };
     }
     const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
@@ -111,10 +89,9 @@ export async function convertImagesToResources(
             if (isDataSource(source)) data = await parseBase64Image(source.url);
             else if (isRemoteSource(source)) data = await downloadExternalImage(source.url);
             if (!data) continue;
-            const id = await createJoplinResource(data);
+            const id = await createJoplinResource(fs, data);
             img.setAttribute('src', `:/${id}`);
-            standardizeImageElement(img, data.filename);
-            // data-pam-converted is used by imageLinks DOM pre-processing step to unwrap converted images from links
+            // data-pam-converted is used by imageLinks post-processing step to unwrap converted images from links
             img.setAttribute('data-pam-converted', 'true');
             ids.push(id);
         } catch (e) {
@@ -128,85 +105,6 @@ export async function convertImagesToResources(
         }
     }
     return { ids, attempted, failed };
-}
-
-/**
- * Standardize every <img> element regardless of conversion outcome so output HTML is uniform.
- * - Ensures only whitelisted attributes remain
- * - Applies canonical ordering (src, alt, title, width, height)
- * - Fills missing alt from an inferred filename
- */
-export function standardizeRemainingImages(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
-    imgs.forEach((img) => {
-        if (img.hasAttribute('data-pam-converted')) return; // attributes are already standardized for converted resources
-        const src = img.getAttribute('src') || '';
-        const filename = deriveOriginalFilename(src) || 'image';
-        standardizeImageElement(img, filename);
-    });
-}
-
-/**
- * Apply normalization rules to a single <img> element.
- * Internal helper – not exported to keep surface minimal.
- */
-function standardizeImageElement(img: HTMLImageElement, originalFilename: string): void {
-    // Normalize any existing alt to ensure consistent whitespace/control handling
-    const existingAltRaw = img.getAttribute('alt');
-    const existingAlt = existingAltRaw ? normalizeAltText(existingAltRaw) : '';
-    if (!existingAlt) {
-        const base = originalFilename.replace(/\.[a-z0-9]{2,5}$/i, '');
-        img.setAttribute('alt', sanitizeAltText(base));
-    } else if (existingAlt !== existingAltRaw) {
-        // If normalization changed the value, write it back
-        img.setAttribute('alt', existingAlt);
-    }
-    const allowed = new Set(['src', 'alt', 'title', 'width', 'height']);
-    for (const attr of Array.from(img.attributes)) {
-        if (!allowed.has(attr.name.toLowerCase())) img.removeAttribute(attr.name);
-    }
-    const srcVal = img.getAttribute('src') || '';
-    const altVal = img.getAttribute('alt');
-    const titleVal = img.getAttribute('title');
-    const widthVal = img.getAttribute('width');
-    const heightVal = img.getAttribute('height');
-    ['src', 'alt', 'title', 'width', 'height'].forEach((a) => img.removeAttribute(a));
-    if (srcVal) img.setAttribute('src', srcVal);
-    if (altVal) img.setAttribute('alt', altVal);
-    if (titleVal) img.setAttribute('title', titleVal);
-    if (widthVal) img.setAttribute('width', widthVal);
-    if (heightVal) img.setAttribute('height', heightVal);
-}
-
-/**
- * Infer a stable pseudo filename from a source URL or data URI for alt text fallback.
- */
-function deriveOriginalFilename(src: string): string {
-    if (src.startsWith('data:')) return 'pasted';
-    if (src.startsWith(':/')) return 'resource';
-    try {
-        const u = new URL(src, 'https://placeholder.local');
-        const last = u.pathname.split('/').filter(Boolean).pop() || 'image';
-        const cleaned = last.split('?')[0].split('#')[0];
-        // Sanitize: remove path traversal and dangerous characters
-        const sanitized = cleaned.replace(/[^a-zA-Z0-9._-]/g, '');
-        return sanitized || 'image';
-    } catch (err) {
-        // Expected: malformed URLs will fail to parse, fallback to generic name
-        logger.debug('Failed to parse URL for filename derivation:', truncateForLog(src), (err as Error)?.message);
-        return 'image';
-    }
-}
-
-/**
- * Sanitize derived alt text: strip control chars, collapse whitespace, cap length.
- */
-function sanitizeAltText(raw: string): string {
-    // Reuse shared normalization and then apply length cap and fallback
-    let out = normalizeAltText(raw);
-    if (!out) out = 'image';
-    if (out.length > MAX_ALT_TEXT_LENGTH) out = out.slice(0, MAX_ALT_TEXT_LENGTH - 3) + '...';
-    return out;
 }
 
 /**
@@ -230,9 +128,7 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
     } catch {
         throw new Error('Base64 decode failed');
     }
-    const len = binary.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
     if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
     return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
 }
@@ -254,13 +150,7 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
         const asInt = parseInt(contentLengthHeader, 10);
         if (!isNaN(asInt) && asInt > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
     }
-    const reader = resp.body?.getReader();
-    if (!reader) {
-        const buffer = await resp.arrayBuffer();
-        if (buffer.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
-        const filenameImmediate = deriveFilenameFromUrl(url, extensionForMime(contentType));
-        return { buffer, mime: contentType, filename: filenameImmediate, size: buffer.byteLength };
-    }
+    const reader = resp.body!.getReader();
     const chunks: Uint8Array[] = [];
     let received = 0;
     while (true) {
@@ -373,15 +263,8 @@ function truncateForLog(input: string, keep: number = 80): string {
  *  - Uses synchronous write when available for simplicity (files are small & sequential).
  *  - Best-effort cleanup of temp file (errors during cleanup are logged but not rethrown).
  */
-async function createJoplinResource(img: ParsedImageData): Promise<string> {
+async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promise<string> {
     const dataDir: string = await joplin.plugins.dataDir();
-    let fs: FsExtraLike;
-    try {
-        fs = joplin.require('fs-extra');
-    } catch (e) {
-        logger.warn('fs-extra unavailable; skipping image resource conversion');
-        throw e;
-    }
     const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
     const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
     const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
@@ -396,11 +279,9 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
     if (traversesUp) {
         throw new Error('Invalid file path: potential path traversal detected');
     }
-    const fsLike: FsExtraLike = fs;
     try {
-        const buffer =
-            typeof Buffer !== 'undefined' ? Buffer.from(new Uint8Array(img.buffer)) : new Uint8Array(img.buffer);
-        await writeFileSafe(fsLike, tmpPath, buffer);
+        const buffer = Buffer.from(img.buffer);
+        fs.writeFileSync(tmpPath, buffer);
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
         ]);
@@ -409,21 +290,18 @@ async function createJoplinResource(img: ParsedImageData): Promise<string> {
         logger.warn('Failed to create resource from temp file', e);
         throw e;
     } finally {
-        if (typeof fsLike.unlink === 'function') {
-            await new Promise<void>((resolve) => {
-                try {
-                    // Resolve even on ENOENT so cleanup remains best-effort
-                    fsLike.unlink!(tmpPath, (err) => {
-                        if (err && (err as NodeJS.ErrnoException).code !== 'ENOENT') {
-                            logger.warn('Temp file cleanup failed', err);
-                        }
-                        resolve();
-                    });
-                } catch (cleanupErr) {
-                    logger.warn('Temp file cleanup failed', cleanupErr);
+        await new Promise<void>((resolve) => {
+            try {
+                fs.unlink(tmpPath, (err: NodeJS.ErrnoException | null) => {
+                    if (err && err.code !== 'ENOENT') {
+                        logger.warn('Temp file cleanup failed', err);
+                    }
                     resolve();
-                }
-            });
-        }
+                });
+            } catch (e) {
+                logger.warn('Temp file cleanup failed', e);
+                resolve();
+            }
+        });
     }
 }
