@@ -14,8 +14,8 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 3. Pre-Turndown HTML fixups (`markdownConverter`):
     - `wrapOrphanedTableElements` – Wrap bare `<tr>/<td>/<col>` fragments in `<table>` (clipboard edge cases e.g. Excel) so GFM table rule can apply.
 4. Turndown conversion:
-    - Feed the sanitized `<body>` DOM node directly to Turndown when available. If no DOM body is available (e.g., environment lacks DOM APIs), fall back to the sanitized HTML string produced by `processHtml`.
-    - `processHtml` never returns unsanitized HTML; it either succeeds with sanitized output or throws `HtmlProcessingError`, leaving plain-text fallback to the paste handler.
+    - Feed the sanitized `<body>` DOM node directly to Turndown.
+    - `processHtml` never returns unsanitized HTML; it either succeeds with a valid DOM body or throws `HtmlProcessingError`, leaving plain-text fallback to the paste handler.
     - Upstream Turndown (fresh instance per paste).
     - `mark` → `==text==`.
     - `sup` / `sub` / `ins` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`) due to markdown syntax for these not being widespread (and conflicting with GFM strikethough in the case of `sub`).
@@ -36,7 +36,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
     - Collapse excessive blank lines (protect fenced code via sentinel extraction).
     - Remove whitespace-only NBSP lines.
     - Optional: Force tight lists (setting) — remove blank lines between consecutive list items (unordered/ordered/tasks), protected by fenced-code extraction.
-6. Return `{ markdown, resources, degradedProcessing }`. The `degradedProcessing` boolean indicates when DOM processing failed but string-based sanitization succeeded (body is null, sanitizedHtml is used).
+6. Return `{ markdown, resources }`.
 
 ## What the GFM Plugin Covers
 
@@ -76,9 +76,10 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 
 ## Fallback Hierarchy
 
-1. Full enhancement: DOMPurify + post-sanitize cleanup + Turndown → Markdown.
-2. Sanitized HTML only: DOMPurify succeeded (during the main pass or the fallback sanitization) but enhancements or image conversion failed; sanitized markup still feeds Turndown.
-3. Failure: Both sanitize attempts failed or DOM access is unavailable; `processHtml` throws `HtmlProcessingError`, which the paste handler catches to show an error toast and attempt plain-text fallback.
+1. Full processing: DOMPurify + post-sanitize cleanup + image conversion (if enabled) + Turndown → Markdown.
+2. Failure: Sanitization or DOM parsing fails; `processHtml` throws `HtmlProcessingError`, which the paste handler catches to show an error toast and attempt plain-text fallback.
+
+Note: Image conversion failures are handled gracefully - individual failed images are logged and skipped, but processing continues with the valid DOM body.
 
 ## Testing Focus
 

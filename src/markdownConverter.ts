@@ -117,8 +117,7 @@ async function createTurndownService(includeImages: boolean): Promise<TurndownSe
  * @param html Raw HTML fragment captured from the clipboard.
  * @param options Paste behavior flags. Supports `includeImages`, `convertImagesToResources`,
  * `normalizeQuotes`, `forceTightLists`, and `isGoogleDocs` to tailor preprocessing.
- * @returns Markdown output alongside resource metadata and a degraded processing indicator.
- * The `degradedProcessing` field indicates degraded processing (processed as HTML string rather than DOM).
+ * @returns Markdown output alongside resource metadata.
  */
 export async function convertHtmlToMarkdown(
     html: string,
@@ -144,26 +143,14 @@ export async function convertHtmlToMarkdown(
     };
     const processed = await processHtml(input, pasteOptions, isGoogleDocs);
 
-    // Determine if processing was degraded (no DOM body, only sanitized HTML string)
-    const isDegraded = processed.body === null;
-
-    // Get input for Turndown: prefer DOM body, fallback to sanitized HTML string
-    const turndownInput = processed.body ?? processed.sanitizedHtml;
-
-    if (!turndownInput) {
-        // Both body and sanitizedHtml are null/empty - this shouldn't happen per processHtml's contract
-        // (it either returns valid result or throws HtmlProcessingError), but handle gracefully
-        return { markdown: '', resources: processed.resources, degradedProcessing: true };
-    }
-
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
     const service = await createTurndownService(includeImages);
-    let markdown = service.turndown(turndownInput);
+    let markdown = service.turndown(processed.body);
 
     // Post-process the markdown for final cleanup
     markdown = cleanupMarkdown(markdown, forceTightLists);
 
-    return { markdown, resources: processed.resources, degradedProcessing: isDegraded };
+    return { markdown, resources: processed.resources };
 }
 
 /**

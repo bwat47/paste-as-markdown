@@ -129,18 +129,13 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
     try {
         // Pass detection result to conversion
-        const { markdown, resources, degradedProcessing } = await convertHtmlToMarkdown(html!, {
+        const { markdown, resources } = await convertHtmlToMarkdown(html!, {
             includeImages: options.includeImages,
             convertImagesToResources: options.convertImagesToResources,
             normalizeQuotes: options.normalizeQuotes,
             forceTightLists: options.forceTightLists,
             isGoogleDocs,
         });
-
-        // Log degraded processing for debugging
-        if (degradedProcessing) {
-            logger.debug('HTML conversion used degraded string-based processing (sanitized HTML fallback)');
-        }
 
         // Add Google Docs indicator to success message for debugging
         if (isGoogleDocs) {
