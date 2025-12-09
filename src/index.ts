@@ -87,19 +87,10 @@ joplin.plugins.register({
 
         // Context menu filtering - only add in markdown editor
         joplin.workspace.filterEditorContextMenu(async (menu) => {
-            let isMarkdown = false;
-            try {
-                // To determine if the user is in the Markdown editor, we try to execute
-                // a command that is only supported by that editor. If it succeeds, we
-                // know it's the Markdown editor. If it throws, it's probably the
-                // Rich Text editor.
-                await joplin.commands.execute('editor.execCommand', {
-                    name: 'getCursor',
-                });
-                isMarkdown = true;
-            } catch {
-                isMarkdown = false;
-            }
+            // We only show the context menu item if the user is in the Markdown editor (Code View).
+            // 'editor.codeView' is true for Code View, false for Rich Text.
+            const isMarkdown = await joplin.settings.globalValue('editor.codeView');
+            logger.debug('Context menu filter: isMarkdown (Code View)=', isMarkdown);
             if (!isMarkdown) return menu;
             const exists = menu.items.some((i) => i.commandName === COMMANDS.PASTE_AS_MARKDOWN);
             if (!exists) {
