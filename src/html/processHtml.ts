@@ -2,17 +2,17 @@
  * High-level HTML processing pipeline used before converting to Markdown.
  *
  * Key invariants:
- * - DOMPurify is the security boundary. Sanitization failure aborts conversion with an error toast.
+ * - DOMPurify is the security boundary. Sanitization failure throws HtmlProcessingError.
  * - KEEP_CONTENT is enabled, so forbidden tags are removed but text remains; structural cleanup happens pre-sanitize.
- * - Post-sanitize/image passes fail gracefully, falling back to sanitized HTML.
  * - Pass execution order is centralized in `passes/registry.ts`.
+ * - Image conversion failures are handled gracefully (images skipped, processing continues).
  *
  * Error handling contract:
  * - Throws HtmlProcessingError when processing cannot proceed (missing DOM APIs or sanitization failure)
  * - Callers should catch HtmlProcessingError, show appropriate toast, and attempt plain text fallback
- * - Never returns unsafe/unsanitized HTML
+ * - Returns a valid DOM body on success; never returns null
  *
- * See processHtml() function below for the 8-phase pipeline structure.
+ * See processHtml() function below for the pipeline structure.
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
@@ -26,9 +26,8 @@ import type { PassContext } from './passes/types';
 import logger from '../logger';
 
 export interface ProcessHtmlResult {
-    readonly body: HTMLElement | null; // Processed DOM body. Null only when DOM processing failed but sanitization succeeded.
-    readonly sanitizedHtml: string | null; // Sanitized HTML string. Always present when body is null.
-    readonly resources: ResourceConversionMeta; // Metadata about any image-to-resource conversions. Empty in fallback mode.
+    readonly body: HTMLElement;
+    readonly resources: ResourceConversionMeta;
 }
 
 const EMPTY_RESOURCES: ResourceConversionMeta = {
@@ -132,42 +131,6 @@ async function handleImageConversion(body: HTMLElement, options: PasteOptions): 
     };
 }
 
-/**
- * Attempts best-effort sanitization for fallback scenarios.
- * Returns sanitized HTML string or null if sanitization fails.
- */
-function sanitizeForFallback(html: string, includeImages: boolean): string | null {
-    if (typeof window === 'undefined') return null;
-    try {
-        const purifier = createDOMPurify(window as unknown as typeof window);
-        return purifier.sanitize(html, buildSanitizerConfig({ includeImages })) as string;
-    } catch (err) {
-        logger.warn('Fallback sanitization failed', err);
-        return null;
-    }
-}
-
-/**
- * Creates a ProcessHtmlResult from sanitized HTML string (no DOM body).
- * Returns null if sanitized HTML is null.
- */
-function createSanitizedOnlyResult(sanitized: string | null): ProcessHtmlResult | null {
-    if (sanitized === null) return null;
-    return {
-        body: null,
-        sanitizedHtml: sanitized,
-        resources: EMPTY_RESOURCES,
-    };
-}
-
-/**
- * Attempts to create a fallback result using best-effort sanitization.
- */
-async function attemptSanitizedFallback(html: string, includeImages: boolean): Promise<ProcessHtmlResult | null> {
-    const sanitized = sanitizeForFallback(html, includeImages);
-    return createSanitizedOnlyResult(sanitized);
-}
-
 // ============================================================================
 // Main Pipeline
 // ============================================================================
@@ -188,7 +151,6 @@ export async function processHtml(
     const passContext: PassContext = { isGoogleDocs };
     const { preSanitize, postSanitize } = getProcessingPasses();
     const { preImage, postImage } = splitPassesByPriority(postSanitize);
-    let sanitizedHtml: string | null = null;
 
     try {
         // ====================================================================
@@ -196,8 +158,6 @@ export async function processHtml(
         // ====================================================================
         const rawBody = parseHtmlToBody(html, 'Raw HTML parse');
         if (!rawBody) {
-            const fallback = await attemptSanitizedFallback(html, options.includeImages);
-            if (fallback) return fallback;
             throw new HtmlProcessingError('sanitize-failed');
         }
 
@@ -209,6 +169,7 @@ export async function processHtml(
         // ====================================================================
         // Phase 3: Sanitize (Security Boundary)
         // ====================================================================
+        let sanitizedHtml: string;
         try {
             sanitizedHtml = performSanitization(rawBody.innerHTML, options.includeImages);
         } catch (err) {
@@ -221,9 +182,7 @@ export async function processHtml(
         // ====================================================================
         const body = parseHtmlToBody(sanitizedHtml, 'Sanitized HTML parse');
         if (!body) {
-            logger.warn('Sanitized HTML lacked <body>, using sanitized HTML fallback.');
-            // sanitizedHtml was successfully set in Phase 3, so this cannot return null
-            return createSanitizedOnlyResult(sanitizedHtml)!;
+            throw new HtmlProcessingError('sanitize-failed');
         }
 
         // ====================================================================
@@ -238,9 +197,8 @@ export async function processHtml(
         try {
             resources = await handleImageConversion(body, options);
         } catch (err) {
-            logger.warn('Image resource conversion failed, using sanitized HTML fallback', err);
-            // sanitizedHtml was successfully set in Phase 3, so this cannot return null
-            return createSanitizedOnlyResult(sanitizedHtml)!;
+            logger.warn('Image resource conversion failed; continuing without image resources', err);
+            resources = EMPTY_RESOURCES;
         }
 
         // ====================================================================
@@ -253,34 +211,15 @@ export async function processHtml(
         // ====================================================================
         // Phase 8: Return Final Result
         // ====================================================================
-        return {
-            body,
-            sanitizedHtml,
-            resources,
-        };
+        return { body, resources };
     } catch (err) {
         // ====================================================================
-        // Global Error Handler: Attempt Secure Fallback
+        // Global Error Handler
         // ====================================================================
-
         if (err instanceof HtmlProcessingError) {
             throw err;
         }
-
-        // Unexpected error - attempt graceful degradation with fallbacks
-        logger.warn('Unexpected error in HTML processing, attempting secure fallback', err);
-
-        // Try sanitized HTML fallback if we have it
-        if (sanitizedHtml !== null) {
-            const result = createSanitizedOnlyResult(sanitizedHtml);
-            if (result) return result;
-        }
-
-        // Try best-effort sanitization as last resort
-        const fallback = await attemptSanitizedFallback(html, options.includeImages);
-        if (fallback) return fallback;
-
-        // All fallbacks exhausted - throw error
+        logger.warn('Unexpected error in HTML processing', err);
         throw new HtmlProcessingError('sanitize-failed');
     }
 }

@@ -29,7 +29,6 @@ export interface ResourceConversionMeta {
 export interface HtmlToMarkdownResult {
     readonly markdown: string;
     readonly resources: ResourceConversionMeta;
-    readonly degradedProcessing: boolean; // true when DOM parsing failed but string-based sanitization succeeded
 }
 
 // Generic validation result for user inputs/settings or parsed data
