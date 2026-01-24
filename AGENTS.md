@@ -51,7 +51,7 @@ Use Node LTS (18+) and npm 9+ for consistency.
 - Filenames: `camelCase.ts` for modules; tests in `__tests__/<name>.test.ts`.
 - Run `npm run lint` and `npm run format` before pushing.
 - Use JSDoc on complex functions, especially HTML processing and conversion logic.
-- Log with consistent prefix: `[paste-as-markdown]`.
+- Log messages should use `src\logger.ts`.
 
 ## HTML Processing & Security Guidelines
 
