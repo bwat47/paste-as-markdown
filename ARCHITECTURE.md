@@ -47,7 +47,7 @@ Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heurist
 - Project uses a forked version of @truto/turndown-plugin-gfm
     - Upstream turndown-plugin-gfm is unmaintained (and didn't work well in testing).
     - Joplin's forked turndown-plugin-gfm has table logic that conflicts with plugin goals (keeping complex tables as HTML).
-    - @truto version aligns with goals (simplified table handling, simplifies/collapses multi-line table cell content). My fork only contains a minor tweak.
+    - @truto version aligns with goals (simplified table handling, simplifies/collapses multi-line table cell content). My fork only contains minor fixes.
 
 ## Design Principles
 

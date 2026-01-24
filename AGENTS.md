@@ -50,7 +50,9 @@ Use Node LTS (18+) and npm 9+ for consistency.
 - Prefer explicit types and narrow public exports; avoid `any`, use `unknown` then narrow.
 - Filenames: `camelCase.ts` for modules; tests in `__tests__/<name>.test.ts`.
 - Run `npm run lint` and `npm run format` before pushing.
-- Use JSDoc on complex functions, especially HTML processing and conversion logic.
+- Documentation: Use JSDoc for complex functions; document regex patterns with examples.
+- Constants and configuration: No magic literals — extract to constants, enums, config objects, or dedicated types.
+- Structure and Testability: Pure logic lives in small, focused units when internal behaviour is non-trivial. Global state and hidden side effects are avoided in favour of explicit dependencies when possible.
 - Log messages should use `src\logger.ts`.
 
 ## HTML Processing & Security Guidelines
@@ -101,7 +103,7 @@ Use Node LTS (18+) and npm 9+ for consistency.
 ## Performance & Resource Management
 
 - Cache expensive operations (GFM plugin loading, DOM parsing).
-- Avoid bundling unused dependencies; check bundle size after changes.
+- Avoid bundling unused dependencies.
 - Handle large clipboard content gracefully; set reasonable timeouts.
 - Clean up resources (temp files, DOM nodes) in error paths.
 
