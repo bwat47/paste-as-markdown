@@ -1,5 +1,5 @@
 export const COMMANDS = {
-    PASTE_AS_MARKDOWN: 'pasteAsMarkdown',
+    PASTE_AS_MARKDOWN: 'pasteHtmlAsMarkdown',
 } as const;
 
 export const TURNDOWN_OPTIONS = {

@@ -15,7 +15,7 @@ The plugin prioritizes clean markdown, the only HTML elements that are retained 
 
 ## How to use
 
-In the markdown editor, right click and select "Paste as Markdown" (or use the keyboard shortcut, ctrl + alt +v by default).
+In the markdown editor, right click and select "Paste HTML as Markdown" (or use the keyboard shortcut, ctrl + alt +v by default).
 
 If you have HTML formatted text in the clipboard, the plugin will convert it to markdown formatting and paste the markdown formatted text.
 

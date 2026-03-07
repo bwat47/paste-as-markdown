@@ -5,7 +5,7 @@
  * `setDebug` method to enable verbose output.
  */
 
-const PREFIX = '[paste-as-markdown]';
+const PREFIX = '[paste-HTML-as-markdown]';
 
 let debugEnabled = false;
 

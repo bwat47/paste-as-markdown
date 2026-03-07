@@ -10,7 +10,7 @@ joplin.plugins.register({
         // Register command
         await joplin.commands.register({
             name: COMMANDS.PASTE_AS_MARKDOWN,
-            label: 'Paste as Markdown',
+            label: 'Paste HTML as Markdown',
             iconName: 'fas fa-paste',
             execute: async () => {
                 try {
@@ -23,14 +23,14 @@ joplin.plugins.register({
                 } catch (err: unknown) {
                     const message = err instanceof Error ? err.message : String(err);
                     logger.error('Error handling paste command', err);
-                    await showToast('Paste as Markdown failed: ' + message, ToastType.Error);
+                    await showToast('Paste HTML as Markdown failed: ' + message, ToastType.Error);
                 }
             },
         });
 
         // Register settings
         await joplin.settings.registerSection(SETTINGS_SECTION, {
-            label: 'Paste as Markdown',
+            label: 'Paste HTML as Markdown',
             iconName: 'fas fa-paste',
         });
 
@@ -96,7 +96,7 @@ joplin.plugins.register({
             if (!exists) {
                 menu.items.push({
                     commandName: COMMANDS.PASTE_AS_MARKDOWN,
-                    label: 'Paste as Markdown',
+                    label: 'Paste HTML as Markdown',
                     accelerator: SHORTCUTS.PASTE_AS_MARKDOWN,
                 });
             }
