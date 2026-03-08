@@ -1,95 +1,61 @@
-# paste-as-markdown – Architecture (Concise)
+# paste-as-markdown Architecture
 
-Goal: Deterministic HTML → Markdown conversion for Joplin with minimal heuristics and stable formatting.
+## Purpose
 
-## Pipeline Overview
+This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predictable output, safe HTML handling, and graceful fallback to plain text when conversion cannot complete reliably.
 
-1. Input acquisition (HTML string + options).
-2. HTML preprocessing (`processHtml`):
-    - Safe DOM parse (guarded if no DOM APIs).
-    - Pre-sanitize pass registry (see `src/html/passes/registry.ts`): ordered `ProcessingPass` objects describe the transformation steps (text normalization, UI cleanup, image sizing promotion, Google Docs wrapper removal, code neutralization, etc.) and are executed via the shared runner so additions live in one place.
-    - DOMPurify sanitize (single authority for safety; images allowed only if setting enabled). KEEP_CONTENT is enabled, hence early UI cleanup. Sanitization failure (or missing DOM APIs) throws `HtmlProcessingError`, which the paste handler catches to attempt plain-text fallback.
-    - Pass runner (`runPasses`) wraps each stage in defensive try/catch and logs warnings without halting the pipeline; the registry still defines logical order, conditions, and names for accurate logs.
-    - Post-sanitize pass registry (same file) handles literal tag protection, heading/empty anchor cleanup, code block normalization, NBSP sentinels, and image alt normalization (including fallback generation from src URLs). Attribute whitelisting for images is handled by DOMPurify. Image resource conversion remains asynchronous and triggers a second batch of post-image passes when enabled.
-3. Pre-Turndown HTML fixups (`markdownConverter`):
-    - `wrapOrphanedTableElements` – Wrap bare `<tr>/<td>/<col>` fragments in `<table>` (clipboard edge cases e.g. Excel) so GFM table rule can apply.
-4. Turndown conversion:
-    - Feed the sanitized `<body>` DOM node directly to Turndown.
-    - `processHtml` never returns unsanitized HTML; it either succeeds with a valid DOM body or throws `HtmlProcessingError`, leaving plain-text fallback to the paste handler.
-    - Upstream Turndown (fresh instance per paste).
-    - `mark` → `==text==`.
-    - `sup` / `sub` / `ins` preserved as literal HTML (`<sup>..</sup>`, `<sub>..</sub>`) due to markdown syntax for these not being widespread (and conflicting with GFM strikethough in the case of `sub`).
-    - Sized images rule (preserve width/height attributes when present).
-    - List items rule (`pamListItem`) normalizes list rendering during conversion:
-        - Exactly one space after list markers (ul, ol, and checkboxes).
-        - Ensures nested list item content is indented by at least 4 spaces (what Joplin expects)
-        - Honors `<ol start>` to compute the correct ordered prefixes
-        - Normalizes task checkbox spacing inline to `- [ ] Text` / `- [x] Text` so post-processing doesn’t need to re‑regex task lines
-    - Forked `turndown-plugin-gfm` (tables, strikethrough, task list items).
-        - The plugin’s `highlightedCodeBlock` rule is effectively superseded by our broader code block normalization.
-        - (Other upstream behaviors left intact: task list marker insertion, strikethrough, tables).
-5. Markdown post-processing (`cleanupMarkdown` + helpers):
-    - Trim leading blank lines.
-    - `<br>` semantics (outside code fences & inline code):
-        - Single `<br>` → hard break (`"  \n"`).
-        - Runs of 2+ `<br>` → paragraph break (`\n\n`).
-    - Collapse excessive blank lines (protect fenced code via sentinel extraction).
-    - Remove whitespace-only NBSP lines.
-    - Optional: Force tight lists (setting) — remove blank lines between consecutive list items (unordered/ordered/tasks), protected by fenced-code extraction.
-6. Return `{ markdown, resources }`.
+## High-Level Flow
 
-## What the GFM Plugin Covers
+1. Joplin invokes the plugin's paste command.
+2. The paste handler reads clipboard data and plugin settings.
+3. If HTML is available, the conversion pipeline:
+    - normalizes and sanitizes the HTML,
+    - optionally converts pasted images into Joplin resources,
+    - converts the cleaned DOM into Markdown,
+    - applies light Markdown cleanup.
+4. The resulting Markdown is inserted into the editor.
+5. If HTML processing fails, the plugin falls back to pasting plain text and notifies the user.
 
-- Tables (including header detection & pipe escaping).
-- Strikethrough (`del|s|strike` → `~~`).
-- Task list markers (checkbox inputs → `[ ]` / `[x]`).
-- (We bypass its limited highlighted code wrapper rule in favor of richer internal normalization.)
-- Project uses a forked version of @truto/turndown-plugin-gfm
-    - Upstream turndown-plugin-gfm is unmaintained (and didn't work well in testing).
-    - Joplin's forked turndown-plugin-gfm has table logic that conflicts with plugin goals (keeping complex tables as HTML).
-    - @truto version aligns with goals (simplified table handling, simplifies/collapses multi-line table cell content). My fork only contains minor fixes.
+## Main Components
 
-## Design Principles
+### Entry Point
 
-- Sanitize pass (DOMPurify).
-- Prefer DOM over regex for semantics; regex only for final line/spacing cleanup.
-- Make pre-sanitize passes idempotent and safe (text normalization can run twice; early UI removal compensates for KEEP_CONTENT behavior).
-- Register cleanup stages once in the pass registry so ordering, conditions, and logging stay authoritative.
-- No style-based semantic inference (bold/italic from CSS dropped intentionally).
-- Per-invocation Turndown instance (no shared mutable state).
-- Minimal post-processing; only tasks simpler after Markdown emission.
-- Centralized logging via `Logger` utility so messages go through the built-in log targets instead of `console`.
+- `src/index.ts` registers the Joplin command and plugin settings.
 
-## Exclusions / Non-Goals
+### Paste Orchestration
 
-- No attempt to recover styling-based emphasis.
-- No content-based language detection (class names only).
-- No deep normalization of nested task list indentation beyond spacing cleanup.
-- Tight lists do not collapse or merge multi-paragraph content within a single list item; only inter-item blank lines are removed when the setting is enabled.
+- `src/pasteHandler.ts` coordinates the end-to-end paste flow.
+- It reads clipboard content, validates settings, detects special sources such as Google Docs, calls the converter, inserts the result into the editor, and manages user-facing fallback behavior.
 
-## Security
+### HTML Processing
 
-- DOMPurify configured centrally; scripts/styles/event handlers stripped once and treated as the hard security boundary.
-- Pre- and post-sanitize passes execute through the runner, which logs failures and continues so DOMPurify output is still used.
-- Sanitization failure or lack of DOM APIs throws `HtmlProcessingError`; the paste handler catches this, shows an error toast, and attempts plain-text fallback, guaranteeing unsanitized HTML is never inserted.
-- Subsequent stages assume sanitized tree (no double stripping).
+- `src/html/processHtml.ts` owns the HTML preparation stage.
+- It parses clipboard HTML, runs ordered preprocessing and cleanup passes, sanitizes the result, and returns a safe DOM subtree for Markdown conversion.
+- The pass registry under `src/html/passes/` keeps HTML cleanup logic organized and centrally ordered.
 
-## Fallback Hierarchy
+### Markdown Conversion
 
-1. Full processing: DOMPurify + post-sanitize cleanup + image conversion (if enabled) + Turndown → Markdown.
-2. Failure: Sanitization or DOM parsing fails; `processHtml` throws `HtmlProcessingError`, which the paste handler catches to show an error toast and attempt plain-text fallback.
+- `src/markdownConverter.ts` translates the processed DOM into Markdown.
+- It builds a fresh Turndown pipeline for each paste, applies the GFM plugin, adds a small set of project-specific rules, and performs final Markdown cleanup before returning the result.
 
-Note: Image conversion failures are handled gracefully - individual failed images are logged and skipped, but processing continues with the valid DOM body.
+### Resource Conversion
 
-## Testing Focus
+- `src/resourceConverter.ts` handles optional image conversion into Joplin resources.
+- This runs as part of HTML processing so Markdown output can reference Joplin-managed images instead of raw external data when that option is enabled.
 
-- Table fragment wrapping, task list spacing (nested + top-level), tight list option behavior, code block language inference, image include/exclude & resource conversion edge cases, literal `<script>` preservation, anchor cleanup, NBSP + `<br>` policies, custom mark/sup/sub rules.
-- Image sizing promotion from style → attributes (single- and double-dimension, precedence when attributes already exist).
-- Literal tag mention wrapping.
+### Shared Infrastructure
 
-## Summary
+- `src/constants.ts` defines setting keys and shared configuration.
+- `src/logger.ts` centralizes logging.
+- `src/utils.ts` contains shared helpers such as settings validation and toast notifications.
+- `src/types.ts` defines the main data shapes shared across the pipeline.
 
-A deterministic two-phase approach:
-(1) DOM preprocessing (safety + structural normalization),
-(2) Turndown (upstream + forked GFM + minimal custom rules),
-followed by constrained Markdown cleanup (spacing + line semantics). The `processHtml` layer throws `HtmlProcessingError` when sanitization cannot complete safely, leaving the paste handler to show toasts and attempt plain-text fallback.
+## Design Priorities
+
+- Security first: HTML is sanitized before conversion output is trusted.
+- Separation of concerns: paste orchestration, HTML processing, Markdown conversion, and resource handling are kept in distinct modules.
+- Fail safely: when HTML conversion cannot proceed, the plugin prefers plain-text fallback over inserting unsafe or partial output.
+
+## Testing Strategy
+
+Tests in `src/__tests__/` focus on the main user-visible behaviors: HTML cleanup, sanitization, Markdown conversion, image handling, and paste fallback behavior.
