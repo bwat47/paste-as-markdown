@@ -2,7 +2,7 @@ import joplin from 'api';
 import { COMMANDS, SHORTCUTS, SETTINGS, SETTINGS_SECTION } from './constants';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import { showToast } from './utils';
-import { MenuItemLocation, ToastType, SettingItemType } from 'api/types';
+import { ContextMenuItemType, MenuItemLocation, ToastType, SettingItemType } from 'api/types';
 import logger from './logger';
 
 joplin.plugins.register({
@@ -92,6 +92,13 @@ joplin.plugins.register({
             const isMarkdown = await joplin.settings.globalValue('editor.codeView');
             logger.debug('Context menu filter: isMarkdown (Code View)=', isMarkdown);
             if (!isMarkdown) return menu;
+            if (
+                menu.context?.itemType === ContextMenuItemType.Image ||
+                menu.context?.itemType === ContextMenuItemType.Resource ||
+                menu.context?.itemType === ContextMenuItemType.NoteLink
+            ) {
+                return menu;
+            }
             const exists = menu.items.some((i) => i.commandName === COMMANDS.PASTE_AS_MARKDOWN);
             if (!exists) {
                 menu.items.push({
