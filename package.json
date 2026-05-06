@@ -47,7 +47,7 @@
     },
     "dependencies": {
         "@bwat47/turndown-plugin-gfm": "1.0.5",
-        "dompurify": "^3.3.3",
+        "dompurify": "^3.4.2",
         "turndown": "7.2.4"
     }
 }
