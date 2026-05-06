@@ -1,5 +1,8 @@
-> [!important]
-> My coding knowledge is currently very limited. This plugin was created entirely with AI tools, and I may be limited in my ability to fix any issues.
+> [!note]
+> This plugin was created entirely with AI tools.
+
+> [!note]
+> Joplin 3.6 now has a built-in Paste as Markdown function. The main difference with this plugin vs the native feature, is the plugin does some opinionated pre-processing to cleanup the HTML for cleaner markdown conversion.
 
 # Paste as Markdown
 
