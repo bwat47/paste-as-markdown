@@ -27,7 +27,8 @@ describe('remote image success path', () => {
         fsExtraMock = {
             writeFileSync: jest.fn(),
             existsSync: jest.fn(() => true),
-            unlink: jest.fn((_: string, cb?: (err?: Error | null) => void) => {
+            unlink: jest.fn((...args: unknown[]) => {
+                const cb = args[1] as ((err?: Error | null) => void) | undefined;
                 cb?.(null);
             }),
         };

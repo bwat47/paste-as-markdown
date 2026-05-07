@@ -1,11 +1,14 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "module": "commonjs",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "target": "es2020",
         "jsx": "react",
         "allowJs": true,
         "esModuleInterop": true,
+        "skipLibCheck": true,
+        "types": ["node", "jest"],
         "paths": {
             "api": ["./api/index.ts"],
             "api/*": ["./api/*"]

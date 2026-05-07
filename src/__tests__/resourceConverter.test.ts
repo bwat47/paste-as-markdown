@@ -33,12 +33,16 @@ function installJoplinMocks(fsAvailable = true) {
     fsExtraMock = {
         writeFileSync: jest.fn(),
         existsSync: jest.fn().mockReturnValue(true),
-        unlink: jest.fn((_: string, cb?: (err?: Error | null) => void) => cb && cb(null)),
+        unlink: jest.fn((...args: unknown[]) => {
+            const cb = args[1] as ((err?: Error | null) => void) | undefined;
+            cb?.(null);
+        }),
     };
     const joplinMock: JoplinMock = {
         plugins: { dataDir: jest.fn(() => Promise.resolve('/tmp')) },
         data: { post: dataPostMock },
-        require: jest.fn((mod: string) => {
+        require: jest.fn((...args: unknown[]) => {
+            const mod = args[0];
             if (mod === 'fs-extra') {
                 if (!fsAvailable) throw new Error('fs-extra missing');
                 return fsExtraMock;
@@ -130,7 +134,8 @@ describe('resourceConverter edge cases', () => {
     test('network timeout abort increments failed count', async () => {
         // Use fake timers to trigger the 15s AbortController timeout quickly
         jest.useFakeTimers();
-        fetchMock = jest.fn((_: string, opts: unknown) => {
+        fetchMock = jest.fn((...args: unknown[]) => {
+            const opts = args[1];
             const signal = (opts as { signal?: AbortSignal } | undefined)?.signal;
             return new Promise((_resolve, reject) => {
                 if (signal?.aborted) return reject(new Error('already aborted'));

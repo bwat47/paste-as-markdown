@@ -1,25 +1,28 @@
-import { JSDOM } from 'jsdom';
 import { normalizeCodeBlocks } from '../html/post/codeBlocks';
 import { neutralizeCodeBlocksPreSanitize } from '../html/pre/codeNeutralize';
 
+function parseBody(html: string): HTMLElement {
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    return document.body;
+}
+
 describe('normalizeCodeBlocks', () => {
     it('unwraps tables that are mistakenly wrapped in pre elements', () => {
-        const dom = new JSDOM(
+        const body = parseBody(
             '<!doctype html><body><pre class="foo"><table><tbody><tr><td>cell</td></tr></tbody></table></pre></body>'
         );
-        const { document } = dom.window;
 
-        neutralizeCodeBlocksPreSanitize(document.body);
-        normalizeCodeBlocks(document.body);
+        neutralizeCodeBlocksPreSanitize(body);
+        normalizeCodeBlocks(body);
 
-        expect(document.querySelector('pre')).toBeNull();
-        const table = document.querySelector('table');
+        expect(body.querySelector('pre')).toBeNull();
+        const table = body.querySelector('table');
         expect(table).not.toBeNull();
         expect(table?.querySelectorAll('tr').length).toBe(1);
     });
 
     it('converts CodeMirror editors into normalized pre/code blocks', () => {
-        const dom = new JSDOM(
+        const body = parseBody(
             [
                 '<!doctype html><body>',
                 '<div class="editor">',
@@ -45,22 +48,21 @@ describe('normalizeCodeBlocks', () => {
                 '</body>',
             ].join('')
         );
-        const { document } = dom.window;
 
-        normalizeCodeBlocks(document.body);
+        normalizeCodeBlocks(body);
 
-        const pre = document.querySelector('pre');
+        const pre = body.querySelector('pre');
         expect(pre).not.toBeNull();
         const code = pre?.querySelector('code');
         expect(code).not.toBeNull();
         expect(code?.textContent).toContain('const object = { a: 1, b: 2 };');
         expect(code?.textContent).toContain('for (const property in object) {');
         expect(code?.textContent).toContain('console.log(`${property}: ${object[property]}`);');
-        expect(document.querySelector('.cm-editor')).toBeNull();
+        expect(body.querySelector('.cm-editor')).toBeNull();
     });
 
     it('removes adjacent language labels before code blocks and applies the language class', () => {
-        const dom = new JSDOM(
+        const body = parseBody(
             [
                 '<!doctype html><body>',
                 '<div dir="auto">',
@@ -73,18 +75,17 @@ describe('normalizeCodeBlocks', () => {
                 '</body>',
             ].join('')
         );
-        const { document } = dom.window;
 
-        normalizeCodeBlocks(document.body);
+        normalizeCodeBlocks(body);
 
-        const code = document.querySelector('pre code') as HTMLElement | null;
+        const code = body.querySelector('pre code') as HTMLElement | null;
         expect(code).not.toBeNull();
         expect(code?.classList.contains('language-typescript')).toBe(true);
-        expect(document.body.innerHTML).not.toContain('TypeScript');
+        expect(body.innerHTML).not.toContain('TypeScript');
     });
 
     it('removes sibling copy toolbars that precede the code block', () => {
-        const dom = new JSDOM(
+        const body = parseBody(
             [
                 '<!doctype html><body>',
                 '<div class="evo-codeheader">',
@@ -99,12 +100,11 @@ describe('normalizeCodeBlocks', () => {
                 '</body>',
             ].join('')
         );
-        const { document } = dom.window;
 
-        normalizeCodeBlocks(document.body);
+        normalizeCodeBlocks(body);
 
-        expect(document.querySelector('button.copy-button')).toBeNull();
-        const pre = document.querySelector('pre');
+        expect(body.querySelector('button.copy-button')).toBeNull();
+        const pre = body.querySelector('pre');
         expect(pre).not.toBeNull();
         const code = pre?.querySelector('code');
         expect(code?.textContent).toContain('console.log("hello");');

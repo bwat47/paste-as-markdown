@@ -1,12 +1,11 @@
 import TurndownService from 'turndown';
+import { gfm } from '@bwat47/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
-import { getGfmPlugin } from './gfmPlugin';
 import type { PasteOptions, HtmlToMarkdownResult } from './types';
 
-async function createTurndownService(includeImages: boolean): Promise<TurndownService> {
+function createTurndownService(includeImages: boolean): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
-    const gfm = await getGfmPlugin();
     service.use(gfm);
 
     // Defensive removals, already handled during DOM pre-processing
@@ -144,7 +143,7 @@ export async function convertHtmlToMarkdown(
     const processed = await processHtml(input, pasteOptions, isGoogleDocs);
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
-    const service = await createTurndownService(includeImages);
+    const service = createTurndownService(includeImages);
     let markdown = service.turndown(processed.body);
 
     // Post-process the markdown for final cleanup

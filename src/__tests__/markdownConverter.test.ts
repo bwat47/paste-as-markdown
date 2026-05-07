@@ -25,9 +25,6 @@ jest.mock('turndown', () => {
     return { __esModule: true, default: ctor };
 });
 
-// Mock our gfm wrapper
-jest.mock('../gfmPlugin');
-
 describe('markdownConverter', () => {
     let convertHtmlToMarkdown: typeof import('../markdownConverter').convertHtmlToMarkdown;
 

@@ -20,7 +20,10 @@ function installJoplin() {
     fsExtraMock = {
         writeFileSync: jest.fn(),
         existsSync: jest.fn().mockReturnValue(true),
-        unlink: jest.fn((_: string, cb?: (e?: Error | null) => void) => cb && cb(null)),
+        unlink: jest.fn((...args: unknown[]) => {
+            const cb = args[1] as ((e?: Error | null) => void) | undefined;
+            cb?.(null);
+        }),
     };
     (globalThis as unknown as Record<string, unknown>).joplin = {
         plugins: { dataDir: jest.fn(() => Promise.resolve('/tmp')) },

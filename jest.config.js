@@ -1,6 +1,6 @@
 module.exports = {
     preset: 'ts-jest',
-    testEnvironment: 'node',
+    testEnvironment: 'jsdom',
     roots: ['<rootDir>/src'],
     testMatch: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
     collectCoverageFrom: [
@@ -16,8 +16,7 @@ module.exports = {
     moduleNameMapper: {
         '^api$': '<rootDir>/src/__tests__/__mocks__/api.ts',
         '^api/(.*)$': '<rootDir>/src/__tests__/__mocks__/api/$1.ts',
-        '^../gfmPlugin$': '<rootDir>/src/__tests__/__mocks__/gfmPlugin.ts',
-        '^./gfmPlugin$': '<rootDir>/src/__tests__/__mocks__/gfmPlugin.ts',
+        '^@bwat47/turndown-plugin-gfm$': '<rootDir>/src/__tests__/__mocks__/turndownPluginGfm.ts',
     },
     transform: {
         '^.+\\.ts$': ['ts-jest', {
