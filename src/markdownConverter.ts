@@ -27,14 +27,14 @@ function createTurndownService(includeImages: boolean): TurndownService {
         },
         replacement: (_content: string, node: HTMLElement) => {
             const img = node as HTMLImageElement;
-            const attrs: string[] = [];
-            const pushAttr = (name: string) => {
-                const v = img.getAttribute(name);
-                if (v) attrs.push(`${name}="${v}"`);
+            const serializedImg = img.ownerDocument.createElement('img');
+            const copyAttr = (name: string) => {
+                const value = img.getAttribute(name);
+                if (value) serializedImg.setAttribute(name, value);
             };
             // Allowed image attributes: src, alt, title, width, height
-            ['src', 'alt', 'title', 'width', 'height'].forEach(pushAttr);
-            return `<img ${attrs.join(' ')}>`;
+            ['src', 'alt', 'title', 'width', 'height'].forEach(copyAttr);
+            return serializedImg.outerHTML;
         },
     });
 

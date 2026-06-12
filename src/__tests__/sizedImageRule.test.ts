@@ -30,3 +30,16 @@ test('sized <img> preserves title attribute and order', async () => {
     const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
     expect(markdown).toContain('<img src="t.png" alt="A" title="T" width="10">');
 });
+
+test('sized <img> escapes attributes when preserving raw HTML', async () => {
+    const html = '<p><img src="x.png" width="10" alt="&quot; onerror=&quot;alert(1)"></p>';
+    const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
+
+    expect(markdown).toContain('alt="&quot; onerror=&quot;alert(1)"');
+
+    const parsed = new DOMParser().parseFromString(markdown, 'text/html');
+    const img = parsed.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('alt')).toBe('" onerror="alert(1)');
+    expect(img?.hasAttribute('onerror')).toBe(false);
+});
