@@ -43,3 +43,12 @@ test('sized <img> escapes attributes when preserving raw HTML', async () => {
     expect(img?.getAttribute('alt')).toBe('" onerror="alert(1)');
     expect(img?.hasAttribute('onerror')).toBe(false);
 });
+
+test('sized <img> collapses attribute newlines before preserving raw HTML', async () => {
+    const html =
+        '<p><img src="x.png&#10;&#10;next.png" width="10" alt="a" title="x&#10;&#10;[evil](http://evil.example)"></p>';
+    const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
+
+    expect(markdown).toContain('<img src="x.png next.png" alt="a" title="x [evil](http://evil.example)" width="10">');
+    expect(markdown).not.toContain('\n\n[evil](http://evil.example)');
+});

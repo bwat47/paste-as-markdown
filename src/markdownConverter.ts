@@ -4,6 +4,8 @@ import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
 import type { PasteOptions, HtmlToMarkdownResult } from './types';
 
+const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
+
 function createTurndownService(includeImages: boolean): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
     service.use(gfm);
@@ -30,7 +32,7 @@ function createTurndownService(includeImages: boolean): TurndownService {
             const serializedImg = img.ownerDocument.createElement('img');
             const copyAttr = (name: string) => {
                 const value = img.getAttribute(name);
-                if (value) serializedImg.setAttribute(name, value);
+                if (value) serializedImg.setAttribute(name, value.replace(MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE, ' '));
             };
             // Allowed image attributes: src, alt, title, width, height
             ['src', 'alt', 'title', 'width', 'height'].forEach(copyAttr);
