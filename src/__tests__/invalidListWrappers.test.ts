@@ -11,6 +11,22 @@ import { convertHtmlToMarkdown } from '../markdownConverter';
  */
 
 describe('invalid list wrapper unwrapping', () => {
+    test('wraps orphaned list items emitted without a list container', async () => {
+        const html = `
+            <li>If that is set to PO Open, we will update the Recent Cost of the Item with the PO Price whenever a PO Detail for that Item is Opened and at Receipt.</li>
+            <li>If that is set to PO Close, we will update the Recent Cost of the Item at Receipt and at the Close of the PO Detail.</li>
+            <li>If that is set to Both, we will update the Recent Cost of the Item at Open, Receipt, and Close of the PO Detail.</li>
+        `;
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const md = markdown.trim();
+
+        expect(md).toMatch(
+            /^- If that is set to PO Open, we will update the Recent Cost of the Item with the PO Price/m
+        );
+        expect(md).toMatch(/^- If that is set to PO Close, we will update the Recent Cost of the Item at Receipt/m);
+        expect(md).toMatch(/^- If that is set to Both, we will update the Recent Cost of the Item at Open/m);
+    });
+
     test('OneNote-style OL wrapped in UL', async () => {
         const html = `<html>
    <body>

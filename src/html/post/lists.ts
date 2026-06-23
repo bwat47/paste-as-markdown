@@ -4,6 +4,7 @@ const LIST_TAGS = new Set(['UL', 'OL']);
 
 const LI_TAG = 'LI';
 const CHECKBOX_SELECTOR = 'input[type="checkbox"]';
+const DEFAULT_ORPHAN_LIST_TAG = 'ul';
 
 function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
     const parent = list.parentElement;
@@ -80,7 +81,7 @@ export function unwrapCheckboxParagraphs(body: HTMLElement): void {
  * incorrect Markdown like "- 1. item" (both UL and OL markers).
  *
  * This helper detects and unwraps such invalid list wrappers by promoting their
- * children to siblings, allowing proper conversion. It also unwraps any orphaned
+ * children to siblings, allowing proper conversion. It also wraps any orphaned
  * <li> elements that end up outside of a list after unwrapping.
  */
 export function unwrapInvalidListWrappers(body: HTMLElement): void {
@@ -106,7 +107,7 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
     });
 
     // After unwrapping invalid lists, we may have orphaned <li> elements that are no longer
-    // inside a list. These should also be unwrapped to avoid incorrect Markdown conversion.
+    // inside a list. Preserve their list semantics by wrapping consecutive orphaned items.
     const orphanedListItems = Array.from(body.querySelectorAll<HTMLElement>('li'));
     orphanedListItems.forEach((li) => {
         const parent = li.parentElement;
@@ -115,7 +116,34 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         // If the <li> is inside a <ul> or <ol>, it's not orphaned
         if (LIST_TAGS.has(parent.tagName)) return;
 
-        // This <li> is orphaned - unwrap it
-        unwrapElement(li);
+        const ownerDocument = li.ownerDocument;
+        if (!ownerDocument) return;
+
+        const wrapper = ownerDocument.createElement(DEFAULT_ORPHAN_LIST_TAG);
+        parent.insertBefore(wrapper, li);
+
+        let current: ChildNode | null = li;
+        while (current) {
+            const next: ChildNode | null = current.nextSibling;
+            const isIgnorableWhitespace =
+                current.nodeType === Node.TEXT_NODE && (current.textContent?.trim() ?? '') === '';
+            const isComment = current.nodeType === Node.COMMENT_NODE;
+
+            if (isIgnorableWhitespace || isComment) {
+                current = next;
+                continue;
+            }
+
+            if (current.nodeType === Node.ELEMENT_NODE) {
+                const element = current as HTMLElement;
+                if (element.tagName === LI_TAG && element.parentElement === parent) {
+                    wrapper.appendChild(element);
+                    current = next;
+                    continue;
+                }
+            }
+
+            break;
+        }
     });
 }
