@@ -50,7 +50,10 @@
     },
     "dependencies": {
         "@bwat47/turndown-plugin-gfm": "1.0.6",
-        "dompurify": "^3.4.9",
+        "dompurify": "^3.4.11",
         "turndown": "7.2.4"
+    },
+    "overrides": {
+        "js-yaml": "^4.2.0"
     }
 }
