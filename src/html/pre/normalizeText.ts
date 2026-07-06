@@ -14,7 +14,8 @@ export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: bool
     const nbspPattern = /\u00A0|&nbsp;/;
     const thinSpacePattern = /[\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F]/;
     const zeroWidthPattern = /\u200B|\u200C|\u200D|\u2060|\uFEFF/;
-    const directionalControlPattern = /\u2066|\u2067|\u2068|\u2069|\u202A|\u202B|\u202C|\u202D|\u202E|\u200E|\u200F|\u061C/;
+    const directionalControlPattern =
+        /\u2066|\u2067|\u2068|\u2069|\u202A|\u202B|\u202C|\u202D|\u202E|\u200E|\u200F|\u061C/;
     const zeroWidthMatcher = new RegExp(`(?:${zeroWidthPattern.source})+`, 'g');
     const directionalControlMatcher = new RegExp(`(?:${directionalControlPattern.source})+`, 'g');
     const quotePattern = /&#8220|&#8221|&#8216|&#8217|[\u201C\u201D\u2018\u2019]/;
