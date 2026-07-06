@@ -10,6 +10,7 @@ export function normalizeAltText(raw: string): string {
     return (
         String(raw)
             // ASCII control characters (including CR/LF/TAB) and DEL
+            // eslint-disable-next-line no-control-regex
             .replace(/[\u0000-\u001F\u007F]/g, ' ')
             // Common Unicode separators (NBSP and general separators)
             .replace(/[\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]/g, ' ')
