@@ -1,17 +1,18 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { showToast, validatePasteSettings } from '../utils';
 import { ToastType } from 'api/types';
 import logger from '../logger';
 
 // Mock the joplin API
-jest.mock('api');
+vi.mock('api');
 
 describe('utils', () => {
     describe('showToast', () => {
         beforeEach(async () => {
             const apiModule = await import('api');
             (global as { mockJoplin?: typeof import('api').default }).mockJoplin = apiModule.default;
-            jest.clearAllMocks();
+            vi.clearAllMocks();
         });
 
         test('calls joplin toast API with correct parameters', async () => {
@@ -40,10 +41,10 @@ describe('utils', () => {
 
         test('handles API errors gracefully', async () => {
             const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
-            const warnSpy = jest
+            const warnSpy = vi
                 .spyOn(logger as unknown as { warn: (...args: unknown[]) => void }, 'warn')
                 .mockImplementation(() => {});
-            (mockJoplin.views.dialogs.showToast as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(
+            (mockJoplin.views.dialogs.showToast as MockedFunction<() => Promise<void>>).mockRejectedValue(
                 new Error('API Error')
             );
 

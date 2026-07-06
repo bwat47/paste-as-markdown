@@ -1,3 +1,4 @@
+import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 
 describe('sup/sub preservation', () => {

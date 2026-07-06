@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { readFileSync } from 'fs';
 import { join } from 'path';

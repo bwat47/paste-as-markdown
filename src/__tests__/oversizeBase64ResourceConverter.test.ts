@@ -1,9 +1,10 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 import { convertImagesToResources } from '../resourceConverter';
 
 // Mock constants to drastically reduce MAX_IMAGE_BYTES for test (e.g., 64 bytes)
-jest.mock('../constants', () => ({
-    ...(jest.requireActual('../constants') as Record<string, unknown>),
+vi.mock('../constants', async () => ({
+    ...(await vi.importActual<Record<string, unknown>>('../constants')),
     MAX_IMAGE_BYTES: 64,
 }));
 
@@ -12,23 +13,23 @@ function body(html: string): HTMLElement {
     return parser.parseFromString(html, 'text/html').body;
 }
 
-let dataPostMock: jest.Mock;
-let fsExtraMock: { writeFileSync: jest.Mock; existsSync: jest.Mock; unlink: jest.Mock };
+let dataPostMock: Mock;
+let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
 
 function installJoplin() {
-    dataPostMock = jest.fn(() => Promise.resolve({ id: 'res' }));
+    dataPostMock = vi.fn(() => Promise.resolve({ id: 'res' }));
     fsExtraMock = {
-        writeFileSync: jest.fn(),
-        existsSync: jest.fn().mockReturnValue(true),
-        unlink: jest.fn((...args: unknown[]) => {
+        writeFileSync: vi.fn(),
+        existsSync: vi.fn().mockReturnValue(true),
+        unlink: vi.fn((...args: unknown[]) => {
             const cb = args[1] as ((e?: Error | null) => void) | undefined;
             cb?.(null);
         }),
     };
     (globalThis as unknown as Record<string, unknown>).joplin = {
-        plugins: { dataDir: jest.fn(() => Promise.resolve('/tmp')) },
+        plugins: { dataDir: vi.fn(() => Promise.resolve('/tmp')) },
         data: { post: dataPostMock },
-        require: jest.fn((mod: string) => {
+        require: vi.fn((mod: string) => {
             if (mod === 'fs-extra') return fsExtraMock;
             throw new Error('unhandled ' + mod);
         }),

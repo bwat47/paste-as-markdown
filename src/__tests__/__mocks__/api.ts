@@ -1,17 +1,17 @@
 // Mock Joplin API
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 const joplin = {
     views: {
         dialogs: {
-            showToast: jest.fn<() => Promise<void>>().mockResolvedValue(),
+            showToast: vi.fn<() => Promise<void>>().mockResolvedValue(),
         },
     },
     commands: {
-        execute: jest.fn<() => Promise<void>>().mockResolvedValue(),
+        execute: vi.fn<() => Promise<void>>().mockResolvedValue(),
     },
     workspace: {
-        selectedNote: jest.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'test-note' }),
+        selectedNote: vi.fn<() => Promise<{ id: string }>>().mockResolvedValue({ id: 'test-note' }),
     },
 };
 

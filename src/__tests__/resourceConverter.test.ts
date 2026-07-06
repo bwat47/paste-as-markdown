@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
 import { MAX_IMAGE_BYTES } from '../constants';
@@ -15,33 +16,33 @@ const PNG_DATA_URL =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
 
 interface JoplinMock {
-    plugins: { dataDir: jest.Mock };
-    data: { post: jest.Mock };
-    require: jest.Mock;
+    plugins: { dataDir: Mock };
+    data: { post: Mock };
+    require: Mock;
 }
 
-let dataPostMock: jest.Mock;
-let fsExtraMock: { writeFileSync: jest.Mock; existsSync: jest.Mock; unlink: jest.Mock };
-let fetchMock: jest.Mock | undefined;
+let dataPostMock: Mock;
+let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
+let fetchMock: Mock | undefined;
 
 function setGlobal<T>(key: string, value: T) {
     (globalThis as unknown as Record<string, unknown>)[key] = value as unknown;
 }
 
 function installJoplinMocks(fsAvailable = true) {
-    dataPostMock = jest.fn(() => Promise.resolve({ id: 'res-ok' }));
+    dataPostMock = vi.fn(() => Promise.resolve({ id: 'res-ok' }));
     fsExtraMock = {
-        writeFileSync: jest.fn(),
-        existsSync: jest.fn().mockReturnValue(true),
-        unlink: jest.fn((...args: unknown[]) => {
+        writeFileSync: vi.fn(),
+        existsSync: vi.fn().mockReturnValue(true),
+        unlink: vi.fn((...args: unknown[]) => {
             const cb = args[1] as ((err?: Error | null) => void) | undefined;
             cb?.(null);
         }),
     };
     const joplinMock: JoplinMock = {
-        plugins: { dataDir: jest.fn(() => Promise.resolve('/tmp')) },
+        plugins: { dataDir: vi.fn(() => Promise.resolve('/tmp')) },
         data: { post: dataPostMock },
-        require: jest.fn((...args: unknown[]) => {
+        require: vi.fn((...args: unknown[]) => {
             const mod = args[0];
             if (mod === 'fs-extra') {
                 if (!fsAvailable) throw new Error('fs-extra missing');
@@ -60,7 +61,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
 });
 
 describe('resourceConverter edge cases', () => {
@@ -91,7 +92,7 @@ describe('resourceConverter edge cases', () => {
     });
 
     test('non-image remote MIME rejected', async () => {
-        fetchMock = jest.fn(async () => ({
+        fetchMock = vi.fn(async () => ({
             ok: true,
             headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'text/html' : null) },
             body: null,
@@ -110,7 +111,7 @@ describe('resourceConverter edge cases', () => {
         // Single chunk larger than limit to guarantee immediate failure
         const hugeChunk = new Uint8Array(MAX_IMAGE_BYTES + 100);
         let served = false;
-        fetchMock = jest.fn(async () => ({
+        fetchMock = vi.fn(async () => ({
             ok: true,
             headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
             body: {
@@ -133,8 +134,8 @@ describe('resourceConverter edge cases', () => {
 
     test('network timeout abort increments failed count', async () => {
         // Use fake timers to trigger the 15s AbortController timeout quickly
-        jest.useFakeTimers();
-        fetchMock = jest.fn((...args: unknown[]) => {
+        vi.useFakeTimers();
+        fetchMock = vi.fn((...args: unknown[]) => {
             const opts = args[1];
             const signal = (opts as { signal?: AbortSignal } | undefined)?.signal;
             return new Promise((_resolve, reject) => {
@@ -147,7 +148,7 @@ describe('resourceConverter edge cases', () => {
         const body = makeBody('<img src="https://example.com/slow.png">');
         const conversionPromise = convertImagesToResources(body);
         // Fast-forward time to trigger the 15000ms timeout inside downloadExternalImage
-        jest.advanceTimersByTime(15000);
+        vi.advanceTimersByTime(15000);
         const result = await conversionPromise;
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);

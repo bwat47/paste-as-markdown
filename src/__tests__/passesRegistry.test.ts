@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { describe, expect, test } from 'vitest';
 import { getProcessingPasses, __TEST__ } from '../html/passes/registry';
 import type { ProcessingPass } from '../html/passes/types';
 

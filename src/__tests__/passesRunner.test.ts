@@ -1,4 +1,5 @@
-import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
+import { describe, expect, test, beforeEach, afterEach, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { runPasses } from '../html/passes/runner';
 import type { ProcessingPass, PassContext } from '../html/passes/types';
 import type { PasteOptions } from '../types';
@@ -13,11 +14,11 @@ describe('runPasses', () => {
     };
     const context: PassContext = { isGoogleDocs: false };
 
-    let warnSpy: jest.SpyInstance;
+    let warnSpy: MockInstance;
 
     beforeEach(() => {
         const loggerForTest = logger as unknown as { warn: (...args: unknown[]) => void };
-        warnSpy = jest.spyOn(loggerForTest, 'warn').mockImplementation(() => undefined);
+        warnSpy = vi.spyOn(loggerForTest, 'warn').mockImplementation(() => undefined);
     });
 
     afterEach(() => {

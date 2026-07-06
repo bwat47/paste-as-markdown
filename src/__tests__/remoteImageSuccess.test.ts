@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import type { PasteOptions } from '../types';
 
@@ -8,39 +9,39 @@ function tinyPngBytes(): Uint8Array {
 }
 
 interface JoplinMock {
-    plugins: { dataDir: jest.Mock };
-    require: jest.Mock;
-    data: { post: jest.Mock };
+    plugins: { dataDir: Mock };
+    require: Mock;
+    data: { post: Mock };
 }
 
 declare const global: Omit<typeof globalThis, 'fetch'> & {
     joplin?: JoplinMock;
-    fetch?: jest.Mock;
+    fetch?: Mock;
 };
 
 describe('remote image success path', () => {
-    let dataPostMock: jest.Mock;
-    let fsExtraMock: { writeFileSync: jest.Mock; existsSync: jest.Mock; unlink: jest.Mock };
+    let dataPostMock: Mock;
+    let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
 
     beforeEach(() => {
-        dataPostMock = jest.fn(() => Promise.resolve({ id: 'resRemote' }));
+        dataPostMock = vi.fn(() => Promise.resolve({ id: 'resRemote' }));
         fsExtraMock = {
-            writeFileSync: jest.fn(),
-            existsSync: jest.fn(() => true),
-            unlink: jest.fn((...args: unknown[]) => {
+            writeFileSync: vi.fn(),
+            existsSync: vi.fn(() => true),
+            unlink: vi.fn((...args: unknown[]) => {
                 const cb = args[1] as ((err?: Error | null) => void) | undefined;
                 cb?.(null);
             }),
         };
         global.joplin = {
-            plugins: { dataDir: jest.fn(() => Promise.resolve('/tmp')) },
-            require: jest.fn((mod: string) => {
+            plugins: { dataDir: vi.fn(() => Promise.resolve('/tmp')) },
+            require: vi.fn((mod: string) => {
                 if (mod === 'fs-extra') return fsExtraMock;
                 throw new Error('mod');
             }),
             data: { post: dataPostMock },
         } as JoplinMock;
-        global.fetch = jest.fn(async () => ({
+        global.fetch = vi.fn(async () => ({
             ok: true,
             headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
             body: {
@@ -49,7 +50,7 @@ describe('remote image success path', () => {
                 }),
             },
             arrayBuffer: async () => tinyPngBytes().buffer,
-        })) as unknown as jest.Mock;
+        })) as unknown as Mock;
     });
 
     test('successful remote image conversion increments metrics and rewrites src', async () => {

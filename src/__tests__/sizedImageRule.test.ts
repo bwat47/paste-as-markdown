@@ -1,3 +1,4 @@
+import { test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 
 test('retains sized <img> as raw HTML', async () => {

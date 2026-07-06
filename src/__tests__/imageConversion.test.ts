@@ -1,4 +1,5 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import type { PasteOptions } from '../types';
 
@@ -11,31 +12,31 @@ function buildHtml(images: string[]): string {
 }
 
 type JoplinMock = {
-    plugins: { dataDir: jest.Mock };
-    require: jest.Mock;
-    data: { post: jest.Mock };
+    plugins: { dataDir: Mock };
+    require: Mock;
+    data: { post: Mock };
 };
 declare const global: typeof globalThis & { joplin: JoplinMock };
 
 describe('image resource conversion', () => {
-    let dataPostMock: jest.Mock;
-    let fsExtraMock: { writeFileSync: jest.Mock; existsSync: jest.Mock; unlink: jest.Mock };
+    let dataPostMock: Mock;
+    let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
 
     beforeEach(() => {
-        dataPostMock = jest.fn();
+        dataPostMock = vi.fn();
         fsExtraMock = {
-            writeFileSync: jest.fn(),
-            existsSync: jest.fn().mockReturnValue(true),
-            unlink: jest.fn((...args: unknown[]) => {
+            writeFileSync: vi.fn(),
+            existsSync: vi.fn().mockReturnValue(true),
+            unlink: vi.fn((...args: unknown[]) => {
                 const cb = args[1] as ((err?: Error | null) => void) | undefined;
                 cb?.(null);
             }),
         };
         (global as unknown as Record<string, unknown>).joplin = {
             plugins: {
-                dataDir: jest.fn(() => Promise.resolve('/tmp')),
+                dataDir: vi.fn(() => Promise.resolve('/tmp')),
             },
-            require: jest.fn((mod: string) => {
+            require: vi.fn((mod: string) => {
                 if (mod === 'fs-extra') return fsExtraMock;
                 throw new Error('module not mocked: ' + mod);
             }),

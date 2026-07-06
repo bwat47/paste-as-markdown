@@ -1,4 +1,5 @@
-import { describe, test, expect, jest, beforeEach } from '@jest/globals';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import type { Mock, MockedFunction } from 'vitest';
 import { handlePasteAsMarkdown } from '../pasteHandler';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 import { HtmlProcessingError } from '../html/processHtml';
@@ -7,51 +8,51 @@ import { ToastType } from 'api/types';
 import { SETTINGS } from '../constants';
 
 // Mock dependencies
-jest.mock('api');
-jest.mock('../markdownConverter');
-jest.mock('../utils');
+vi.mock('api');
+vi.mock('../markdownConverter');
+vi.mock('../utils');
 
 describe('pasteHandler', () => {
     let mockJoplin: {
         clipboard: {
-            readHtml: jest.Mock<() => Promise<string | null>>;
-            readText: jest.Mock<() => Promise<string>>;
+            readHtml: Mock<() => Promise<string | null>>;
+            readText: Mock<() => Promise<string>>;
         };
         settings: {
-            value: jest.Mock<(setting: string) => Promise<unknown>>;
+            value: Mock<(setting: string) => Promise<unknown>>;
         };
         commands: {
-            execute: jest.Mock<(command: string, args: unknown) => Promise<void>>;
+            execute: Mock<(command: string, args: unknown) => Promise<void>>;
         };
     };
 
-    let mockConvertHtmlToMarkdown: jest.MockedFunction<typeof convertHtmlToMarkdown>;
-    let mockShowToast: jest.MockedFunction<typeof showToast>;
-    let mockValidatePasteSettings: jest.MockedFunction<typeof validatePasteSettings>;
+    let mockConvertHtmlToMarkdown: MockedFunction<typeof convertHtmlToMarkdown>;
+    let mockShowToast: MockedFunction<typeof showToast>;
+    let mockValidatePasteSettings: MockedFunction<typeof validatePasteSettings>;
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
 
         // Mock joplin API
         const joplinModule = await import('api');
         mockJoplin = {
             clipboard: {
-                readHtml: jest.fn<() => Promise<string | null>>(),
-                readText: jest.fn<() => Promise<string>>(),
+                readHtml: vi.fn<() => Promise<string | null>>(),
+                readText: vi.fn<() => Promise<string>>(),
             },
             settings: {
-                value: jest.fn<(setting: string) => Promise<unknown>>(),
+                value: vi.fn<(setting: string) => Promise<unknown>>(),
             },
             commands: {
-                execute: jest.fn<(command: string, args: unknown) => Promise<void>>(),
+                execute: vi.fn<(command: string, args: unknown) => Promise<void>>(),
             },
         };
         (joplinModule.default as unknown) = mockJoplin;
 
         // Mock other dependencies
-        mockConvertHtmlToMarkdown = convertHtmlToMarkdown as jest.MockedFunction<typeof convertHtmlToMarkdown>;
-        mockShowToast = showToast as jest.MockedFunction<typeof showToast>;
-        mockValidatePasteSettings = validatePasteSettings as jest.MockedFunction<typeof validatePasteSettings>;
+        mockConvertHtmlToMarkdown = convertHtmlToMarkdown as MockedFunction<typeof convertHtmlToMarkdown>;
+        mockShowToast = showToast as MockedFunction<typeof showToast>;
+        mockValidatePasteSettings = validatePasteSettings as MockedFunction<typeof validatePasteSettings>;
 
         // Default mock implementations
         mockJoplin.settings.value.mockImplementation((setting: string) => {

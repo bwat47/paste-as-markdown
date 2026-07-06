@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { normalizeHeadingLevels } from '../html/post/headings';
 
 describe('normalizeHeadingLevels', () => {

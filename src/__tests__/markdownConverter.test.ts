@@ -1,24 +1,25 @@
-import { describe, test, expect, jest } from '@jest/globals';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
+import type { Mock } from 'vitest';
 
 // Mock upstream turndown so we can assert rule wiring without invoking full conversion logic.
-jest.mock('turndown', () => {
+vi.mock('turndown', () => {
     interface MockRule {
         filter?: (n: HTMLElement) => boolean;
         replacement?: (c: string, n: HTMLElement) => string;
     }
     interface MockService {
-        use: jest.Mock;
-        remove: jest.Mock;
-        turndown: jest.Mock;
-        addRule: jest.Mock;
+        use: Mock;
+        remove: Mock;
+        turndown: Mock;
+        addRule: Mock;
         rules: { array: MockRule[] };
     }
-    const ctor = jest.fn((): MockService => {
+    const ctor = vi.fn(function (): MockService {
         return {
-            use: jest.fn(),
-            remove: jest.fn(),
-            turndown: jest.fn().mockReturnValue('# Mock Output'),
-            addRule: jest.fn(),
+            use: vi.fn(),
+            remove: vi.fn(),
+            turndown: vi.fn().mockReturnValue('# Mock Output'),
+            addRule: vi.fn(),
             rules: { array: [] },
         };
     });
@@ -29,7 +30,7 @@ describe('markdownConverter', () => {
     let convertHtmlToMarkdown: typeof import('../markdownConverter').convertHtmlToMarkdown;
 
     beforeEach(async () => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         // Dynamic import after mocking
         const module = await import('../markdownConverter');
         convertHtmlToMarkdown = module.convertHtmlToMarkdown;
@@ -39,9 +40,9 @@ describe('markdownConverter', () => {
         const { default: TurndownService } = await import('turndown');
         const { markdown: result } = await convertHtmlToMarkdown('<p>Test</p>');
         expect(TurndownService).toHaveBeenCalled();
-        const instance = (TurndownService as unknown as jest.Mock).mock.results[0].value as {
-            use: jest.Mock;
-            turndown: jest.Mock;
+        const instance = (TurndownService as unknown as Mock).mock.results[0].value as {
+            use: Mock;
+            turndown: Mock;
         };
         expect(instance.use).toHaveBeenCalled();
         expect(instance.turndown).toHaveBeenCalled();
@@ -51,10 +52,10 @@ describe('markdownConverter', () => {
     test('processes HTML through DOM preprocessing when includeImages is false (defensive removals still applied)', async () => {
         const { default: TurndownService } = await import('turndown');
         await convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', { includeImages: false });
-        const instance = (TurndownService as unknown as jest.Mock).mock.results[0].value as {
-            remove: jest.Mock;
-            addRule: jest.Mock;
-            turndown: jest.Mock;
+        const instance = (TurndownService as unknown as Mock).mock.results[0].value as {
+            remove: Mock;
+            addRule: Mock;
+            turndown: Mock;
         };
         // Defensive removals now expected even though DOMPurify normally strips these.
         expect(instance.remove).toHaveBeenCalledWith('script');

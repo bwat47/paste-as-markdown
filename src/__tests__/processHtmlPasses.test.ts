@@ -1,4 +1,4 @@
-import { describe, expect, test, afterEach } from '@jest/globals';
+import { describe, expect, test, afterEach, vi } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { POST_IMAGE_PASS_PRIORITY } from '../constants';
 import * as passRunner from '../html/passes/runner';
@@ -14,14 +14,14 @@ const defaultOptions: PasteOptions = {
 };
 
 afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
 });
 
 describe('processHtml pass orchestration', () => {
     test('runs pre- and post-sanitize passes in priority order', async () => {
         const calledPassLists: ReadonlyArray<ProcessingPass>[] = [];
 
-        const runPassesSpy = jest
+        const runPassesSpy = vi
             .spyOn(passRunner, 'runPasses')
             .mockImplementation((passes: readonly ProcessingPass[]) => {
                 calledPassLists.push(passes);

@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 
 describe('image sizing: promote style to attributes (pre-sanitize)', () => {

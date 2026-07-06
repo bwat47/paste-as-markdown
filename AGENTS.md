@@ -9,7 +9,7 @@ ARCHITECTURE.md
 
 ## Build, Test, and Development Commands
 
-- `npm test` Run Jest test suite with JSDOM environment.
+- `npm test` Run Vitest test suite with JSDOM environment.
 - `npm run dist` Build plugin and create archive at `publish/*.jpl`.
 - `npm run lint` Lint TypeScript with ESLint.
 - `npm run lint:fix` Auto-fix linting issues.
@@ -47,5 +47,5 @@ ARCHITECTURE.md
 
 ## Testing Guidelines
 
-- Framework: Jest with `ts-jest` and JSDOM for DOM environment.
+- Framework: Vitest with JSDOM for DOM environment.
 - Place tests in `src/__tests__/<feature>.test.ts` with descriptive names.

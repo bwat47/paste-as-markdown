@@ -1,4 +1,4 @@
-import { describe, test, expect } from '@jest/globals';
+import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 
 // Snapshot test: combined real-world fragment (email artifacts + table + image + code span)
