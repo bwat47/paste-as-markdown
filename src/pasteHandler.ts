@@ -41,7 +41,8 @@ async function readClipboardText(): Promise<string> {
         return await joplin.clipboard.readText();
     } catch (err) {
         logger.error('Failed to read text clipboard', err);
-        throw new Error('Unable to access clipboard text');
+        const error = Object.assign(new Error('Unable to access clipboard text'), { cause: err });
+        throw error;
     }
 }
 
