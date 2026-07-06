@@ -1,4 +1,4 @@
-export interface ConversionResult {
+interface ConversionResult {
     markdown: string;
     success: boolean;
     warnings?: string[];

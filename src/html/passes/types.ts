@@ -1,6 +1,6 @@
 import type { PasteOptions } from '../../types';
 
-export type PassPhase = 'pre-sanitize' | 'post-sanitize';
+type PassPhase = 'pre-sanitize' | 'post-sanitize';
 
 export interface PassContext {
     readonly isGoogleDocs: boolean;

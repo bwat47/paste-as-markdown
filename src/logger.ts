@@ -9,7 +9,7 @@ const PREFIX = '[paste-HTML-as-markdown]';
 
 let debugEnabled = false;
 
-export const logger = {
+const logger = {
     setDebug(enabled: boolean): void {
         debugEnabled = enabled;
     },

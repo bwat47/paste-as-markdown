@@ -1,6 +1,6 @@
 // Centralized DOMPurify configuration so adjustments (e.g., adding 'sup','sub','del','mark')
 // can be made in one place.
-export const SANITIZER_ALLOWED_TAGS_BASE = [
+const SANITIZER_ALLOWED_TAGS_BASE = [
     'a',
     'p',
     'div',
@@ -41,7 +41,7 @@ export const SANITIZER_ALLOWED_TAGS_BASE = [
 ];
 
 // Add form-related attributes needed for checkbox detection (type, checked, disabled) for task lists.
-export const SANITIZER_ALLOWED_ATTRS_BASE = [
+const SANITIZER_ALLOWED_ATTRS_BASE = [
     'href',
     'name',
     'id',
@@ -57,8 +57,8 @@ export const SANITIZER_ALLOWED_ATTRS_BASE = [
     'disabled',
 ];
 
-export const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
-export const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];
+const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
+const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];
 
 export interface SanitizerConfigOptions {
     includeImages: boolean;

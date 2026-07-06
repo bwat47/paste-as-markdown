@@ -55,7 +55,7 @@ function analyzeAnchor(node: HTMLElement): {
     const title = (node.getAttribute('title') || '').trim();
 
     // Common permalink indicators used by GitHub, Sphinx, MkDocs, etc.
-    const isPermalinkText = text.length <= 2 && /^[¶#🔗§]*$/.test(text);
+    const isPermalinkText = text.length <= 2 && /^[¶#🔗§]*$/u.test(text);
     const isPermalinkClass = hasAnchorClass || hasHeaderlinkClass;
     const hashIndex = href.indexOf('#');
     const hasFragment = hashIndex !== -1 && hashIndex < href.length - 1;

@@ -16,7 +16,7 @@ export default [
 
     // Project TS/JS sources
     {
-        files: ['**/*.{ts,tsx,js}'],
+        files: ['**/*.{ts,tsx,js,mjs,cjs}'],
         languageOptions: {
             parser: tsParser,
             ecmaVersion: 2020,
