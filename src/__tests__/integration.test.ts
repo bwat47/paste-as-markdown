@@ -101,7 +101,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 </ul>
         `;
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
-        expect(md).not.toMatch(/[\u200B\u200C\u200D\u2060\uFEFF]/);
+        expect(md).not.toMatch(/\u200B|\u200C|\u200D|\u2060|\uFEFF/);
         expect(md).toMatch(/\*\*Affected platforms:\*\*/);
         expect(md).toMatch(/^- Client: Windows 11, version 25H2; Windows 11, version 24H2$/m);
         expect(md).toMatch(/^- Server: Windows Server 2025$/m);
@@ -145,7 +145,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = '<span>First line</span><br><span>Second line</span>';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
         // Hard line break should be represented as two spaces before newline
-        expect(md).toMatch(/First line  \nSecond line/);
+        expect(md).toMatch(/First line {2}\nSecond line/);
         expect(md).not.toMatch(/<br\/?/i);
     });
 
