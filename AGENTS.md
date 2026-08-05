@@ -49,3 +49,8 @@ ARCHITECTURE.md
 
 - Framework: Vitest with JSDOM for DOM environment.
 - Place tests in `src/__tests__/<feature>.test.ts` with descriptive names.
+
+## Codex working instructions
+
+- GitHub credentials are stored in the OS keyring.
+- If `gh auth status` fails inside the sandbox, retry it with escalated permissions before asking me to authenticate.
