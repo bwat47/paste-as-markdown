@@ -80,7 +80,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(body);
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
-        expect(result.ids.length).toBe(0);
+        expect(result.ids).toHaveLength(0);
     });
 
     test('malformed base64 padding (length %4 == 1) causes failure', async () => {
@@ -103,7 +103,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(body);
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
-        expect(result.ids.length).toBe(0);
+        expect(result.ids).toHaveLength(0);
         expect(dataPostMock).not.toHaveBeenCalled();
     });
 
@@ -129,7 +129,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(body);
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
-        expect(result.ids.length).toBe(0);
+        expect(result.ids).toHaveLength(0);
     });
 
     test('network timeout abort increments failed count', async () => {
@@ -152,7 +152,7 @@ describe('resourceConverter edge cases', () => {
         const result = await conversionPromise;
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
-        expect(result.ids.length).toBe(0);
+        expect(result.ids).toHaveLength(0);
     });
 
     test('mixed batch metrics integrity (success + invalid base64)', async () => {
@@ -162,7 +162,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(body);
         expect(result.attempted).toBe(2);
         expect(result.failed).toBe(1);
-        expect(result.ids.length).toBe(1);
+        expect(result.ids).toHaveLength(1);
     });
 
     test('temp file cleanup on success and failure', async () => {
@@ -198,7 +198,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(body);
         expect(result.attempted).toBe(0);
         expect(result.failed).toBe(0);
-        expect(result.ids.length).toBe(0);
+        expect(result.ids).toHaveLength(0);
     });
 
     test('anchor wrapping converted image is removed (unwrap)', async () => {
@@ -208,7 +208,7 @@ describe('resourceConverter edge cases', () => {
                 `</a>`
         );
         const result = await convertImagesToResources(body);
-        expect(result.ids.length).toBe(1);
+        expect(result.ids).toHaveLength(1);
         const img = body.querySelector('img');
         expect(img).toBeTruthy();
         expect(img!.getAttribute('data-pam-converted')).toBe('true');
@@ -227,7 +227,7 @@ describe('resourceConverter edge cases', () => {
                 `</a>`
         );
         const result = await convertImagesToResources(body);
-        expect(result.ids.length).toBe(1);
+        expect(result.ids).toHaveLength(1);
         const img = body.querySelector('img');
         expect(img).toBeTruthy();
         expect(img!.getAttribute('data-pam-converted')).toBe('true');

@@ -48,7 +48,7 @@ describe('oversize base64 (mocked small limit)', () => {
         const result = await convertImagesToResources(b);
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
-        expect(result.ids.length).toBe(0);
+        expect(result.ids).toHaveLength(0);
         expect(dataPostMock).not.toHaveBeenCalled();
     });
 });

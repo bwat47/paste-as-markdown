@@ -28,7 +28,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
         expect(md).toContain('## Exported members');
-        expect(md).not.toMatch(/\[\s*\n*##/);
+        expect(md).not.toMatch(/\[[^\S\n]*\n+##/);
     });
 
     test('unwraps paragraph wrappers nested directly in headings', async () => {
@@ -88,7 +88,10 @@ describe('integration: convertHtmlToMarkdown', () => {
         // No leading newline
         expect(md[0]).not.toBe('\n');
         // Two paragraphs separated by exactly one blank line when normalized
-        const normalized = md.replace(/\n+$/, '');
+        let normalized = md;
+        while (normalized.endsWith('\n')) {
+            normalized = normalized.slice(0, -1);
+        }
         expect(normalized).toBe('First para\n\nSecond para');
     });
 
@@ -101,7 +104,9 @@ describe('integration: convertHtmlToMarkdown', () => {
 </ul>
         `;
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
-        expect(md).not.toMatch(/\u200B|\u200C|\u200D|\u2060|\uFEFF/);
+        for (const zeroWidthCharacter of ['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF']) {
+            expect(md).not.toContain(zeroWidthCharacter);
+        }
         expect(md).toMatch(/\*\*Affected platforms:\*\*/);
         expect(md).toMatch(/^- Client: Windows 11, version 25H2; Windows 11, version 24H2$/m);
         expect(md).toMatch(/^- Server: Windows Server 2025$/m);
@@ -136,8 +141,8 @@ describe('integration: convertHtmlToMarkdown', () => {
 `;
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
         // Expect sequence: A1 (hard break) A2 then paragraph breaks before B1 and C1.
-        // Allow either single or multiple blank lines (Markdown renderer ignores extras).
-        expect(md).toMatch(/A1\s{2}\nA2\s*\n+B1\s*\n+C1/);
+        // Hard-break spaces remain before paragraph-separating newlines.
+        expect(md).toContain('A1  \nA2  \n\nB1  \n\nC1');
         expect(md).not.toMatch(/<br\/?/i);
     });
 
@@ -214,7 +219,10 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = '<pre><code>Line1\n&nbsp;\nLine3</code></pre>';
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
-        expect(md).toMatch(/```[\s\S]*Line1[\s\S]*Line3[\s\S]*```/);
+        expect(md).toMatch(/^```/);
+        expect(md).toContain('Line1');
+        expect(md).toContain('Line3');
+        expect(md).toMatch(/```$/);
     });
 
     test('newline collapsing skips inside fenced code blocks', async () => {
@@ -240,9 +248,9 @@ describe('integration: convertHtmlToMarkdown', () => {
         const md = markdown.trim();
         // Expect a fenced code block with unescaped script tag content; html language tag may be absent after heuristic removal.
         expect(md).toMatch(/Browser:/);
-        expect(md).toMatch(
-            /```(?:html)?[\s\S]*<script src=\"https:\/\/unpkg.com\/turndown\/dist\/turndown.js\"><\/script>[\s\S]*```/
-        );
+        expect(md).toMatch(/```(?:html)?\n/);
+        expect(md).toContain('<script src="https://unpkg.com/turndown/dist/turndown.js"></script>');
+        expect(md).toMatch(/```$/);
     });
 
     test('unwraps block-level elements from anchors to prevent newlines in link syntax', async () => {
@@ -264,7 +272,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 
         // Should not have newlines inside link syntax
         expect(md).not.toMatch(/\[\s*\n/);
-        expect(md).not.toMatch(/\n\s*\]\(/);
+        expect(md).not.toMatch(/\n[ \t]*\]\(/);
     });
 
     test('preserves images inside divs with role=button', async () => {

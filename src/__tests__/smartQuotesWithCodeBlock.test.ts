@@ -17,7 +17,7 @@ describe('smart quotes normalization with large code block present', () => {
 
         // Expect the “Copy as HTML / Plain Text” phrase to be normalized to straight quotes.
         // We look for any occurrence of the phrase with straight quotes in the sanitized output.
-        expect(html.includes('"Copy as HTML / Plain Text"')).toBe(true);
+        expect(html).toContain('"Copy as HTML / Plain Text"');
 
         // And ensure curly quotes no longer appear in that phrase.
         expect(/“Copy as HTML \/ Plain Text”/.test(html)).toBe(false);

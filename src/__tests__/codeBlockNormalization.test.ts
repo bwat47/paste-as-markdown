@@ -8,7 +8,9 @@ describe('code block normalization & language inference', () => {
     test('adds missing <code> element inside <pre>', async () => {
         const html = '<pre>line1\nline2</pre>';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
-        expect(md).toMatch(/```[\s\S]*line1[\s\S]*line2[\s\S]*```/);
+        expect(md).toMatch(/^```/);
+        expect(md).toContain('line1\nline2');
+        expect(md.trim()).toMatch(/```$/);
     });
 
     test('flattens multi-span GitHub tokenized code', async () => {
@@ -186,7 +188,9 @@ describe('code block normalization & language inference', () => {
         const html = '<pre><code>&lt;div&gt;Hello&lt;/div&gt;</code></pre>';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
         // Accept with explicit html language (if future explicit class added) or without language.
-        expect(md).toMatch(/```(?:html)?[\s\S]*<div>Hello<\/div>[\s\S]*```/);
+        expect(md.trim()).toMatch(/^```(?:html)?\n/);
+        expect(md).toContain('<div>Hello</div>');
+        expect(md.trim()).toMatch(/```$/);
     });
 
     test('sanitizes live <script> but preserves script tag text inside code (no html heuristic)', async () => {
@@ -197,7 +201,9 @@ describe('code block normalization & language inference', () => {
         const occurrences = (md.match(/alert\(1\)/g) || []).length;
         expect(occurrences).toBeGreaterThanOrEqual(1);
         // Should appear within a fenced code block (language may be absent now)
-        expect(md).toMatch(/```(?:html)?[\s\S]*<script>alert\(1\)<\/script>[\s\S]*```/);
+        expect(md.trim()).toMatch(/^```(?:html)?\n/);
+        expect(md).toContain('<script>alert(1)</script>');
+        expect(md.trim()).toMatch(/```$/);
     });
 
     test('preserves literal <script> tag when produced by highlighter token spans', async () => {

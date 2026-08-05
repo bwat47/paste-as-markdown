@@ -21,10 +21,10 @@ describe('literal HTML tag mentions in prose', () => {
             <p>Images like &lt;img src=\"test\"/&gt; or &lt;img src=\"test\" &gt; should be shown as text.</p>
         `;
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const brMatches = md.match(/`<br\s*(?:\/\s*)?\s*>(?=`)/g) ?? [];
-        expect(brMatches.length).toBeGreaterThanOrEqual(2);
-        const imgMatches = md.match(/`<img\s+src=\"test\"(?:\s*\/\s*)?\s*>`/g) ?? [];
-        expect(imgMatches.length).toBeGreaterThanOrEqual(2);
+        expect(md).toContain('`<br>`');
+        expect(md).toContain('`<br/>`');
+        expect(md).toContain('`<img src="test"/>`');
+        expect(md).toContain('`<img src="test" >`');
     });
 
     test('wraps arbitrary tag-like token in inline code', async () => {

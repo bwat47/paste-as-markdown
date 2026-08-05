@@ -87,7 +87,7 @@ describe('normalizeHeadingLevels', () => {
         normalizeHeadingLevels(body);
 
         const headings = body.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        expect(headings.length).toBe(4);
+        expect(headings).toHaveLength(4);
         expect(headings[0].tagName).toBe('H2');
         expect(headings[1].tagName).toBe('H3');
         expect(headings[2].tagName).toBe('H2');
@@ -122,7 +122,7 @@ describe('normalizeHeadingLevels', () => {
         normalizeHeadingLevels(body);
 
         const headings = body.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        expect(headings.length).toBe(5);
+        expect(headings).toHaveLength(5);
         expect(headings[0].tagName).toBe('H2'); // Example Unit Tests
         expect(headings[1].tagName).toBe('H3'); // You said: (was h4)
         expect(headings[2].tagName).toBe('H4'); // ChatGPT said: (was h5)
