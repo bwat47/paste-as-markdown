@@ -56,7 +56,7 @@ describe('task list conversion (GFM)', () => {
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const lines = markdown.trim().split(/\n/);
         // Expect 4 lines: two top-level and two nested
-        expect(lines.length).toBe(4);
+        expect(lines).toHaveLength(4);
         // Top-level lines exact spacing
         expect(lines[0]).toBe('- [ ] ABC');
         expect(lines[1]).toBe('- [ ] 123');
@@ -89,7 +89,7 @@ describe('task list conversion (GFM)', () => {
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         expect(markdown).toContain('### List Views/Field Chooser');
         const matches = markdown.match(/- \[ \]/g) ?? [];
-        expect(matches.length).toBe(3);
+        expect(matches).toHaveLength(3);
         expect(markdown).toMatch(/- \[ \]\s+Verify performance with various Records Per Page settings/);
         expect(markdown).toMatch(/- \[ \]\s+Both Azure and on-prem/);
         expect(markdown).toMatch(/- \[ \]\s+Verify Field Chooser has access to all fields/);

@@ -31,15 +31,15 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         expect(/<input[^>]*type="text"/i.test(html)).toBe(false);
         expect(/<select/i.test(html)).toBe(false);
         expect(/<textarea/i.test(html)).toBe(false);
-        expect(html.includes('Write: text')).toBe(true);
+        expect(html).toContain('Write: text');
 
         // Role-based UI removed
-        expect(html.includes('Click me')).toBe(false);
-        expect(html.includes('Toolbar')).toBe(false);
+        expect(html).not.toContain('Click me');
+        expect(html).not.toContain('Toolbar');
 
         // Inline button or role=button text remains even though the control is removed
-        expect(html.includes('Reference (File.ts) inline.')).toBe(true);
-        expect(html.includes('Inline role (Beta) label.')).toBe(true);
+        expect(html).toContain('Reference (File.ts) inline.');
+        expect(html).toContain('Inline role (Beta) label.');
 
         // Inside code/pre should remain as text content (neutralized)
         // We expect the code block to contain the text from the button or input (e.g., "UI")

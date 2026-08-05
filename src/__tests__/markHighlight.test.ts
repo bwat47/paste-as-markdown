@@ -2,23 +2,24 @@ import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 
 describe('<mark> highlight conversion', () => {
-    test('simple mark', async () => {
-        const html = '<p>Normal <mark>Highlighted</mark> Text</p>';
+    test.each([
+        {
+            name: 'simple mark',
+            html: '<p>Normal <mark>Highlighted</mark> Text</p>',
+            expected: 'Normal ==Highlighted== Text',
+        },
+        {
+            name: 'nested mark (sequential marks produce adjacent markers)',
+            html: '<p><mark>One <mark>Two</mark></mark></p>',
+            expected: '==One ==Two====',
+        },
+        {
+            name: 'mark inside code should not appear because <code> wins',
+            html: '<p><code><mark>x</mark></code></p>',
+            expected: '`x`',
+        },
+    ])('$name', async ({ html, expected }) => {
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        expect(markdown.trim()).toBe('Normal ==Highlighted== Text');
-    });
-
-    test('nested mark (sequential marks produce adjacent markers)', async () => {
-        const html = '<p><mark>One <mark>Two</mark></mark></p>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        // Current rule applies independently; result contains adjacent markers around inner span.
-        expect(markdown.trim()).toBe('==One ==Two====');
-    });
-
-    test('mark inside code should not appear because <code> wins', async () => {
-        const html = '<p><code><mark>x</mark></code></p>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        // Code block neutralization removes markup so we just get inline code
-        expect(markdown.trim()).toBe('`x`');
+        expect(markdown.trim()).toBe(expected);
     });
 });

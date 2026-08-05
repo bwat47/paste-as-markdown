@@ -42,8 +42,33 @@ describe('text normalization toggle', () => {
 });
 
 describe('character normalization', () => {
-    test('normalizes non-breaking spaces to regular spaces', async () => {
-        const input = '<p>Hello\u00A0world&nbsp;test</p>';
+    test.each([
+        {
+            name: 'normalizes non-breaking spaces to regular spaces',
+            input: '<p>Hello\u00A0world&nbsp;test</p>',
+            expected: 'Hello world test',
+        },
+        {
+            name: 'normalizes thin/narrow spaces to regular spaces',
+            input: '<p>Thin\u2009space\u200Ahair\u202Fnarrow\u2004three\u2005four\u2006six\u2007figure\u2008punct</p>',
+            expected: 'Thin space hair narrow three four six figure punct',
+        },
+        {
+            name: 'removes zero-width characters',
+            input: '<p>Zero\u200Bwidth\u200C\u200Dtest\uFEFF\u2060word</p>',
+            expected: 'Zerowidthtestword',
+        },
+        {
+            name: 'removes directional control characters',
+            input: '<p>Text\u2066with\u202Acontrols\u202C\u200Eand\u200Fmore\u061C</p>',
+            expected: 'Textwithcontrolsandmore',
+        },
+        {
+            name: 'handles mixed character normalization',
+            input: '<p>Mixed\u00A0nbsp\u2009thin\u200Bzero\u2066dir</p>',
+            expected: 'Mixed nbsp thinzerodir',
+        },
+    ])('$name', async ({ input, expected }) => {
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
@@ -51,55 +76,6 @@ describe('character normalization', () => {
             forceTightLists: false,
         });
         expect(body).not.toBeNull();
-        expect(body!.textContent).toBe('Hello world test');
-    });
-
-    test('normalizes thin/narrow spaces to regular spaces', async () => {
-        const input =
-            '<p>Thin\u2009space\u200Ahair\u202Fnarrow\u2004three\u2005four\u2006six\u2007figure\u2008punct</p>';
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            normalizeQuotes: false,
-            forceTightLists: false,
-        });
-        expect(body).not.toBeNull();
-        expect(body!.textContent).toBe('Thin space hair narrow three four six figure punct');
-    });
-
-    test('removes zero-width characters', async () => {
-        const input = '<p>Zero\u200Bwidth\u200C\u200Dtest\uFEFF\u2060word</p>';
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            normalizeQuotes: false,
-            forceTightLists: false,
-        });
-        expect(body).not.toBeNull();
-        expect(body!.textContent).toBe('Zerowidthtestword');
-    });
-
-    test('removes directional control characters', async () => {
-        const input = '<p>Text\u2066with\u202Acontrols\u202C\u200Eand\u200Fmore\u061C</p>';
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            normalizeQuotes: false,
-            forceTightLists: false,
-        });
-        expect(body).not.toBeNull();
-        expect(body!.textContent).toBe('Textwithcontrolsandmore');
-    });
-
-    test('handles mixed character normalization', async () => {
-        const input = '<p>Mixed\u00A0nbsp\u2009thin\u200Bzero\u2066dir</p>';
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            normalizeQuotes: false,
-            forceTightLists: false,
-        });
-        expect(body).not.toBeNull();
-        expect(body!.textContent).toBe('Mixed nbsp thinzerodir');
+        expect(body!.textContent).toBe(expected);
     });
 });
