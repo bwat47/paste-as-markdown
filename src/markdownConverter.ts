@@ -6,6 +6,19 @@ import type { PasteOptions, HtmlToMarkdownResult } from './types';
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
 
+/**
+ * Collapses a run of trailing newlines down to a single one, leaving content without a
+ * trailing newline untouched. Scans backwards instead of using an end-anchored regex
+ * (e.g. `/\n+$/`), which backtracks super-linearly on long newline runs.
+ */
+function collapseTrailingNewlines(text: string): string {
+    let end = text.length;
+    while (end > 0 && text[end - 1] === '\n') {
+        end--;
+    }
+    return end === text.length ? text : `${text.slice(0, end)}\n`;
+}
+
 function createTurndownService(includeImages: boolean): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
     service.use(gfm);
@@ -86,10 +99,8 @@ function createTurndownService(includeImages: boolean): TurndownService {
             const minimumIndentWidth = 4; // Joplin expects nested list items indented by >=4 spaces
             const indentWidth = Math.max(prefix.length, minimumIndentWidth);
             const indent = ' '.repeat(indentWidth);
-            content = content
-                .replace(/^\n+/, '') // remove leading newlines
-                .replace(/\n+$/, '\n') // replace trailing newlines with just a single one
-                .replace(/\n/gm, `\n${indent}`); // indent child lines while preserving 4-space nested list requirement
+            content = collapseTrailingNewlines(content.replace(/^\n+/, '')) // trim leading newlines, collapse trailing ones
+                .replace(/\n/g, `\n${indent}`); // indent child lines while preserving 4-space nested list requirement
 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
             const taskMatch = content.match(/^(\[[ xX]\])([\s\S]*)$/);
@@ -235,7 +246,7 @@ function cleanupBrTags(markdown: string): string {
     // Protect fenced code blocks and inline code spans
     return withCodeProtection(markdown, (content) => {
         // Process BR tags in regular content
-        return content.replace(/(?:<br\s*\/?>(?:\s*)?)+/gi, (match) => {
+        return content.replace(/(?:<br\s*\/?>\s*)+/gi, (match) => {
             const brCount = (match.match(/<br/gi) || []).length;
             return brCount === 1 ? '  \n' : '\n\n';
         });
