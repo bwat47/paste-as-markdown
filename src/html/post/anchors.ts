@@ -72,31 +72,37 @@ function analyzeAnchor(node: HTMLElement): {
     return { isPermalink, wrapsHeading };
 }
 
+/**
+ * Check whether an <svg> exposes an accessible name (aria-label / aria-labelledby,
+ * or a non-empty <title>/<desc>), which makes it meaningful content rather than decoration.
+ */
+function hasAccessibleSvgLabel(svg: Element): boolean {
+    const ariaLabel = svg.getAttribute('aria-label') || svg.getAttribute('aria-labelledby');
+    if (ariaLabel && ariaLabel.trim().length > 0) return true;
+
+    const accessibleNode = svg.querySelector('title, desc');
+    return !!accessibleNode && (accessibleNode.textContent || '').trim().length > 0;
+}
+
+/**
+ * Check whether a single child node counts as meaningful anchor content.
+ * Decorative SVG internals are ignored; everything else is inspected recursively.
+ */
+function isMeaningfulNode(node: ChildNode, options: PasteOptions): boolean {
+    if (isTextNode(node)) return (node.textContent || '').trim().length > 0;
+    if (!isElement(node)) return false;
+
+    const tag = node.tagName.toLowerCase();
+
+    if (MEDIA_TAGS.has(tag) && options.includeImages) return true;
+    if (tag === 'svg' && hasAccessibleSvgLabel(node)) return true;
+    if (DECORATIVE_SVG_TAGS.has(tag)) return false;
+
+    return hasMeaningfulDescendant(node, options);
+}
+
 function hasMeaningfulDescendant(element: Element, options: PasteOptions): boolean {
-    const childNodes = Array.from(element.childNodes);
-    for (const node of childNodes) {
-        if (isTextNode(node)) {
-            if ((node.textContent || '').trim().length > 0) return true;
-            continue;
-        }
-        if (!isElement(node)) continue;
-
-        const child = node;
-        const tag = child.tagName.toLowerCase();
-
-        if (MEDIA_TAGS.has(tag) && options.includeImages) return true;
-        if (tag === 'svg') {
-            const ariaLabel = child.getAttribute('aria-label') || child.getAttribute('aria-labelledby');
-            if (ariaLabel && ariaLabel.trim().length > 0) return true;
-
-            const accessibleNode = child.querySelector('title, desc');
-            if (accessibleNode && (accessibleNode.textContent || '').trim().length > 0) return true;
-        }
-        if (DECORATIVE_SVG_TAGS.has(tag)) continue;
-
-        if (hasMeaningfulDescendant(child, options)) return true;
-    }
-    return false;
+    return Array.from(element.childNodes).some((node) => isMeaningfulNode(node, options));
 }
 
 /**
