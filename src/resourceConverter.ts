@@ -257,6 +257,19 @@ function truncateForLog(input: string, keep: number = 80): string {
 }
 
 /**
+ * Monotonic counter used (with a timestamp) to build unique temp filenames.
+ * A counter is preferred over Math.random(): uniqueness within the process is
+ * guaranteed rather than probabilistic, and there is no pseudorandomness to
+ * mistake for a security property (the temp file lives in the plugin's own
+ * dataDir and is deleted immediately after the resource is created).
+ */
+let tempFileCounter = 0;
+function nextTempFileId(): string {
+    tempFileCounter = (tempFileCounter + 1) % Number.MAX_SAFE_INTEGER;
+    return tempFileCounter.toString(36);
+}
+
+/**
  * Persist image bytes to a temporary file and create a Joplin resource from it.
  * Notes:
  *  - Joplin's data API expects a file path instead of raw bytes in this context.
@@ -267,7 +280,7 @@ async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promi
     const dataDir: string = await joplin.plugins.dataDir();
     const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
     const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
-    const tmpName = `pam-${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
+    const tmpName = `pam-${Date.now()}-${nextTempFileId()}.${safeExt}`;
     const tmpPath = path.join(dataDir, tmpName);
 
     // Validate the resolved path is still within dataDir to prevent path traversal
