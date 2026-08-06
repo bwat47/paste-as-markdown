@@ -1,6 +1,26 @@
 import { walkTextNodes } from '../shared/dom';
 
 /**
+ * Matches HTML-like tokens:
+ * - Opening tags: <tag>, <tag attr="value">
+ * - Closing tags: </tag>
+ * - Self-closing: <tag/>, <tag />
+ *
+ * Pattern breakdown:
+ *   <\/? - optional closing slash
+ *   [A-Za-z][A-Za-z0-9-]* - tag name (letters, then alphanumeric/dash)
+ *   (?:\s[^<>]*|\/)? - either attributes (introduced by whitespace) or a bare
+ *                      self-closing slash. The alternatives start with disjoint
+ *                      characters and [^<>] cannot consume the terminating '>',
+ *                      so the pattern never backtracks.
+ *   > - closing bracket
+ */
+const TAG_TOKEN_SOURCE = String.raw`<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*|\/)?>`;
+
+/** Non-global copy used for cheap `test()` checks (a global regex would carry `lastIndex`). */
+const tagTokenTestRe = new RegExp(TAG_TOKEN_SOURCE);
+
+/**
  * Protect literal HTML tag mentions in prose by wrapping them in <code>...</code> so that
  * Turndown will emit inline code (for example, `<table>`) instead of raw HTML that Joplin
  * might interpret as actual tags.
@@ -18,21 +38,11 @@ export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
         const text = textNode.textContent || '';
         if (!text || text.indexOf('<') === -1 || text.indexOf('>') === -1) return;
         // Quick check for patterns like <tag>, </tag>, <tag/>, and <tag attr="v"> in text
-        if (!/<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/.test(text)) return;
+        if (!tagTokenTestRe.test(text)) return;
         textNodes.push(textNode);
     });
 
-    // Matches HTML-like tokens:
-    // - Opening tags: <tag>, <tag attr="value">
-    // - Closing tags: </tag>
-    // - Self-closing: <tag/>, <tag />
-    // Pattern breakdown:
-    //   <\/? - optional closing slash
-    //   [A-Za-z][A-Za-z0-9-]* - tag name (letters, then alphanumeric/dash)
-    //   (?:\s+[^<>]*?)? - optional attributes (non-greedy)
-    //   \s*\/? - optional self-closing slash
-    //   > - closing bracket
-    const tagTokenRe = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s+[^<>]*?)?\s*\/?\>/g;
+    const tagTokenRe = new RegExp(TAG_TOKEN_SOURCE, 'g');
 
     textNodes.forEach((textNode) => {
         const content = textNode.textContent || '';
