@@ -82,6 +82,22 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```dockerfile[\s\S]*FROM alpine/);
     });
 
+    // Language names ending in punctuation (`c++`, `c#`) must not be truncated at the first word
+    // boundary, and a trailing separator must not be captured as part of the name.
+    test.each([
+        ['language-c++', 'cpp', 'int main() {}', 'int main'],
+        ['language-c++ highlight', 'cpp', 'int main() {}', 'int main'],
+        ['lang-c++', 'cpp', 'int main() {}', 'int main'],
+        ['language-c#', 'csharp', 'class P {}', 'class P'],
+        ['language-js-', 'javascript', 'const x = 1;', 'const x = 1;'],
+    ])('punctuated class %s produces a %s fence', async (className, fence, source, expectedBody) => {
+        const html = `<pre class="${className}"><code>${source}</code></pre>`;
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const md = markdown.trim();
+        expect(md).toContain(`\`\`\`${fence}\n`);
+        expect(md).toContain(expectedBody);
+    });
+
     test('pattern: prettyprint lang-rb -> ruby', async () => {
         const html = '<pre class="prettyprint lang-rb"><code>puts :x</code></pre>';
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });

@@ -23,12 +23,14 @@ const LABEL_COLON_CHARS = new Set([':', '：']);
 
 /**
  * Class patterns that expose a language name in capture group 1, ordered by specificity.
- * The `language-c++` pattern must precede the generic `language-*` one so it isn't truncated to `c`.
+ *
+ * The `language-`/`lang-` names end on `[A-Za-z0-9+#]` rather than `\b` so punctuated languages survive:
+ * `\b` cannot match after `+` or `#`, so `language-c++` would otherwise backtrack and truncate to `c`.
+ * Requiring a token character last also keeps a trailing separator out of the capture (`language-js-` -> `js`).
  */
 const LANGUAGE_CLASS_PATTERNS: readonly RegExp[] = [
-    /\blanguage-(c\+\+)\b/g,
-    /\blanguage-([A-Za-z0-9+#_.-]+)\b/g,
-    /\blang-([A-Za-z0-9+#_.-]+)\b/g,
+    /\blanguage-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
+    /\blang-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
     /\bhighlight-source-([a-z0-9]+)\b/gi,
     /\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/gi,
     /\bbrush:\s*([a-z0-9]+)\b/gi,
