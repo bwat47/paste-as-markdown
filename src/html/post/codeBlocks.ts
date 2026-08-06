@@ -12,6 +12,39 @@
 import { onlyContains, unwrapElement, isHtmlElement, isTextNode, isElement } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
+/** Attribute used to carry a collapsed wrapper's classes onto the <pre> for later language inference. */
+const WRAPPER_CLASSES_ATTR = 'data-pam-wrapper-classes';
+
+/** How many ancestors to walk when looking for language labels / wrapper class hints. */
+const MAX_ANCESTOR_DEPTH = 3;
+
+/** Colon variants (ASCII and fullwidth) that may trail a language label, e.g. `js:` / `js：`. */
+const LABEL_COLON_CHARS = new Set([':', '：']);
+
+/**
+ * Class patterns that expose a language name in capture group 1, ordered by specificity.
+ *
+ * The `language-`/`lang-` names end on `[A-Za-z0-9+#]` rather than `\b` so punctuated languages survive:
+ * `\b` cannot match after `+` or `#`, so `language-c++` would otherwise backtrack and truncate to `c`.
+ * Requiring a token character last also keeps a trailing separator out of the capture (`language-js-` -> `js`).
+ */
+const LANGUAGE_CLASS_PATTERNS: readonly RegExp[] = [
+    /\blanguage-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
+    /\blang-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
+    /\bhighlight-source-([a-z0-9]+)\b/gi,
+    /\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/gi,
+    /\bbrush:\s*([a-z0-9]+)\b/gi,
+    /\bprettyprint\s+lang-([a-z0-9]+)\b/gi,
+    /\bhljs-([a-z0-9]+)\b/gi,
+    /\bcode-([a-z0-9]+)\b/gi,
+];
+
+/** Outcome of scanning an element's previous siblings for a language label. */
+type LabelScanResult =
+    | { status: 'found'; language: string }
+    | { status: 'blocked' } // a sibling carries real content, so no label can precede this block
+    | { status: 'continue' };
+
 // Mark inline <code> elements whose content is only NBSP characters so Turndown doesn't treat them as blank and drop them.
 // We replace their text with a sentinel that we later convert back to `&nbsp;` inside markdown cleanup.
 export function markNbspOnlyInlineCode(body: HTMLElement): void {
@@ -111,8 +144,8 @@ function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
         if (!pre) return;
         const wrapperClasses = wrapperEl.getAttribute('class');
         if (wrapperClasses) {
-            const existing = pre.getAttribute('data-pam-wrapper-classes');
-            pre.setAttribute('data-pam-wrapper-classes', existing ? `${existing} ${wrapperClasses}` : wrapperClasses);
+            const existing = pre.getAttribute(WRAPPER_CLASSES_ATTR);
+            pre.setAttribute(WRAPPER_CLASSES_ATTR, existing ? `${existing} ${wrapperClasses}` : wrapperClasses);
         }
         if (pre !== wrapperEl) {
             if (wrapperEl.parentElement && onlyContains(wrapperEl, pre)) {
@@ -274,27 +307,10 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
 
 function consumeLanguageLabel(pre: HTMLElement): string | null {
     let current: HTMLElement | null = pre;
-    for (let depth = 0; depth < 3 && current; depth++) {
-        let sibling: Element | null = current.previousElementSibling;
-        while (sibling) {
-            if (!isHtmlElement(sibling)) {
-                sibling = sibling.previousElementSibling;
-                continue;
-            }
-            const language = extractLanguageFromLabelElement(sibling);
-            if (language) {
-                const parent = sibling.parentElement as HTMLElement | null;
-                sibling.remove();
-                if (parent) {
-                    removeEmptyAncestors(parent);
-                }
-                return language;
-            }
-            if (hasMeaningfulText(sibling)) {
-                return null;
-            }
-            sibling = sibling.previousElementSibling;
-        }
+    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && current; depth++) {
+        const scan = scanPreviousSiblingsForLabel(current);
+        if (scan.status === 'found') return scan.language;
+        if (scan.status === 'blocked') return null;
         const parent = current.parentElement as HTMLElement | null;
         if (!parent || !onlyContains(parent, current)) {
             break;
@@ -302,6 +318,33 @@ function consumeLanguageLabel(pre: HTMLElement): string | null {
         current = parent;
     }
     return null;
+}
+
+/** Walks backwards over `element`'s siblings looking for a bare language label, consuming it when found. */
+function scanPreviousSiblingsForLabel(element: HTMLElement): LabelScanResult {
+    let sibling: Element | null = element.previousElementSibling;
+    while (sibling) {
+        if (isHtmlElement(sibling)) {
+            const language = extractLanguageFromLabelElement(sibling);
+            if (language) {
+                consumeLabelElement(sibling);
+                return { status: 'found', language };
+            }
+            if (hasMeaningfulText(sibling)) {
+                return { status: 'blocked' };
+            }
+        }
+        sibling = sibling.previousElementSibling;
+    }
+    return { status: 'continue' };
+}
+
+function consumeLabelElement(label: HTMLElement): void {
+    const parent = label.parentElement as HTMLElement | null;
+    label.remove();
+    if (parent) {
+        removeEmptyAncestors(parent);
+    }
 }
 
 function extractLanguageFromLabelElement(element: HTMLElement): string | null {
@@ -317,7 +360,7 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
     if (!trimmed) {
         return null;
     }
-    const withoutTrailingColon = trimmed.replace(/[:：]+$/, '').trim();
+    const withoutTrailingColon = stripTrailingColons(trimmed).trim();
     if (!withoutTrailingColon || /\s/.test(withoutTrailingColon)) {
         return null;
     }
@@ -331,6 +374,18 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
     return normalized;
 }
 
+/**
+ * Drops trailing colon characters, e.g. `js::` -> `js`.
+ * Done with an index scan rather than a `/[:：]+$/` replace, which backtracks quadratically on long inputs.
+ */
+function stripTrailingColons(text: string): string {
+    let end = text.length;
+    while (end > 0 && LABEL_COLON_CHARS.has(text[end - 1])) {
+        end -= 1;
+    }
+    return text.slice(0, end);
+}
+
 function hasMeaningfulText(element: HTMLElement): boolean {
     const content = element.textContent ?? '';
     const text = normalizeNbsp(content).trim();
@@ -339,7 +394,7 @@ function hasMeaningfulText(element: HTMLElement): boolean {
 
 function removeEmptyAncestors(start: HTMLElement): void {
     let current: HTMLElement | null = start;
-    for (let depth = 0; depth < 3 && current; depth++) {
+    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && current; depth++) {
         if (current.tagName === 'BODY' || current.tagName === 'HTML') {
             break;
         }
@@ -355,16 +410,26 @@ function removeEmptyAncestors(start: HTMLElement): void {
 }
 
 function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string | null {
-    const classSources: string[] = [];
-    const collect = (el: Element | null, removeWrapperHint = false) => {
+    const classBlob = collectClassSources(pre, code).join(' ');
+    for (const pattern of LANGUAGE_CLASS_PATTERNS) {
+        const language = matchLanguageInClasses(classBlob, pattern);
+        if (language) return language;
+    }
+    return null; // Don't guess language from content, joplin already does this when language not specified
+}
+
+/** Collects class strings from the block itself plus a few ancestors, consuming the wrapper hints it reads. */
+function collectClassSources(pre: HTMLElement, code: HTMLElement): string[] {
+    const sources: string[] = [];
+    const collect = (el: Element | null, consumeWrapperHint = false) => {
         if (!el) return;
         const cls = el.getAttribute('class');
-        if (cls) classSources.push(cls);
-        const wrapperHint = (el as HTMLElement).getAttribute('data-pam-wrapper-classes');
+        if (cls) sources.push(cls);
+        const wrapperHint = el.getAttribute(WRAPPER_CLASSES_ATTR);
         if (wrapperHint) {
-            classSources.push(wrapperHint);
-            if (removeWrapperHint) {
-                (el as HTMLElement).removeAttribute('data-pam-wrapper-classes');
+            sources.push(wrapperHint);
+            if (consumeWrapperHint) {
+                el.removeAttribute(WRAPPER_CLASSES_ATTR);
             }
         }
     };
@@ -372,39 +437,22 @@ function inferLanguageFromClasses(pre: HTMLElement, code: HTMLElement): string |
     collect(code, true);
     // also walk up a few ancestors for wrapper language hints
     let parent: Element | null = pre.parentElement;
-    for (let i = 0; i < 3 && parent; i++) {
+    for (let i = 0; i < MAX_ANCESTOR_DEPTH && parent; i++) {
         collect(parent);
         parent = parent.parentElement;
     }
-    const classBlob = classSources.join(' ');
-    const patterns: Array<[RegExp, (m: RegExpMatchArray) => string | null]> = [
-        // Handle language-c++ explicitly before generic language-* to avoid truncation to 'c'
-        [/\blanguage-(c\+\+)\b/, (m) => m[1]],
-        [/\blanguage-([A-Za-z0-9+#_.+-]+)\b/, (m) => m[1]],
-        [/\blang-([A-Za-z0-9+#_.-]+)\b/, (m) => m[1]],
-        [/\bhighlight-source-([a-z0-9]+)\b/i, (m) => m[1]],
-        [/\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/i, (m) => m[1]],
-        [/\bbrush:\s*([a-z0-9]+)\b/i, (m) => m[1]],
-        [/\bprettyprint\s+lang-([a-z0-9]+)\b/i, (m) => m[1]],
-        [/\bhljs-([a-z0-9]+)\b/i, (m) => m[1]],
-        [/\bcode-([a-z0-9]+)\b/i, (m) => m[1]],
-    ];
-    for (const [re, fn] of patterns) {
-        const flags = re.flags.includes('g') ? re.flags : `${re.flags}g`;
-        const globalRe = new RegExp(re.source, flags);
-        for (const match of classBlob.matchAll(globalRe)) {
-            let raw = fn(match);
-            if (!raw) continue;
-            // Normalize common punctuation variations before alias mapping (e.g., c++ -> cpp)
-            if (raw === 'c++') raw = 'c++';
-            const normalized = normalizeLangAlias(raw);
-            if (!normalized) continue;
-            if (isHighlightLanguage(normalized)) {
-                return normalized;
-            }
+    return sources;
+}
+
+/** Returns the first match of `pattern` that maps to a known highlight language, e.g. `language-js` -> `javascript`. */
+function matchLanguageInClasses(classBlob: string, pattern: RegExp): string | null {
+    for (const match of classBlob.matchAll(pattern)) {
+        const normalized = normalizeLangAlias(match[1]);
+        if (normalized && isHighlightLanguage(normalized)) {
+            return normalized;
         }
     }
-    return null; // Don't guess language from content, joplin already does this when language not specified
+    return null;
 }
 
 function normalizeLangAlias(raw: string): string | null {
