@@ -50,6 +50,11 @@ ARCHITECTURE.md
 - Framework: Vitest with JSDOM for DOM environment.
 - Place tests in `src/__tests__/<feature>.test.ts` with descriptive names.
 
+## Git
+
+- Use conventional commit format for commit messages. Only use "fix" for bugfixes.
+- Never run git commit proactively; always wait for explicit user consent.
+
 ## Codex working instructions
 
 - GitHub credentials are stored in the OS keyring.
