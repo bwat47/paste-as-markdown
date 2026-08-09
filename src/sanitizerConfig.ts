@@ -60,35 +60,8 @@ const SANITIZER_ALLOWED_ATTRS_BASE = [
 const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
 const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];
 
-// URL schemes accepted in href/src attributes; anything else (e.g. javascript:) is stripped.
-const SANITIZER_ALLOWED_URI_SCHEMES = [
-    'http',
-    'https',
-    'ftp',
-    'ftps',
-    'mailto',
-    'tel',
-    'callto',
-    'sms',
-    'cid',
-    'xmpp',
-    'data',
-];
-
-/**
- * Mirrors DOMPurify's default URI check (plus `data:`), but builds the scheme list from
- * SANITIZER_ALLOWED_URI_SCHEMES so schemes can be added without editing the pattern.
- *
- * Matches, case-insensitively:
- *   - `<allowed scheme>:` at the start (e.g. `https://example.com`, `mailto:a@b.c`)
- *   - a value starting with a non-letter, i.e. relative URLs (`/foo`, `#anchor`, `?q=1`)
- *   - a leading run of scheme-ish characters that is not followed by `:` (e.g. `foo/bar`, `page`)
- * Anything else — notably `javascript:`, `vbscript:` — fails to match and is dropped.
- */
-const SANITIZER_ALLOWED_URI_REGEXP = new RegExp(
-    `^(?:(?:${SANITIZER_ALLOWED_URI_SCHEMES.join('|')}):|[^a-z]|[a-z+.\\-]+(?:[^a-z+.\\-:]|$))`,
-    'i'
-);
+// URI validation is delegated to DOMPurify defaults. DOMPurify permits data: URIs only
+// for its media-tag allowlist (DATA_URI_TAGS), including img and source.
 
 export interface SanitizerConfigOptions {
     includeImages: boolean;
@@ -144,7 +117,5 @@ export function buildSanitizerConfig(opts: SanitizerConfigOptions) {
         KEEP_CONTENT: true,
         // Prevent retaining data-* attributes which can store payloads
         ALLOW_DATA_ATTR: false,
-        // Restrict allowed URL schemes; explicitly block javascript: and similar
-        ALLOWED_URI_REGEXP: SANITIZER_ALLOWED_URI_REGEXP,
     };
 }

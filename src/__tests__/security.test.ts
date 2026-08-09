@@ -88,7 +88,7 @@ describe('security: script injection prevention', () => {
             <iframe src="javascript:alert('xss')"></iframe>
             <object data="malicious.swf"></object>
             <a href="javascript:alert('xss')">bad link</a>
-            <a href="data:text/html,<script>alert('xss')</script>">data link</a>
+            <a href="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">data link</a>
             <svg><g onload="alert('xss')"></g></svg>
             <math><mi xlink:href="javascript:alert('xss')">x</mi></math>
         `;
