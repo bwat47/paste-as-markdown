@@ -81,6 +81,8 @@ export function buildSanitizerConfig(opts: SanitizerConfigOptions) {
         // is therefore the only way to admit a tag or attribute — audit them, not a denylist.
         // Keep text content of removed nodes (e.g., script/style are dropped but text remains out)
         KEEP_CONTENT: true,
+        // Only retain ARIA attributes explicitly included in ALLOWED_ATTR
+        ALLOW_ARIA_ATTR: false,
         // Prevent retaining data-* attributes which can store payloads
         ALLOW_DATA_ATTR: false,
     };
