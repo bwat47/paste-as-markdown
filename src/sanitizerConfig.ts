@@ -58,7 +58,8 @@ const SANITIZER_ALLOWED_ATTRS_BASE = [
 ];
 
 const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
-const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];
+// Title is already included in SANITIZER_ALLOWED_ATTRS_BASE
+const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height'];
 
 // URI validation is delegated to DOMPurify defaults. DOMPurify permits data: URIs only
 // for its media-tag allowlist (DATA_URI_TAGS), including img and source.
