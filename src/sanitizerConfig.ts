@@ -75,46 +75,14 @@ export function buildSanitizerConfig(opts: SanitizerConfigOptions) {
         ALLOWED_ATTR: opts.includeImages
             ? [...SANITIZER_ALLOWED_ATTRS_BASE, ...SANITIZER_IMAGE_ATTRS]
             : [...SANITIZER_ALLOWED_ATTRS_BASE],
-        // Explicitly forbid dangerous tags beyond DOMPurify defaults
-        FORBID_TAGS: [
-            'script',
-            'style',
-            'iframe',
-            'frame',
-            'frameset',
-            'noframes',
-            'object',
-            'embed',
-            'applet',
-            'base',
-            'meta',
-            'link',
-        ],
-        // Forbid inline event handler attributes and inline styles
-        FORBID_ATTR: [
-            'style',
-            'onload',
-            'onerror',
-            'onclick',
-            'onmouseover',
-            'onmouseout',
-            'onmousedown',
-            'onmouseup',
-            'onkeydown',
-            'onkeyup',
-            'onkeypress',
-            'onblur',
-            'onfocus',
-            'onchange',
-            'onsubmit',
-            'onreset',
-            'onabort',
-            'onunload',
-            'onresize',
-            'onscroll',
-        ],
+        // No FORBID_TAGS/FORBID_ATTR: passing ALLOWED_TAGS/ALLOWED_ATTR replaces DOMPurify's
+        // defaults rather than extending them, so anything absent from the lists above (script,
+        // iframe, object, style, on* handlers, ...) is already dropped. Widening the allowlists
+        // is therefore the only way to admit a tag or attribute — audit them, not a denylist.
         // Keep text content of removed nodes (e.g., script/style are dropped but text remains out)
         KEEP_CONTENT: true,
+        // Only retain ARIA attributes explicitly included in ALLOWED_ATTR
+        ALLOW_ARIA_ATTR: false,
         // Prevent retaining data-* attributes which can store payloads
         ALLOW_DATA_ATTR: false,
     };
