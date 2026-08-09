@@ -25,8 +25,6 @@ describe('buildSanitizerConfig URI handling', () => {
     });
 
     test('preserves Joplin resource paths', () => {
-        expect(sanitize('<img src=":/resource-id" alt="resource">')).toBe(
-            '<img src=":/resource-id" alt="resource">'
-        );
+        expect(sanitize('<img src=":/resource-id" alt="resource">')).toBe('<img src=":/resource-id" alt="resource">');
     });
 });
