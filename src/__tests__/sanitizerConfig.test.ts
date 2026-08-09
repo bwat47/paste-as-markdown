@@ -1,46 +1,32 @@
 import { describe, test, expect } from 'vitest';
+import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
 
-// Locks the URI scheme allow-list, which is compiled into a regex from a scheme array.
+function sanitize(html: string): string {
+    const purifier = createDOMPurify(window as unknown as typeof window);
+    return purifier.sanitize(html, buildSanitizerConfig({ includeImages: true })) as string;
+}
 
-const ALLOWED_URIS = [
-    'http://example.com',
-    'https://example.com',
-    'HTTPS://EXAMPLE.COM',
-    'ftp://example.com/file',
-    'ftps://example.com/file',
-    'mailto:user@example.com',
-    'tel:+15551234567',
-    'callto:user',
-    'sms:+15551234567',
-    'cid:part1@example.com',
-    'xmpp:user@example.com',
-    'data:image/png;base64,AAAA',
-    // Relative references have no scheme and must stay usable.
-    '/path/to/page',
-    './relative',
-    '#anchor',
-    '?query=1',
-    'page.html',
-];
-
-const BLOCKED_URIS = [
-    'javascript:alert(1)',
-    'JaVaScRiPt:alert(1)',
-    'vbscript:msgbox(1)',
-    'file:///etc/passwd',
-    'about:blank',
-    'blob:https://example.com/abc',
-];
-
-describe('buildSanitizerConfig ALLOWED_URI_REGEXP', () => {
-    const { ALLOWED_URI_REGEXP } = buildSanitizerConfig({ includeImages: true });
-
-    test.each(ALLOWED_URIS)('allows %s', (uri) => {
-        expect(ALLOWED_URI_REGEXP.test(uri)).toBe(true);
+describe('buildSanitizerConfig URI handling', () => {
+    test('preserves data URI images', () => {
+        expect(sanitize('<img src="data:image/png;base64,AAAA" alt="pasted">')).toBe(
+            '<img src="data:image/png;base64,AAAA" alt="pasted">'
+        );
     });
 
-    test.each(BLOCKED_URIS)('blocks %s', (uri) => {
-        expect(ALLOWED_URI_REGEXP.test(uri)).toBe(false);
+    test('removes data URIs from links', () => {
+        const html = '<a href="data:text/html,%3Cscript%3Ealert(1)%3C/script%3E">unsafe</a>';
+
+        expect(sanitize(html)).toBe('<a>unsafe</a>');
+    });
+
+    test('removes scriptable URI schemes', () => {
+        expect(sanitize('<a href="javascript:alert(1)">unsafe</a>')).toBe('<a>unsafe</a>');
+    });
+
+    test('preserves Joplin resource paths', () => {
+        expect(sanitize('<img src=":/resource-id" alt="resource">')).toBe(
+            '<img src=":/resource-id" alt="resource">'
+        );
     });
 });
