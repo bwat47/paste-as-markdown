@@ -41,6 +41,8 @@ const SANITIZER_ALLOWED_TAGS_BASE = [
 ];
 
 // Add form-related attributes needed for checkbox detection (type, checked, disabled) for task lists.
+// DOMPurify's ALLOWED_ATTR is global: it has no per-tag scoping, so every entry here is
+// permitted on any allowed tag.
 const SANITIZER_ALLOWED_ATTRS_BASE = [
     'href',
     'name',
@@ -58,7 +60,13 @@ const SANITIZER_ALLOWED_ATTRS_BASE = [
 ];
 
 const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];
-const SANITIZER_IMAGE_ATTRS = ['src', 'alt', 'width', 'height', 'title'];
+
+// Allowed only when the includeImages setting is on. Named for the toggle, not for a category:
+// these are NOT scoped to the image tags above, so enabling images permits src/alt/width/height
+// on every allowed tag (e.g. <input type="image" src>). Keeping them behind the toggle is what
+// makes "images off" mean no element carries a remote reference. 'title' is a global attribute
+// and lives in SANITIZER_ALLOWED_ATTRS_BASE, which already covers images.
+const SANITIZER_IMAGE_MODE_ATTRS = ['src', 'alt', 'width', 'height'];
 
 // URI validation is delegated to DOMPurify defaults. DOMPurify permits data: URIs only
 // for its media-tag allowlist (DATA_URI_TAGS), including img and source.
@@ -73,7 +81,7 @@ export function buildSanitizerConfig(opts: SanitizerConfigOptions) {
             ? [...SANITIZER_ALLOWED_TAGS_BASE, ...SANITIZER_IMAGE_TAGS]
             : [...SANITIZER_ALLOWED_TAGS_BASE],
         ALLOWED_ATTR: opts.includeImages
-            ? [...SANITIZER_ALLOWED_ATTRS_BASE, ...SANITIZER_IMAGE_ATTRS]
+            ? [...SANITIZER_ALLOWED_ATTRS_BASE, ...SANITIZER_IMAGE_MODE_ATTRS]
             : [...SANITIZER_ALLOWED_ATTRS_BASE],
         // No FORBID_TAGS/FORBID_ATTR: passing ALLOWED_TAGS/ALLOWED_ATTR replaces DOMPurify's
         // defaults rather than extending them, so anything absent from the lists above (script,
