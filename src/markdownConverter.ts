@@ -234,11 +234,12 @@ function tightenListSpacing(markdown: string): string {
 }
 
 /**
- * Simplified BR tag processing without table handling
- * The GFM plugin handles table cell content conversion and flattens multi-line content to single lines
+ * Simplified BR tag processing
  * Rules (applied only to non-code regions):
  *  - Single <br> -> hard line break (two spaces + newline)
  *  - Run of 2+ consecutive <br> (optionally separated by whitespace) -> paragraph break (blank line) '\n\n'
+ *  - <br> on table rows is preserved: the GFM plugin emits <br> for line breaks inside
+ *    cells, and a literal newline would split the row
  */
 function cleanupBrTags(markdown: string): string {
     if (!/<br\s*\/?/i.test(markdown)) return markdown;
@@ -246,7 +247,9 @@ function cleanupBrTags(markdown: string): string {
     // Protect fenced code blocks and inline code spans
     return withCodeProtection(markdown, (content) => {
         // Process BR tags in regular content
-        return content.replace(/(?:<br\s*\/?>\s*)+/gi, (match) => {
+        return content.replace(/(?:<br\s*\/?>\s*)+/gi, (match, offset: number) => {
+            const lineStart = content.lastIndexOf('\n', offset - 1) + 1;
+            if (content[lineStart] === '|') return match; // table row
             const brCount = (match.match(/<br/gi) || []).length;
             return brCount === 1 ? '  \n' : '\n\n';
         });
