@@ -166,8 +166,6 @@ describe('integration: convertHtmlToMarkdown', () => {
     });
 
     test('preserves <br> in table cells even after inline code spans', async () => {
-        // Inline-code protection splits content on backtick spans; table-row detection
-        // must still see the full line, or <br> after a code span becomes a hard break
         const html = `<table><tbody>
 <tr><th scope="row">Prerequisites:</th><td>Basic HTML familiarity.</td></tr>
 <tr><th scope="row">Learning outcomes:</th><td><ul><li>What tables are for.</li><li>Basic table syntax — <code>&lt;table&gt;</code>, <code>&lt;tr&gt;</code>, and <code>&lt;td&gt;</code>.</li><li>Defining table headers with <code>&lt;th&gt;</code>.</li></ul></td></tr>
@@ -176,6 +174,28 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toContain('`<td>`.<br>- Defining table headers');
         for (const line of md.split('\n').filter((l) => l.includes('|'))) {
             expect(line).toMatch(/^\|.*\|$/);
+        }
+    });
+
+    test('preserves <br> in table cells when the table is nested inside a blockquote', async () => {
+        // Rows are prefixed with '> ', so they are not recognizable by a leading pipe alone
+        const html =
+            '<blockquote><table><thead><tr><th>Col1</th></tr></thead><tbody><tr><td>A<br>B</td></tr></tbody></table></blockquote>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(md).toContain('A<br>B');
+        for (const line of md.split('\n').filter((l) => l.includes('|'))) {
+            expect(line).toMatch(/^> \|.*\|$/);
+        }
+    });
+
+    test('preserves <br> in table cells when the table is nested inside a list item', async () => {
+        // Rows are indented by the list marker, so they are not recognizable by a leading pipe alone
+        const html =
+            '<ul><li><table><thead><tr><th>Col1</th></tr></thead><tbody><tr><td>A<br>B</td></tr></tbody></table></li></ul>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(md).toContain('A<br>B');
+        for (const line of md.split('\n').filter((l) => l.includes('|'))) {
+            expect(line).toMatch(/^(?:- |\s+)\|.*\|$/);
         }
     });
 
