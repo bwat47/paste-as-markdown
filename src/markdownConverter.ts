@@ -97,7 +97,7 @@ function createTurndownService(includeImages: boolean): TurndownService {
                 prefix = `${bulletMarker} `;
             }
 
-            const minimumIndentWidth = 4; // Joplin expects nested list items indented by >=4 spaces
+            const minimumIndentWidth = 4; // Ensure that nested list items are indented by >=4 spaces
             const indentWidth = Math.max(prefix.length, minimumIndentWidth);
             const indent = ' '.repeat(indentWidth);
             content = collapseTrailingNewlines(content.replace(/^\n+/, '')) // trim leading newlines, collapse trailing ones
