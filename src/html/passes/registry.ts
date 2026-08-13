@@ -20,181 +20,114 @@ import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
 import type { ProcessingPass } from './types';
 
-const PRE_SANITIZE_PASSES: readonly ProcessingPass[] = [
-    {
-        name: 'Pre-sanitize text normalization',
-        phase: 'pre-sanitize',
-        priority: 10,
-        execute: (body, options) => normalizeTextCharacters(body, options.normalizeQuotes),
-    },
-    {
-        name: 'Pre-sanitize non-content UI removal',
-        phase: 'pre-sanitize',
-        priority: 20,
-        execute: (body) => removeNonContentUi(body),
-    },
-    {
-        name: 'Image sizing promotion',
-        phase: 'pre-sanitize', // run before sanitization as DOMpurify will strip styles
-        priority: 30,
-        execute: (body) => promoteImageSizingStylesToAttributes(body),
-    },
-    {
-        name: 'Image anchor cleanup',
-        phase: 'pre-sanitize',
-        priority: 40,
-        execute: (body) => pruneNonImageAnchorChildren(body),
-    },
-    {
-        name: 'Google Docs wrapper removal',
-        phase: 'pre-sanitize',
-        priority: 50,
-        condition: (_, context) => context.isGoogleDocs,
-        execute: (body) => removeGoogleDocsWrappers(body),
-    },
-    {
-        name: 'Code block neutralization',
-        phase: 'pre-sanitize', // run before sanitization to prevent examples such as <script> from being stripped from code
-        priority: 60,
-        execute: (body) => neutralizeCodeBlocksPreSanitize(body),
-    },
-];
-
-const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
-    {
-        name: 'Post-sanitize empty anchor removal',
-        phase: 'post-sanitize',
-        priority: 10,
-        execute: (body, options) => removeEmptyAnchors(body, options),
-    },
-    {
-        name: 'Post-sanitize anchor normalization',
-        phase: 'post-sanitize',
-        priority: 20,
-        execute: (body) => normalizeAnchors(body),
-    },
-    {
-        name: 'Post-sanitize heading level normalization',
-        phase: 'post-sanitize',
-        priority: 21,
-        execute: (body) => normalizeHeadingLevels(body),
-    },
-    {
-        name: 'Post-sanitize plain heading text enforcement',
-        phase: 'post-sanitize',
-        priority: 22,
-        execute: (body) => stripHeadingFormatting(body),
-    },
-    {
-        name: 'Post-sanitize checkbox paragraph unwrap',
-        phase: 'post-sanitize',
-        priority: 23,
-        execute: (body) => unwrapCheckboxParagraphs(body),
-    },
-    // This pass must run after checkbox paragraph unwrap (23) and before orphaned sub-list fix (25)
-    // to ensure that invalid wrappers are removed before nested list structure is corrected.
-    {
-        name: 'Post-sanitize invalid list wrapper unwrap',
-        phase: 'post-sanitize',
-        priority: 24,
-        execute: (body) => unwrapInvalidListWrappers(body),
-    },
-    {
-        name: 'Post-sanitize orphaned sub-list fix',
-        phase: 'post-sanitize',
-        priority: 25,
-        execute: (body) => fixOrphanNestedLists(body),
-    },
-    // The two tight list passes must run after the orphaned sub-list fix (25) so they see the
-    // final list structure. Together they replace Markdown-level blank line stripping: with the
-    // paragraph wrappers and sibling list splits gone, Turndown emits tight lists on its own.
-    {
-        name: 'Post-sanitize adjacent list merge',
-        phase: 'post-sanitize',
-        priority: 26,
-        condition: (options) => options.forceTightLists,
-        execute: (body) => mergeAdjacentLists(body),
-    },
-    {
-        name: 'Post-sanitize tight list paragraph unwrap',
-        phase: 'post-sanitize',
-        priority: 27,
-        condition: (options) => options.forceTightLists,
-        execute: (body) => unwrapTightListItemParagraphs(body),
-    },
-    {
-        name: 'Post-sanitize text normalization',
-        phase: 'post-sanitize',
-        priority: 30,
-        execute: (body, options) => normalizeTextCharacters(body, options.normalizeQuotes),
-    },
-    {
-        name: 'Literal HTML tag protection',
-        phase: 'post-sanitize',
-        priority: 40,
-        execute: (body) => protectLiteralHtmlTagMentions(body),
-    },
-    {
-        name: 'Code block normalization',
-        phase: 'post-sanitize',
-        priority: 50,
-        execute: (body) => normalizeCodeBlocks(body),
-    },
-    {
-        name: 'NBSP-only inline code preservation',
-        phase: 'post-sanitize',
-        priority: 60,
-        execute: (body) => preserveNbspOnlyInlineCode(body),
-    },
-    {
-        name: 'Image alt normalization',
-        phase: 'post-sanitize',
-        priority: 70,
-        // Normalizes existing alt text and generates fallback alts from src URLs.
-        // Runs unconditionally so all images get proper alt text regardless of settings.
-        execute: (body) => normalizeImageAltAttributes(body),
-    },
-    {
-        name: 'Converted image link unwrap',
-        phase: 'post-sanitize',
-        priority: 85,
-        condition: (options) => options.includeImages && options.convertImagesToResources,
-        execute: (body) => unwrapAllConvertedImageLinks(body),
-    },
-];
-
-function validatePriorities(passes: readonly ProcessingPass[]): void {
-    if (process.env.NODE_ENV === 'production') return;
-    const seen = new Map<number, string>();
-    passes.forEach((pass) => {
-        const existing = seen.get(pass.priority);
-        if (existing) {
-            throw new Error(`Duplicate priority detected for passes "${existing}" and "${pass.name}"`);
-        }
-        seen.set(pass.priority, pass.name);
-    });
-}
-
-function sortPasses(passes: readonly ProcessingPass[]): ProcessingPass[] {
-    return [...passes].sort((a, b) => a.priority - b.priority);
-}
-
 export interface PassCollections {
-    readonly preSanitize: ProcessingPass[];
-    readonly postSanitize: ProcessingPass[];
+    readonly preSanitize: readonly ProcessingPass[];
+    readonly postSanitize: readonly ProcessingPass[];
+    readonly postImage: readonly ProcessingPass[];
 }
 
-export function getProcessingPasses(): PassCollections {
-    validatePriorities(PRE_SANITIZE_PASSES);
-    validatePriorities(POST_SANITIZE_PASSES);
-
-    const preSanitize = sortPasses(PRE_SANITIZE_PASSES);
-    const postSanitize = sortPasses(POST_SANITIZE_PASSES);
-
-    return { preSanitize, postSanitize };
-}
-
-export const __TEST__ = {
-    validatePriorities,
-    sortPasses,
+/** Passes execute in array order within each pipeline phase. */
+export const PROCESSING_PASSES: PassCollections = {
+    preSanitize: [
+        {
+            name: 'Pre-sanitize text normalization',
+            execute: (body, options) => normalizeTextCharacters(body, options.normalizeQuotes),
+        },
+        {
+            name: 'Pre-sanitize non-content UI removal',
+            execute: (body) => removeNonContentUi(body),
+        },
+        {
+            name: 'Image sizing promotion',
+            // Runs before sanitization because DOMPurify strips sizing styles.
+            execute: (body) => promoteImageSizingStylesToAttributes(body),
+        },
+        {
+            name: 'Image anchor cleanup',
+            execute: (body) => pruneNonImageAnchorChildren(body),
+        },
+        {
+            name: 'Google Docs wrapper removal',
+            condition: (_, context) => context.isGoogleDocs,
+            execute: (body) => removeGoogleDocsWrappers(body),
+        },
+        {
+            name: 'Code block neutralization',
+            // Runs before sanitization so literal HTML examples such as <script> are preserved as code.
+            execute: (body) => neutralizeCodeBlocksPreSanitize(body),
+        },
+    ],
+    postSanitize: [
+        {
+            name: 'Post-sanitize empty anchor removal',
+            execute: (body, options) => removeEmptyAnchors(body, options),
+        },
+        {
+            name: 'Post-sanitize anchor normalization',
+            execute: (body) => normalizeAnchors(body),
+        },
+        {
+            name: 'Post-sanitize heading level normalization',
+            execute: (body) => normalizeHeadingLevels(body),
+        },
+        {
+            name: 'Post-sanitize plain heading text enforcement',
+            execute: (body) => stripHeadingFormatting(body),
+        },
+        {
+            name: 'Post-sanitize checkbox paragraph unwrap',
+            execute: (body) => unwrapCheckboxParagraphs(body),
+        },
+        // Invalid list wrappers must be removed after checkbox paragraphs are unwrapped and before
+        // orphaned sub-lists are repaired, so the latter pass sees the corrected list structure.
+        {
+            name: 'Post-sanitize invalid list wrapper unwrap',
+            execute: (body) => unwrapInvalidListWrappers(body),
+        },
+        {
+            name: 'Post-sanitize orphaned sub-list fix',
+            execute: (body) => fixOrphanNestedLists(body),
+        },
+        // The two tight-list passes must run after the orphaned sub-list fix so they see the final
+        // list structure. Together they let Turndown emit tight lists without Markdown rewrites.
+        {
+            name: 'Post-sanitize adjacent list merge',
+            condition: (options) => options.forceTightLists,
+            execute: (body) => mergeAdjacentLists(body),
+        },
+        {
+            name: 'Post-sanitize tight list paragraph unwrap',
+            condition: (options) => options.forceTightLists,
+            execute: (body) => unwrapTightListItemParagraphs(body),
+        },
+        {
+            name: 'Post-sanitize text normalization',
+            execute: (body, options) => normalizeTextCharacters(body, options.normalizeQuotes),
+        },
+        {
+            name: 'Literal HTML tag protection',
+            execute: (body) => protectLiteralHtmlTagMentions(body),
+        },
+        {
+            name: 'Code block normalization',
+            execute: (body) => normalizeCodeBlocks(body),
+        },
+        {
+            name: 'NBSP-only inline code preservation',
+            execute: (body) => preserveNbspOnlyInlineCode(body),
+        },
+        {
+            name: 'Image alt normalization',
+            // Normalizes existing alt text and generates fallback alts from src URLs.
+            // Runs unconditionally so all images get proper alt text regardless of settings.
+            execute: (body) => normalizeImageAltAttributes(body),
+        },
+    ],
+    postImage: [
+        {
+            name: 'Converted image link unwrap',
+            condition: (options) => options.includeImages && options.convertImagesToResources,
+            execute: (body) => unwrapAllConvertedImageLinks(body),
+        },
+    ],
 };

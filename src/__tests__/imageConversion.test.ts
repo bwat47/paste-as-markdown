@@ -69,6 +69,25 @@ describe('image resource conversion', () => {
         expect(outputHtml).not.toContain('data-junk');
     });
 
+    test('unwraps an external image link after converting its image to a resource', async () => {
+        dataPostMock.mockResolvedValue({ id: 'res1' });
+        const html = `<a href="https://example.com/original.png"><img src="${ONE_BY_ONE_PNG_BASE64}" alt=""></a>`;
+        const options: PasteOptions = {
+            includeImages: true,
+            convertImagesToResources: true,
+            normalizeQuotes: true,
+            forceTightLists: false,
+        };
+
+        const result = await processHtml(html, options);
+
+        expect(result.resources.resourcesCreated).toBe(1);
+        expect(result.body.querySelector('a')).toBeNull();
+        const image = result.body.querySelector('img');
+        expect(image?.getAttribute('src')).toBe(':/res1');
+        expect(image?.hasAttribute('data-pam-converted')).toBe(false);
+    });
+
     test('partial failure still converts earlier image and reports counts', async () => {
         dataPostMock
             .mockImplementationOnce(() => Promise.resolve({ id: 'resA' }))

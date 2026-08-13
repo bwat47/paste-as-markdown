@@ -1,8 +1,7 @@
 import { describe, expect, test, afterEach, vi } from 'vitest';
 import { processHtml } from '../html/processHtml';
-import { POST_IMAGE_PASS_PRIORITY } from '../constants';
 import * as passRunner from '../html/passes/runner';
-import { getProcessingPasses } from '../html/passes/registry';
+import { PROCESSING_PASSES } from '../html/passes/registry';
 import type { ProcessingPass } from '../html/passes/types';
 import type { PasteOptions } from '../types';
 
@@ -18,7 +17,7 @@ afterEach(() => {
 });
 
 describe('processHtml pass orchestration', () => {
-    test('runs pre- and post-sanitize passes in priority order', async () => {
+    test('runs each explicit pass phase in pipeline order', async () => {
         const calledPassLists: ReadonlyArray<ProcessingPass>[] = [];
 
         const runPassesSpy = vi
@@ -32,14 +31,12 @@ describe('processHtml pass orchestration', () => {
         const result = await processHtml(html, defaultOptions, false);
 
         expect(result.body).not.toBeNull();
-        expect(runPassesSpy).toHaveBeenCalledTimes(2);
-
-        const { preSanitize, postSanitize } = getProcessingPasses();
-        const expectedPre = preSanitize;
-        const expectedPostPreImage = postSanitize.filter((p) => p.priority < POST_IMAGE_PASS_PRIORITY);
-
-        expect(calledPassLists[0]).toEqual(expectedPre);
-        expect(calledPassLists[1]).toEqual(expectedPostPreImage);
+        expect(runPassesSpy).toHaveBeenCalledTimes(3);
+        expect(calledPassLists).toEqual([
+            PROCESSING_PASSES.preSanitize,
+            PROCESSING_PASSES.postSanitize,
+            PROCESSING_PASSES.postImage,
+        ]);
 
         runPassesSpy.mockRestore();
     });

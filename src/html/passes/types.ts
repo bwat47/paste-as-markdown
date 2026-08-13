@@ -1,7 +1,5 @@
 import type { PasteOptions } from '../../types';
 
-type PassPhase = 'pre-sanitize' | 'post-sanitize';
-
 export interface PassContext {
     readonly isGoogleDocs: boolean;
 }
@@ -9,10 +7,6 @@ export interface PassContext {
 export interface ProcessingPass {
     /** Human-readable name for logging and debugging */
     readonly name: string;
-    /** Processing phase - determines when this pass runs */
-    readonly phase: PassPhase;
-    /** Execution priority within phase (lower numbers run first) */
-    readonly priority: number;
     /** Optional condition to determine if pass should run */
     readonly condition?: (options: PasteOptions, context: PassContext) => boolean;
     /**
