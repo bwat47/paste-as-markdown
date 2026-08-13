@@ -49,6 +49,7 @@
     },
     "dependencies": {
         "@bwat47/turndown-plugin-gfm": "1.1.0",
+        "@lezer/markdown": "^1.7.2",
         "dompurify": "^3.4.13",
         "turndown": "7.2.4"
     },

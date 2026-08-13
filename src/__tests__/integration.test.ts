@@ -301,6 +301,13 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(outside).not.toMatch(/\n{3,}/);
     });
 
+    test('preserves blank lines when Turndown grows a backtick fence', async () => {
+        const html = '<pre><code>```\nfoo\n\n\n\nbar\n```</code></pre>';
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(markdown).toBe('````\n```\nfoo\n\n\n\nbar\n```\n````');
+    });
+
     test('GitHub highlighted html code block preserved (language fence optional)', async () => {
         const html = `<!--StartFragment--><p>Browser:</p><div class="highlight highlight-text-html-basic"><pre><span>&lt;script src=\"https://unpkg.com/turndown/dist/turndown.js\"&gt;&lt;/script&gt;</span></pre></div><!--EndFragment-->`;
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });

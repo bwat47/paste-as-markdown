@@ -38,6 +38,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 - `src/markdownConverter.ts` translates the processed DOM into Markdown.
 - It builds a fresh Turndown pipeline for each paste, applies the GFM plugin, adds a small set of project-specific rules, and performs final Markdown cleanup before returning the result.
+- `src/markdown/fencedCode.ts` uses a read-only Lezer CST to identify fenced-code ranges so cleanup never changes code contents.
 
 ### Resource Conversion
 
