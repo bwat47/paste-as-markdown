@@ -265,7 +265,13 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = '<p><code>&nbsp;</code></p>';
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
-        expect(md).toMatch(/&nbsp;/);
+        expect(md).toBe('`&nbsp;`');
+    });
+
+    test('leaves pasted __PAM_NBSP__ text untouched (no sentinel round-trip)', async () => {
+        const html = '<p>Use <code>__PAM_NBSP__</code> as a placeholder</p>';
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(markdown.trim()).toBe('Use `__PAM_NBSP__` as a placeholder');
     });
 
     test('does not strip NBSP-only line inside fenced code block', async () => {

@@ -14,7 +14,7 @@ import {
     unwrapInvalidListWrappers,
     unwrapTightListItemParagraphs,
 } from '../post/lists';
-import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
+import { normalizeCodeBlocks, preserveNbspOnlyInlineCode } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
@@ -141,10 +141,10 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         execute: (body) => normalizeCodeBlocks(body),
     },
     {
-        name: 'NBSP inline code sentinel marking',
+        name: 'NBSP-only inline code preservation',
         phase: 'post-sanitize',
         priority: 60,
-        execute: (body) => markNbspOnlyInlineCode(body),
+        execute: (body) => preserveNbspOnlyInlineCode(body),
     },
     {
         name: 'Image alt normalization',

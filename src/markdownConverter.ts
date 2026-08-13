@@ -174,9 +174,6 @@ function cleanupMarkdown(markdown: string): string {
     // Strip any leading blank lines while leaving internal spacing intact.
     markdown = markdown.replace(/^(?:[ \t]*\n)+/, '');
 
-    // Restore NBSP-only inline code sentinel inserted during HTML preprocessing.
-    markdown = markdown.replace(/`__PAM_NBSP__`/g, '`&nbsp;`');
-
     // No <br> handling here: Turndown's own lineBreak rule (TURNDOWN_OPTIONS.br) already emits
     // hard breaks, and the blank-line collapse below turns runs of them into paragraph breaks.
     // The only literal <br> left in the output is intentional - GFM table cells (a newline would
