@@ -165,6 +165,20 @@ describe('integration: convertHtmlToMarkdown', () => {
         }
     });
 
+    test('preserves <br> in table cells even after inline code spans', async () => {
+        // Inline-code protection splits content on backtick spans; table-row detection
+        // must still see the full line, or <br> after a code span becomes a hard break
+        const html = `<table><tbody>
+<tr><th scope="row">Prerequisites:</th><td>Basic HTML familiarity.</td></tr>
+<tr><th scope="row">Learning outcomes:</th><td><ul><li>What tables are for.</li><li>Basic table syntax — <code>&lt;table&gt;</code>, <code>&lt;tr&gt;</code>, and <code>&lt;td&gt;</code>.</li><li>Defining table headers with <code>&lt;th&gt;</code>.</li></ul></td></tr>
+</tbody></table>`;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(md).toContain('`<td>`.<br>- Defining table headers');
+        for (const line of md.split('\n').filter((l) => l.includes('|'))) {
+            expect(line).toMatch(/^\|.*\|$/);
+        }
+    });
+
     test('single <br> becomes hard line break (two spaces + newline)', async () => {
         const html = '<span>First line</span><br><span>Second line</span>';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
