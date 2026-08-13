@@ -49,17 +49,25 @@ export function gfm(service: TurndownServiceLike): void {
         },
     });
 
+    // Mirrors the real plugin's cleanCellContent: newlines inside cells become <br>
+    const cleanCellContent = (content: string): string =>
+        content
+            .trim()
+            .replace(/\r\n?/g, '\n')
+            .replace(/[ \t]+/g, ' ')
+            .replace(/ ?\n ?/g, '<br>');
+
     service.addRule('th', {
         filter: 'th',
         replacement: function (content: string): string {
-            return ' ' + content + ' |';
+            return ' ' + cleanCellContent(content) + ' |';
         },
     });
 
     service.addRule('td', {
         filter: 'td',
         replacement: function (content: string): string {
-            return ' ' + content + ' |';
+            return ' ' + cleanCellContent(content) + ' |';
         },
     });
 

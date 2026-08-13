@@ -146,6 +146,39 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/<br\/?/i);
     });
 
+    test('preserves <br> inside table cells so rows stay on one line', async () => {
+        const html = `
+<table>
+    <thead><tr><th></th><th>Bands</th></tr></thead>
+    <tbody>
+        <tr><td>2G:</td><td>GSM 850 / 900 / 1800 / 1900<br/>CDMA 800</td></tr>
+        <tr><td>Speed:</td><td>HSPA, LTE, 5G</td></tr>
+    </tbody>
+</table>
+`;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(md).toContain('GSM 850 / 900 / 1800 / 1900<br>CDMA 800');
+        // Every table line must remain a complete row (no line break splitting a cell)
+        const tableLines = md.split('\n').filter((line) => line.includes('|'));
+        for (const line of tableLines) {
+            expect(line).toMatch(/^\|.*\|$/);
+        }
+    });
+
+    test('preserves <br> in table cells even after inline code spans', async () => {
+        // Inline-code protection splits content on backtick spans; table-row detection
+        // must still see the full line, or <br> after a code span becomes a hard break
+        const html = `<table><tbody>
+<tr><th scope="row">Prerequisites:</th><td>Basic HTML familiarity.</td></tr>
+<tr><th scope="row">Learning outcomes:</th><td><ul><li>What tables are for.</li><li>Basic table syntax — <code>&lt;table&gt;</code>, <code>&lt;tr&gt;</code>, and <code>&lt;td&gt;</code>.</li><li>Defining table headers with <code>&lt;th&gt;</code>.</li></ul></td></tr>
+</tbody></table>`;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        expect(md).toContain('`<td>`.<br>- Defining table headers');
+        for (const line of md.split('\n').filter((l) => l.includes('|'))) {
+            expect(line).toMatch(/^\|.*\|$/);
+        }
+    });
+
     test('single <br> becomes hard line break (two spaces + newline)', async () => {
         const html = '<span>First line</span><br><span>Second line</span>';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });

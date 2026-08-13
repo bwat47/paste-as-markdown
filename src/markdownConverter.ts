@@ -234,27 +234,48 @@ function tightenListSpacing(markdown: string): string {
 }
 
 /**
- * Simplified BR tag processing without table handling
- * The GFM plugin handles table cell content conversion and flattens multi-line content to single lines
+ * Simplified BR tag processing
  * Rules (applied only to non-code regions):
  *  - Single <br> -> hard line break (two spaces + newline)
  *  - Run of 2+ consecutive <br> (optionally separated by whitespace) -> paragraph break (blank line) '\n\n'
+ *  - <br> on table rows is preserved: the GFM plugin emits <br> for line breaks inside
+ *    cells, and a literal newline would split the row
  */
 function cleanupBrTags(markdown: string): string {
     if (!/<br\s*\/?/i.test(markdown)) return markdown;
 
-    // Protect fenced code blocks and inline code spans
-    return withCodeProtection(markdown, (content) => {
-        // Process BR tags in regular content
-        return content.replace(/(?:<br\s*\/?>\s*)+/gi, (match) => {
-            const brCount = (match.match(/<br/gi) || []).length;
-            return brCount === 1 ? '  \n' : '\n\n';
-        });
-    });
-}
+    const convertBrRuns = (text: string): string =>
+        withInlineCodeProtection(text, (content) =>
+            content.replace(/(?:<br\s*\/?>\s*)+/gi, (match) => {
+                const brCount = (match.match(/<br/gi) || []).length;
+                return brCount === 1 ? '  \n' : '\n\n';
+            })
+        );
 
-function withCodeProtection(markdown: string, transform: (content: string) => string): string {
-    return withFencedCodeProtection(markdown, (segment) => withInlineCodeProtection(segment, transform));
+    // Table rows keep their <br>s: the GFM plugin emits <br> for in-cell line breaks,
+    // and a literal newline would split the row. Rows must be excluded as whole lines
+    // (before inline-code splitting) so a code span can't hide the leading pipe.
+    return withFencedCodeProtection(markdown, (segment) => {
+        const lines = segment.split('\n');
+        const result: string[] = [];
+        let pending: string[] = [];
+        const flushPending = () => {
+            if (pending.length > 0) {
+                result.push(convertBrRuns(pending.join('\n')));
+                pending = [];
+            }
+        };
+        for (const line of lines) {
+            if (line.startsWith('|')) {
+                flushPending();
+                result.push(line);
+            } else {
+                pending.push(line);
+            }
+        }
+        flushPending();
+        return result.join('\n');
+    });
 }
 
 function withInlineCodeProtection(segment: string, transform: (content: string) => string): string {
