@@ -102,7 +102,7 @@ describe('Force tight lists (DOM preprocessing)', () => {
             const html = '<ol><li>A</li></ol><ol start="5"><li>B</li></ol>';
             const document = new DOMParser().parseFromString(html, 'text/html');
 
-            // The sanitizer strips `start`, so assert the guard at the pass level where it applies.
+            // The sanitizer preserves `start`; assert directly that the merge pass honors it.
             const { mergeAdjacentLists } = await import('../html/post/lists');
             mergeAdjacentLists(document.body);
 
