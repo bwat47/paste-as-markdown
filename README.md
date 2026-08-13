@@ -12,7 +12,7 @@ The plugin uses Turndown to convert HTML to markdown.
 
 Useful for scenarios where you can't use the joplin web clipper (e.g. copying text from an email client) and/or where you don't want to edit the note with the rich text editor (to avoid changes to existing markdown formatting by the rich text editor).
 
-The plugin prioritizes clean markdown, the only HTML elements that are retained are: `<img>` embeds (only if the image has a specified width/height) and `sup`/`sub`/`ins`. `<br>` tags are removed and excess whitespace is normalized.
+The plugin prioritizes clean markdown, the only HTML elements that are retained are: `<img>` embeds (only if the image has a specified width/height) and `sup`/`sub`/`ins`. `<br>` tags are converted to newlines and excess whitespace is normalized.
 
 ![paste-as-markdown](https://github.com/user-attachments/assets/78d2b555-f848-42c0-a30e-e4267a4b1957)
 
