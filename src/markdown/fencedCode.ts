@@ -8,10 +8,20 @@ interface SourceRange {
     end: number;
 }
 
+/** Offset of the first character on the line containing `position` (0 when on the first line). */
 function lineStartAt(markdown: string, position: number): number {
     return markdown.lastIndexOf('\n', position - 1) + 1;
 }
 
+/**
+ * Collects the source ranges of every top-level fenced code block, in document order.
+ *
+ * Ranges are widened backwards to the start of the opening line so the container prefix
+ * (list indentation, blockquote markers) stays inside the protected range. Turndown emits
+ * fences whose opening line is nothing but indentation - `- foo\n\n    ```\n    a\n    ``` `
+ * for a `<pre>` after a paragraph in a list item - and leaving that indentation in the
+ * preceding segment lets a whitespace-only line strip delete it and unnest the fence.
+ */
 function findFencedCodeRanges(markdown: string): SourceRange[] {
     const ranges: SourceRange[] = [];
 
