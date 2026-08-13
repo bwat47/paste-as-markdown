@@ -67,7 +67,8 @@ joplin.plugins.register({
                 section: SETTINGS_SECTION,
                 public: true,
                 label: 'Force tight lists',
-                description: 'Remove blank lines between list items in output Markdown.',
+                description:
+                    'Prevent blank lines between list items in output Markdown, except for list items with multi-block content.',
             },
         });
 
