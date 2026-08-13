@@ -160,7 +160,7 @@ export async function convertHtmlToMarkdown(
     let markdown = service.turndown(processed.body);
 
     // Post-process the markdown for final cleanup
-    markdown = cleanupMarkdown(markdown, forceTightLists);
+    markdown = cleanupMarkdown(markdown);
 
     return { markdown, resources: processed.resources };
 }
@@ -168,7 +168,7 @@ export async function convertHtmlToMarkdown(
 /**
  * Final markdown cleanup operations that can't be easily done during DOM preprocessing
  */
-function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
+function cleanupMarkdown(markdown: string): string {
     // Turndown prepends two leading newlines before the first block element (e.g. <p>, <h1>).
     // For pasted fragments this results in unwanted blank lines at the insertion point.
     // Strip any leading blank lines while leaving internal spacing intact.
@@ -188,49 +188,7 @@ function cleanupMarkdown(markdown: string, forceTightLists: boolean): string {
         return segment;
     });
 
-    // If enabled, remove blank lines between consecutive list items
-    if (forceTightLists) {
-        markdown = tightenListSpacing(markdown);
-    }
-
     return markdown;
-}
-
-// Remove blank lines between list items while protecting fenced code blocks.
-function tightenListSpacing(markdown: string): string {
-    const isListLine = (rawLine: string): boolean => {
-        const line = rawLine.replace(/\r$/, '');
-        const trimmed = line.trim();
-        // Guard common Markdown horizontal rules (---, ***, ___, and spaced variants)
-        if (/^([-*_])(\s*\1){2,}$/.test(trimmed)) {
-            return false;
-        }
-        return /^[ \t]*(?:>[ \t]*)*(?:[-*+]|\d+[.)])[ \t]+(?:\[[ xX]\][ \t]+)?/.test(line);
-    };
-
-    const isBlankListSeparator = (rawLine: string): boolean => {
-        const line = rawLine.replace(/\r$/, '');
-        if (line.trim() === '') {
-            return true;
-        }
-        return /^[ \t]*(?:>[ \t]*)*$/.test(line);
-    };
-
-    return withFencedCodeProtection(markdown, (segment) => {
-        const lines = segment.split('\n');
-        let index = 0;
-        while (index < lines.length - 2) {
-            if (isListLine(lines[index]) && isBlankListSeparator(lines[index + 1]) && isListLine(lines[index + 2])) {
-                lines.splice(index + 1, 1);
-                if (index > 0) {
-                    index--;
-                }
-            } else {
-                index++;
-            }
-        }
-        return lines.join('\n');
-    });
 }
 
 /**

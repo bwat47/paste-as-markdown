@@ -55,6 +55,7 @@ const SANITIZER_ALLOWED_ATTRS_BASE = [
     'type',
     'checked',
     'disabled',
+    'start', // for ordered lists, to preserve numbering when converting to Markdown
 ];
 
 const SANITIZER_IMAGE_TAGS = ['img', 'picture', 'source'];

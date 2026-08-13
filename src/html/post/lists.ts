@@ -3,8 +3,10 @@ import { unwrapElement } from '../shared/dom';
 const LIST_TAGS = new Set(['UL', 'OL']);
 
 const LI_TAG = 'LI';
+const P_TAG = 'P';
 const CHECKBOX_SELECTOR = 'input[type="checkbox"]';
 const DEFAULT_ORPHAN_LIST_TAG = 'ul';
+const ORDERED_LIST_START_ATTRIBUTE = 'start';
 
 function getPrecedingListItem(list: HTMLElement): HTMLElement | null {
     const parent = list.parentElement;
@@ -69,6 +71,89 @@ export function unwrapCheckboxParagraphs(body: HTMLElement): void {
         if (checkbox.closest('li') !== listItem) return;
 
         unwrapElement(paragraph);
+    });
+}
+
+function isIgnorableNode(node: ChildNode): boolean {
+    if (node.nodeType === Node.COMMENT_NODE) return true;
+    return node.nodeType === Node.TEXT_NODE && (node.textContent?.trim() ?? '') === '';
+}
+
+/**
+ * Rich text editors commonly wrap list item content in a paragraph
+ * (`<li><p>Item</p></li>`). Turndown's paragraph rule pads its output with blank
+ * lines, which the list item rule then indents into a whitespace-only line between
+ * items, i.e. a loose list. Removing the wrapper makes the item's content inline
+ * and the list renders tight without any Markdown post-processing.
+ *
+ * Only items holding a single paragraph are unwrapped: an item with two or more
+ * paragraphs is genuinely multi-block content whose internal blank lines must
+ * survive. Items with loose text alongside the paragraph are skipped as well,
+ * since unwrapping would run that text into the paragraph's text.
+ */
+export function unwrapTightListItemParagraphs(body: HTMLElement): void {
+    const listItems = body.querySelectorAll<HTMLElement>('li');
+    listItems.forEach((listItem) => {
+        const paragraphs = Array.from(listItem.children).filter((child) => child.tagName === P_TAG);
+        if (paragraphs.length !== 1) return;
+
+        const hasLooseText = Array.from(listItem.childNodes).some(
+            (node) => node.nodeType === Node.TEXT_NODE && (node.textContent?.trim() ?? '') !== ''
+        );
+        if (hasLooseText) return;
+
+        unwrapElement(paragraphs[0] as HTMLElement);
+    });
+}
+
+/**
+ * Returns the immediately following sibling of `list` when it is a list of the same
+ * type that can absorb `list`'s items, or null when the lists must stay separate.
+ * Whitespace and comments between the two are ignored, but any other content means
+ * the lists are not adjacent.
+ */
+function getMergeableSiblingList(list: HTMLElement): HTMLElement | null {
+    let candidate: ChildNode | null = list.nextSibling;
+    while (candidate && isIgnorableNode(candidate)) {
+        candidate = candidate.nextSibling;
+    }
+
+    if (!candidate || candidate.nodeType !== Node.ELEMENT_NODE) return null;
+
+    const sibling = candidate as HTMLElement;
+    if (sibling.tagName !== list.tagName) return null;
+    // A `start` attribute means the author asked for a distinct numbering sequence; merging would
+    // renumber the items and discard it. Mirrors the ordinal handling in the Turndown list item rule.
+    if (sibling.hasAttribute(ORDERED_LIST_START_ATTRIBUTE)) return null;
+
+    return sibling;
+}
+
+/**
+ * Word and Outlook frequently emit a run of single-item lists instead of one list
+ * with several items. Turndown separates sibling lists with a blank line, so the
+ * paste reads as a loose list even though each item is tight. Merging the runs into
+ * a single list restores the intended structure.
+ *
+ * Only applied when tight lists are forced: without that setting the sibling lists
+ * are preserved as authored.
+ */
+export function mergeAdjacentLists(body: HTMLElement): void {
+    const lists = Array.from(body.querySelectorAll<HTMLElement>('ul, ol'));
+    const absorbed = new WeakSet<HTMLElement>();
+
+    lists.forEach((list) => {
+        if (absorbed.has(list)) return;
+
+        let sibling = getMergeableSiblingList(list);
+        while (sibling) {
+            while (sibling.firstChild) {
+                list.appendChild(sibling.firstChild);
+            }
+            absorbed.add(sibling);
+            sibling.remove();
+            sibling = getMergeableSiblingList(list);
+        }
     });
 }
 
