@@ -2,6 +2,7 @@ import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
 import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
+import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
 import type { PasteOptions, HtmlToMarkdownResult } from './types';
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
@@ -181,27 +182,13 @@ function cleanupMarkdown(markdown: string): string {
 
     // Remove lines that are only whitespace (artifacts after span/div based email HTML) and
     // collapse 3+ newlines to a single blank line while preserving fenced code blocks.
-    markdown = withFencedCodeProtection(markdown, (segment) => {
-        segment = segment.replace(/^\s+$/gm, '');
+    markdown = transformMarkdownOutsideFencedCode(markdown, (segment) => {
+        segment = segment.replace(/^[ \t]+$/gm, '');
         segment = segment.replace(/\n{3,}/g, '\n\n');
         return segment;
     });
 
     return markdown;
-}
-
-// Utility to protect fenced code blocks while applying a transformation to non-code segments
-function withFencedCodeProtection(markdown: string, transform: (segment: string) => string): string {
-    // Extract fences to deterministic tokens; avoids complex negative-lookahead logic.
-    const fences: string[] = [];
-    const token = (i: number) => `__PAM_FENCE_${i}__`;
-    const protectedMd = markdown.replace(/```[\s\S]*?```/g, (m) => {
-        fences.push(m);
-        return token(fences.length - 1);
-    });
-    const transformed = transform(protectedMd);
-    // Use callback function to prevent interpretation of special replacement patterns ($&, $`, $', etc.)
-    return fences.reduce((acc, fence, i) => acc.replace(token(i), () => fence), transformed);
 }
 
 /**
