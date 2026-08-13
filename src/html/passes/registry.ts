@@ -7,7 +7,13 @@ import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
 import { removeEmptyAnchors, normalizeAnchors } from '../post/anchors';
 import { stripHeadingFormatting, normalizeHeadingLevels } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
-import { fixOrphanNestedLists, unwrapCheckboxParagraphs, unwrapInvalidListWrappers } from '../post/lists';
+import {
+    fixOrphanNestedLists,
+    mergeAdjacentLists,
+    unwrapCheckboxParagraphs,
+    unwrapInvalidListWrappers,
+    unwrapTightListItemParagraphs,
+} from '../post/lists';
 import { normalizeCodeBlocks, markNbspOnlyInlineCode } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
@@ -98,6 +104,23 @@ const POST_SANITIZE_PASSES: readonly ProcessingPass[] = [
         phase: 'post-sanitize',
         priority: 25,
         execute: (body) => fixOrphanNestedLists(body),
+    },
+    // The two tight list passes must run after the orphaned sub-list fix (25) so they see the
+    // final list structure. Together they replace Markdown-level blank line stripping: with the
+    // paragraph wrappers and sibling list splits gone, Turndown emits tight lists on its own.
+    {
+        name: 'Post-sanitize adjacent list merge',
+        phase: 'post-sanitize',
+        priority: 26,
+        condition: (options) => options.forceTightLists,
+        execute: (body) => mergeAdjacentLists(body),
+    },
+    {
+        name: 'Post-sanitize tight list paragraph unwrap',
+        phase: 'post-sanitize',
+        priority: 27,
+        condition: (options) => options.forceTightLists,
+        execute: (body) => unwrapTightListItemParagraphs(body),
     },
     {
         name: 'Post-sanitize text normalization',
