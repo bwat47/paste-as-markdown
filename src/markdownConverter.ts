@@ -177,8 +177,10 @@ function cleanupMarkdown(markdown: string): string {
     // Restore NBSP-only inline code sentinel inserted during HTML preprocessing.
     markdown = markdown.replace(/`__PAM_NBSP__`/g, '`&nbsp;`');
 
-    // Convert stray <br> artifacts
-    markdown = cleanupBrTags(markdown);
+    // No <br> handling here: Turndown's own lineBreak rule (TURNDOWN_OPTIONS.br) already emits
+    // hard breaks, and the blank-line collapse below turns runs of them into paragraph breaks.
+    // The only literal <br> left in the output is intentional - GFM table cells (a newline would
+    // split the row) and inline code spans - so both must be preserved as-is.
 
     // Remove lines that are only whitespace (artifacts after span/div based email HTML) and
     // collapse 3+ newlines to a single blank line while preserving fenced code blocks.
@@ -189,63 +191,6 @@ function cleanupMarkdown(markdown: string): string {
     });
 
     return markdown;
-}
-
-/**
- * Simplified BR tag processing
- * Rules (applied only to non-code regions):
- *  - Single <br> -> hard line break (two spaces + newline)
- *  - Run of 2+ consecutive <br> (optionally separated by whitespace) -> paragraph break (blank line) '\n\n'
- *  - <br> on table rows is preserved: the GFM plugin emits <br> for line breaks inside
- *    cells, and a literal newline would split the row
- */
-function cleanupBrTags(markdown: string): string {
-    if (!/<br\s*\/?/i.test(markdown)) return markdown;
-
-    const convertBrRuns = (text: string): string =>
-        withInlineCodeProtection(text, (content) =>
-            content.replace(/(?:<br\s*\/?>\s*)+/gi, (match) => {
-                const brCount = (match.match(/<br/gi) || []).length;
-                return brCount === 1 ? '  \n' : '\n\n';
-            })
-        );
-
-    // Table rows keep their <br>s: the GFM plugin emits <br> for in-cell line breaks,
-    // and a literal newline would split the row. Rows must be excluded as whole lines
-    // (before inline-code splitting) so a code span can't hide the leading pipe.
-    return withFencedCodeProtection(markdown, (segment) => {
-        const lines = segment.split('\n');
-        const result: string[] = [];
-        let pending: string[] = [];
-        const flushPending = () => {
-            if (pending.length > 0) {
-                result.push(convertBrRuns(pending.join('\n')));
-                pending = [];
-            }
-        };
-        for (const line of lines) {
-            if (line.startsWith('|')) {
-                flushPending();
-                result.push(line);
-            } else {
-                pending.push(line);
-            }
-        }
-        flushPending();
-        return result.join('\n');
-    });
-}
-
-function withInlineCodeProtection(segment: string, transform: (content: string) => string): string {
-    return segment
-        .split(/(`[^`\n]*`)/)
-        .map((subSegment, index) => {
-            if (index % 2 === 1 || subSegment.startsWith('`')) {
-                return subSegment;
-            }
-            return transform(subSegment);
-        })
-        .join('');
 }
 
 // Utility to protect fenced code blocks while applying a transformation to non-code segments
