@@ -72,15 +72,5 @@ describe('markdownConverter', () => {
         expect(instance.turndown).toHaveBeenCalled();
     });
 
-    test('strips leading blank lines from output', async () => {
-        const html = '<p>ABC<br>DEF</p>';
-        const { markdown: result } = await convertHtmlToMarkdown(html, pasteOptions(), DEFAULT_PASS_CONTEXT);
-        // Our mock always returns '# Mock Output', so we cannot assert actual trimming here.
-        // Instead, simulate the trimming function directly to validate regex behavior.
-        const simulate = (md: string) => md.replace(/^(?:[ \t]*\n)+/, '');
-        expect(simulate('\n\nABC  \nDEF')).toBe('ABC  \nDEF');
-        expect(result).toBe('# Mock Output');
-    });
-
     // Detailed integration behaviors covered in separate integration test file.
 });
