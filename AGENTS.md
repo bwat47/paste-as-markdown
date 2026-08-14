@@ -22,7 +22,6 @@ ARCHITECTURE.md
 - **Simple over complex:** Prefer focused, single-responsibility modules.
 - **One clear way**: Avoid multiple competing approaches.
 - **Separation of concerns**: Each module handles one aspect.
-- **Fail fast**: Validate inputs early; provide clear error messages to users.
 
 ## Coding Style & Naming Conventions
 
@@ -38,12 +37,6 @@ ARCHITECTURE.md
 
 - Security first: Always sanitize HTML via DOMPurify before processing.
 - Use the pass registry/runner for HTML pre-processing; define ordering and conditions via `ProcessingPass` objects instead of ad-hoc invocations.
-
-## Settings & Configuration
-
-- Define setting keys as string constants in `constants.ts`.
-- Validate all settings via `validatePasteSettings()` helper.
-- Provide sensible defaults; fail gracefully when settings are invalid.
 
 ## Testing Guidelines
 

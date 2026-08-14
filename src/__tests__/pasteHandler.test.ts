@@ -3,9 +3,10 @@ import type { Mock, MockedFunction } from 'vitest';
 import { handlePasteAsMarkdown } from '../pasteHandler';
 import { convertHtmlToMarkdown } from '../markdownConverter';
 import { HtmlProcessingError } from '../html/processHtml';
-import { showToast, validatePasteSettings } from '../utils';
+import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../constants';
+import logger from '../logger';
 
 // Mock dependencies
 vi.mock('api');
@@ -29,7 +30,6 @@ describe('pasteHandler', () => {
 
     let mockConvertHtmlToMarkdown: MockedFunction<typeof convertHtmlToMarkdown>;
     let mockShowToast: MockedFunction<typeof showToast>;
-    let mockValidatePasteSettings: MockedFunction<typeof validatePasteSettings>;
 
     beforeEach(async () => {
         vi.clearAllMocks();
@@ -54,7 +54,6 @@ describe('pasteHandler', () => {
         // Mock other dependencies
         mockConvertHtmlToMarkdown = convertHtmlToMarkdown as MockedFunction<typeof convertHtmlToMarkdown>;
         mockShowToast = showToast as MockedFunction<typeof showToast>;
-        mockValidatePasteSettings = validatePasteSettings as MockedFunction<typeof validatePasteSettings>;
 
         // Default mock implementations
         mockJoplin.settings.value.mockImplementation((setting: string) => {
@@ -66,16 +65,6 @@ describe('pasteHandler', () => {
                 default:
                     return Promise.resolve(undefined);
             }
-        });
-
-        mockValidatePasteSettings.mockReturnValue({
-            isValid: true,
-            value: {
-                includeImages: true,
-                convertImagesToResources: false,
-                normalizeQuotes: true,
-                forceTightLists: false,
-            },
         });
     });
 
@@ -169,14 +158,8 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="test.png" alt="Test">';
             const expectedMarkdown = 'Text';
 
-            mockValidatePasteSettings.mockReturnValue({
-                isValid: true,
-                value: {
-                    includeImages: false,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+            mockJoplin.settings.value.mockImplementation((setting: string) => {
+                return Promise.resolve(setting === SETTINGS.INCLUDE_IMAGES ? false : undefined);
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -209,14 +192,8 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="data:image/png;base64,iVBORw0..." alt="Image">';
             const expectedMarkdown = 'Text\n\n![Image](:resource-id)';
 
-            mockValidatePasteSettings.mockReturnValue({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: true,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+            mockJoplin.settings.value.mockImplementation((setting: string) => {
+                return Promise.resolve(setting === SETTINGS.CONVERT_IMAGES_TO_RESOURCES ? true : undefined);
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -257,14 +234,8 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="image1.png"><img src="image2.png">';
             const expectedMarkdown = 'Text\n\n![](image1.png)\n![](image2.png)';
 
-            mockValidatePasteSettings.mockReturnValue({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: true,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+            mockJoplin.settings.value.mockImplementation((setting: string) => {
+                return Promise.resolve(setting === SETTINGS.CONVERT_IMAGES_TO_RESOURCES ? true : undefined);
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -295,14 +266,8 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="image1.png"><img src="image2.png">';
             const expectedMarkdown = 'Text\n\n![](image1.png)\n![](image2.png)';
 
-            mockValidatePasteSettings.mockReturnValue({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: true,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+            mockJoplin.settings.value.mockImplementation((setting: string) => {
+                return Promise.resolve(setting === SETTINGS.CONVERT_IMAGES_TO_RESOURCES ? true : undefined);
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -668,16 +633,6 @@ describe('pasteHandler', () => {
                 }
             });
 
-            mockValidatePasteSettings.mockReturnValue({
-                isValid: true,
-                value: {
-                    includeImages: false,
-                    convertImagesToResources: true,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
                 markdown: 'Test',
@@ -688,12 +643,6 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.INCLUDE_IMAGES);
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.CONVERT_IMAGES_TO_RESOURCES);
-            expect(mockValidatePasteSettings).toHaveBeenCalledWith({
-                includeImages: false,
-                convertImagesToResources: true,
-                normalizeQuotes: undefined,
-                forceTightLists: undefined,
-            });
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
                 {
@@ -704,6 +653,55 @@ describe('pasteHandler', () => {
                 },
                 { source: 'generic' }
             );
+        });
+
+        test('uses defaults for malformed settings and logs a warning', async () => {
+            const html = '<p>Test</p>';
+            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+
+            mockJoplin.settings.value.mockImplementation((setting: string) => {
+                switch (setting) {
+                    case SETTINGS.INCLUDE_IMAGES:
+                        return Promise.resolve('false');
+                    case SETTINGS.CONVERT_IMAGES_TO_RESOURCES:
+                        return Promise.resolve(true);
+                    case SETTINGS.NORMALIZE_QUOTES:
+                        return Promise.resolve(null);
+                    default:
+                        return Promise.resolve(undefined);
+                }
+            });
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockConvertHtmlToMarkdown.mockResolvedValue({
+                markdown: 'Test',
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
+            });
+
+            await handlePasteAsMarkdown();
+
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
+                html,
+                {
+                    includeImages: true,
+                    convertImagesToResources: true,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
+                { source: 'generic' }
+            );
+            expect(warnSpy).toHaveBeenNthCalledWith(1, 'Invalid boolean setting; using default', {
+                setting: SETTINGS.INCLUDE_IMAGES,
+                value: 'false',
+                defaultValue: true,
+            });
+            expect(warnSpy).toHaveBeenNthCalledWith(2, 'Invalid boolean setting; using default', {
+                setting: SETTINGS.NORMALIZE_QUOTES,
+                value: null,
+                defaultValue: true,
+            });
+            expect(warnSpy).toHaveBeenCalledTimes(2);
+
+            warnSpy.mockRestore();
         });
     });
 });
