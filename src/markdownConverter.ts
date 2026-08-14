@@ -1,6 +1,6 @@
 import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
-import { DEFAULT_PASS_CONTEXT, TURNDOWN_OPTIONS } from './constants';
+import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
 import type { PassContext, PasteOptions, HtmlToMarkdownResult } from './types';
@@ -135,7 +135,7 @@ function createTurndownService(includeImages: boolean): TurndownService {
 export async function convertHtmlToMarkdown(
     html: string,
     options: PasteOptions,
-    context: PassContext = DEFAULT_PASS_CONTEXT
+    context: PassContext
 ): Promise<HtmlToMarkdownResult> {
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     const input = wrapOrphanedTableElements(html);

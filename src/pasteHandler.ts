@@ -11,7 +11,7 @@ import type {
     PasteOptions,
     ResourceConversionMeta,
 } from './types';
-import { DEFAULT_PASTE_OPTIONS, SETTINGS } from './constants';
+import { DEFAULT_PASS_CONTEXT, DEFAULT_PASTE_OPTIONS, SETTINGS } from './constants';
 import type { SettingKey } from './constants';
 import logger from './logger';
 
@@ -41,7 +41,7 @@ async function detectClipboardSource(html: string | null): Promise<ClipboardSour
         return 'google-docs';
     }
 
-    return 'generic';
+    return DEFAULT_PASS_CONTEXT.source;
 }
 
 async function readClipboardText(): Promise<string> {
