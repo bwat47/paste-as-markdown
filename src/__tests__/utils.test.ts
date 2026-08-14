@@ -62,11 +62,22 @@ describe('utils', () => {
             expect(validatePasteSettings(undefined)).toEqual({ isValid: false, error: 'Settings must be an object' });
         });
 
+        // Pinned literals rather than DEFAULT_PASTE_OPTIONS: these defaults are user-visible
+        // behavior, so an accidental flip must fail a test instead of moving with the constant.
         test('returns default settings for empty object', () => {
             expect(validatePasteSettings({})).toEqual({
                 isValid: true,
-                value: DEFAULT_PASTE_OPTIONS,
+                value: {
+                    includeImages: true,
+                    convertImagesToResources: false,
+                    normalizeQuotes: true,
+                    forceTightLists: false,
+                },
             });
+        });
+
+        test('default settings constant matches the validated defaults', () => {
+            expect(validatePasteSettings({}).value).toEqual(DEFAULT_PASTE_OPTIONS);
         });
 
         test('preserves valid boolean includeImages setting', () => {

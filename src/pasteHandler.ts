@@ -13,7 +13,7 @@ import type {
     ValidationResult,
     ValidatedSettings,
 } from './types';
-import { DEFAULT_PASS_CONTEXT, SETTINGS } from './constants';
+import { SETTINGS } from './constants';
 import logger from './logger';
 
 async function readClipboardHtml(): Promise<string | null> {
@@ -42,7 +42,7 @@ async function detectClipboardSource(html: string | null): Promise<ClipboardSour
         return 'google-docs';
     }
 
-    return DEFAULT_PASS_CONTEXT.source;
+    return 'generic';
 }
 
 async function readClipboardText(): Promise<string> {
