@@ -87,6 +87,17 @@ describe('processHtml pass orchestration', () => {
         // Resources are already created at this point, so aborting would orphan them without
         // making the output any more correct: the remaining transforms are cosmetic.
         const passError = new passRunner.PassExecutionError('post-image test pass', new Error('post-image failed'));
+        const options: PasteOptions = {
+            ...defaultOptions,
+            includeImages: true,
+            convertImagesToResources: true,
+        };
+        vi.spyOn(resourceConverter, 'convertImagesToResources').mockImplementation(async (body) => {
+            const image = body.querySelector('img');
+            image?.setAttribute('src', ':/resource-id');
+            image?.setAttribute('data-pam-converted', 'true');
+            return { ids: ['resource-id'], attempted: 1, failed: 0 };
+        });
         let callCount = 0;
         const runPassesSpy = vi.spyOn(passRunner, 'runPasses').mockImplementation(() => {
             callCount++;
@@ -94,10 +105,16 @@ describe('processHtml pass orchestration', () => {
         });
         const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
 
-        const result = await processHtml('<p>Content</p>', defaultOptions, false);
+        const result = await processHtml('<img src="https://example.com/image.png">', options, false);
 
         expect(runPassesSpy).toHaveBeenCalledTimes(3);
-        expect(result.body.innerHTML).toContain('Content');
+        expect(result.resources).toEqual({
+            resourcesCreated: 1,
+            resourceIds: ['resource-id'],
+            attempted: 1,
+            failed: 0,
+        });
+        expect(result.body.querySelector('img')?.getAttribute('src')).toBe(':/resource-id');
         expect(warnSpy).toHaveBeenCalledWith('Post-image pass failed; continuing with converted images', passError);
     });
 
