@@ -4,6 +4,7 @@ import * as passRunner from '../html/passes/runner';
 import { PassExecutionError } from '../html/passes/runner';
 import { PROCESSING_PASSES } from '../html/passes/registry';
 import * as resourceConverter from '../resourceConverter';
+import logger from '../logger';
 import type { ProcessingPass } from '../html/passes/types';
 import type { PasteOptions } from '../types';
 
@@ -45,7 +46,6 @@ describe('processHtml pass orchestration', () => {
     test.each([
         { phase: 'pre-sanitize', failingCall: 1 },
         { phase: 'post-sanitize', failingCall: 2 },
-        { phase: 'post-image', failingCall: 3 },
     ])('turns a $phase pass error into a fatal HTML processing error', async ({ phase, failingCall }) => {
         const cause = new Error(`${phase} failed`);
         const passError = new PassExecutionError(`${phase} test pass`, cause);
@@ -65,6 +65,24 @@ describe('processHtml pass orchestration', () => {
         expect(runPassesSpy).toHaveBeenCalledTimes(failingCall);
         expect(thrown).toBeInstanceOf(HtmlProcessingError);
         expect(thrown).toMatchObject({ reason: 'pass-failed', cause: passError });
+    });
+
+    test('keeps the converted DOM when a post-image pass fails', async () => {
+        // Resources are already created at this point, so aborting would orphan them without
+        // making the output any more correct: the remaining transforms are cosmetic.
+        const passError = new PassExecutionError('post-image test pass', new Error('post-image failed'));
+        let callCount = 0;
+        const runPassesSpy = vi.spyOn(passRunner, 'runPasses').mockImplementation(() => {
+            callCount++;
+            if (callCount === 3) throw passError;
+        });
+        const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
+        const result = await processHtml('<p>Content</p>', defaultOptions, false);
+
+        expect(runPassesSpy).toHaveBeenCalledTimes(3);
+        expect(result.body.innerHTML).toContain('Content');
+        expect(warnSpy).toHaveBeenCalledWith('Post-image pass failed; continuing with converted images', passError);
     });
 
     test('treats an unexpected image conversion exception as fatal', async () => {

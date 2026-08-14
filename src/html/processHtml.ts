@@ -25,11 +25,7 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
     failed: 0,
 };
 
-type HtmlProcessingFailureReason =
-    | 'dom-unavailable'
-    | 'sanitize-failed'
-    | 'pass-failed'
-    | 'image-conversion-failed';
+type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed' | 'pass-failed' | 'image-conversion-failed';
 
 const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
     'dom-unavailable': 'DOM APIs unavailable; cannot process HTML safely.',
@@ -140,8 +136,14 @@ export async function processHtml(
             throw new HtmlProcessingError('image-conversion-failed', cause);
         }
 
-        // 7. Post-image passes
-        runPasses(postImage, body, options, passContext);
+        // 7. Post-image passes. Image resources are already committed and no pass runs after this,
+        // so a failure here degrades output cosmetically rather than making it incorrect: keep the
+        // converted DOM instead of discarding the paste and orphaning the created resources.
+        try {
+            runPasses(postImage, body, options, passContext);
+        } catch (cause) {
+            logger.warn('Post-image pass failed; continuing with converted images', cause);
+        }
 
         return { body, resources };
     } catch (cause) {
