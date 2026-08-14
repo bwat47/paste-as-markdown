@@ -4,7 +4,6 @@ import * as passRunner from '../html/passes/runner';
 import { PROCESSING_PASSES } from '../html/passes/registry';
 import * as resourceConverter from '../resourceConverter';
 import logger from '../logger';
-import { DEFAULT_PASS_CONTEXT } from '../constants';
 import type { ProcessingPass } from '../html/passes/types';
 import type { PasteOptions } from '../types';
 
@@ -30,7 +29,7 @@ describe('processHtml pass orchestration', () => {
             });
 
         const html = '<p>Hello <strong>world</strong></p>';
-        const result = await processHtml(html, defaultOptions, DEFAULT_PASS_CONTEXT);
+        const result = await processHtml(html, defaultOptions);
 
         expect(result.body).not.toBeNull();
         expect(runPassesSpy).toHaveBeenCalledTimes(3);
@@ -57,7 +56,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<p>Content</p>', defaultOptions, DEFAULT_PASS_CONTEXT);
+            await processHtml('<p>Content</p>', defaultOptions);
         } catch (error) {
             thrown = error;
         }
@@ -75,7 +74,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<p>Content</p>', defaultOptions, DEFAULT_PASS_CONTEXT);
+            await processHtml('<p>Content</p>', defaultOptions);
         } catch (error) {
             thrown = error;
         }
@@ -106,7 +105,7 @@ describe('processHtml pass orchestration', () => {
         });
         const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
 
-        const result = await processHtml('<img src="https://example.com/image.png">', options, DEFAULT_PASS_CONTEXT);
+        const result = await processHtml('<img src="https://example.com/image.png">', options);
 
         expect(runPassesSpy).toHaveBeenCalledTimes(3);
         expect(result.resources).toEqual({
@@ -130,7 +129,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<img src="data:image/png;base64,AAAA">', options, DEFAULT_PASS_CONTEXT);
+            await processHtml('<img src="data:image/png;base64,AAAA">', options);
         } catch (error) {
             thrown = error;
         }
