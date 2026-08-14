@@ -4,13 +4,13 @@
  * Throws HtmlProcessingError on failure; callers should catch and attempt plain text fallback.
  */
 
-import type { PasteOptions, ResourceConversionMeta } from '../types';
+import type { PassContext, PasteOptions, ResourceConversionMeta } from '../types';
+import { DEFAULT_PASS_CONTEXT } from '../constants';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
 import { PROCESSING_PASSES } from './passes/registry';
 import { PassExecutionError, runPasses } from './passes/runner';
-import type { PassContext } from './passes/types';
 import logger from '../logger';
 
 export interface ProcessHtmlResult {
@@ -96,14 +96,13 @@ async function handleImageConversion(body: HTMLElement, options: PasteOptions): 
 export async function processHtml(
     html: string,
     options: PasteOptions,
-    isGoogleDocs: boolean = false
+    passContext: PassContext = DEFAULT_PASS_CONTEXT
 ): Promise<ProcessHtmlResult> {
     // Prerequisites check
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
         throw new HtmlProcessingError('dom-unavailable');
     }
 
-    const passContext: PassContext = { isGoogleDocs };
     const { preSanitize, postSanitize, postImage } = PROCESSING_PASSES;
 
     try {

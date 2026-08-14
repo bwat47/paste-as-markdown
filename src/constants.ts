@@ -1,3 +1,5 @@
+import type { PassContext, PasteOptions } from './types';
+
 export const COMMANDS = {
     PASTE_AS_MARKDOWN: 'pasteHtmlAsMarkdown',
 } as const;
@@ -18,6 +20,17 @@ export const SETTINGS = {
     NORMALIZE_QUOTES: 'normalizeQuotes',
     FORCE_TIGHT_LISTS: 'forceTightLists',
 } as const;
+
+export const DEFAULT_PASTE_OPTIONS = {
+    includeImages: true,
+    convertImagesToResources: false,
+    normalizeQuotes: true,
+    forceTightLists: false,
+} as const satisfies Readonly<PasteOptions>;
+
+export const DEFAULT_PASS_CONTEXT = {
+    source: 'generic',
+} as const satisfies Readonly<PassContext>;
 
 // Settings section identifiers
 export const SETTINGS_SECTION = 'pasteAsMarkdown' as const;

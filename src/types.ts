@@ -15,6 +15,13 @@ export interface PasteOptions {
     forceTightLists: boolean;
 }
 
+export type ClipboardSource = 'generic' | 'google-docs';
+
+/** Metadata about the current paste that may control source-specific processing passes. */
+export interface PassContext {
+    readonly source: ClipboardSource;
+}
+
 export interface ResourceConversionMeta {
     readonly resourcesCreated: number;
     readonly resourceIds: readonly string[];

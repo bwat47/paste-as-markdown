@@ -1,8 +1,4 @@
-import type { PasteOptions } from '../../types';
-
-export interface PassContext {
-    readonly isGoogleDocs: boolean;
-}
+import type { PassContext, PasteOptions } from '../../types';
 
 export interface ProcessingPass {
     /** Human-readable name for logging and debugging */

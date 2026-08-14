@@ -1,9 +1,9 @@
 import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
-import { TURNDOWN_OPTIONS } from './constants';
+import { DEFAULT_PASS_CONTEXT, DEFAULT_PASTE_OPTIONS, TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
-import type { PasteOptions, HtmlToMarkdownResult } from './types';
+import type { PassContext, PasteOptions, HtmlToMarkdownResult } from './types';
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
 
@@ -129,35 +129,32 @@ function createTurndownService(includeImages: boolean): TurndownService {
  *
  * @param html Raw HTML fragment captured from the clipboard.
  * @param options Paste behavior flags. Supports `includeImages`, `convertImagesToResources`,
- * `normalizeQuotes`, `forceTightLists`, and `isGoogleDocs` to tailor preprocessing.
+ * `normalizeQuotes`, and `forceTightLists` to tailor preprocessing.
+ * @param context Metadata used to select source-specific processing passes.
  * @returns Markdown output alongside resource metadata.
  */
 export async function convertHtmlToMarkdown(
     html: string,
-    options: Partial<PasteOptions> & { isGoogleDocs?: boolean } = {}
+    options: Partial<PasteOptions> = {},
+    context: PassContext = DEFAULT_PASS_CONTEXT
 ): Promise<HtmlToMarkdownResult> {
-    const {
-        includeImages = true,
-        convertImagesToResources = false,
-        normalizeQuotes = true,
-        forceTightLists = false,
-        isGoogleDocs = false,
-    } = options ?? {};
+    const providedOptions = options ?? {};
+    const pasteOptions: PasteOptions = {
+        includeImages: providedOptions.includeImages ?? DEFAULT_PASTE_OPTIONS.includeImages,
+        convertImagesToResources:
+            providedOptions.convertImagesToResources ?? DEFAULT_PASTE_OPTIONS.convertImagesToResources,
+        normalizeQuotes: providedOptions.normalizeQuotes ?? DEFAULT_PASTE_OPTIONS.normalizeQuotes,
+        forceTightLists: providedOptions.forceTightLists ?? DEFAULT_PASTE_OPTIONS.forceTightLists,
+    };
 
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     const input = wrapOrphanedTableElements(html);
 
     // Apply DOM preprocessing to clean and sanitize the HTML
-    const pasteOptions: PasteOptions = {
-        includeImages,
-        convertImagesToResources,
-        normalizeQuotes,
-        forceTightLists,
-    };
-    const processed = await processHtml(input, pasteOptions, isGoogleDocs);
+    const processed = await processHtml(input, pasteOptions, context);
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
-    const service = createTurndownService(includeImages);
+    const service = createTurndownService(pasteOptions.includeImages);
     let markdown = service.turndown(processed.body);
 
     // Post-process the markdown for final cleanup

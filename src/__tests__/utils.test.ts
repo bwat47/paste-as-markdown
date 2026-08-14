@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { MockedFunction } from 'vitest';
 import { showToast, validatePasteSettings } from '../utils';
 import { ToastType } from 'api/types';
+import { DEFAULT_PASTE_OPTIONS } from '../constants';
 import logger from '../logger';
 
 // Mock the joplin API
@@ -64,12 +65,7 @@ describe('utils', () => {
         test('returns default settings for empty object', () => {
             expect(validatePasteSettings({})).toEqual({
                 isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+                value: DEFAULT_PASTE_OPTIONS,
             });
         });
 
