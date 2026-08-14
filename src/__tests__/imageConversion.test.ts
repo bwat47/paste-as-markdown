@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { processHtml } from '../html/processHtml';
-import type { PasteOptions } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
 
 // 1x1 transparent PNG
 const ONE_BY_ONE_PNG_BASE64 =
@@ -19,6 +19,7 @@ type JoplinMock = {
 declare const global: typeof globalThis & { joplin: JoplinMock };
 
 describe('image resource conversion', () => {
+    const options = pasteOptions({ convertImagesToResources: true });
     let dataPostMock: Mock;
     let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
 
@@ -49,12 +50,6 @@ describe('image resource conversion', () => {
     test('converts a single base64 image to a resource and sanitizes attributes', async () => {
         dataPostMock.mockImplementation(() => Promise.resolve({ id: 'res1' }));
         const html = buildHtml([ONE_BY_ONE_PNG_BASE64]);
-        const options: PasteOptions = {
-            includeImages: true,
-            convertImagesToResources: true,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        };
         const result = await processHtml(html, options);
 
         expect(result.resources.resourcesCreated).toBe(1);
@@ -72,13 +67,6 @@ describe('image resource conversion', () => {
     test('unwraps an external image link after converting its image to a resource', async () => {
         dataPostMock.mockResolvedValue({ id: 'res1' });
         const html = `<a href="https://example.com/original.png"><img src="${ONE_BY_ONE_PNG_BASE64}" alt=""></a>`;
-        const options: PasteOptions = {
-            includeImages: true,
-            convertImagesToResources: true,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        };
-
         const result = await processHtml(html, options);
 
         expect(result.resources.resourcesCreated).toBe(1);
@@ -93,12 +81,6 @@ describe('image resource conversion', () => {
             .mockImplementationOnce(() => Promise.resolve({ id: 'resA' }))
             .mockImplementationOnce(() => Promise.reject(new Error('simulate failure')));
         const html = buildHtml([ONE_BY_ONE_PNG_BASE64, ONE_BY_ONE_PNG_BASE64]);
-        const options: PasteOptions = {
-            includeImages: true,
-            convertImagesToResources: true,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        };
         const result = await processHtml(html, options);
 
         expect(result.resources.resourcesCreated).toBe(1);

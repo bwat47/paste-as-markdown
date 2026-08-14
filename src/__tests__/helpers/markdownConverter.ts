@@ -1,13 +1,14 @@
-import { DEFAULT_PASS_CONTEXT, DEFAULT_PASTE_OPTIONS } from '../../constants';
+import { DEFAULT_PASS_CONTEXT } from '../../constants';
 import { convertHtmlToMarkdown as convertHtmlToMarkdownWithOptions } from '../../markdownConverter';
+import { pasteOptions } from './pasteOptions';
 import type { HtmlToMarkdownResult, PassContext, PasteOptions } from '../../types';
 
-/** Builds complete paste options while keeping individual conversion tests concise. */
-export function pasteOptions(overrides: Partial<PasteOptions> = {}): PasteOptions {
-    return { ...DEFAULT_PASTE_OPTIONS, ...overrides };
-}
-
-/** Test-only conversion helper that resolves concise option overrides into the production contract. */
+/**
+ * Test-only wrapper around the production converter. It intentionally shares the production
+ * name so conversion tests read naturally, but the loose signature is a test convenience only:
+ * `convertHtmlToMarkdown` in `src/markdownConverter.ts` requires complete options and an
+ * explicit pass context.
+ */
 export function convertHtmlToMarkdown(
     html: string,
     options: Partial<PasteOptions> = {},
