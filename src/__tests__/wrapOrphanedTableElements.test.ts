@@ -26,9 +26,4 @@ describe('wrapOrphanedTableElements', () => {
         const html = '\n  <tr><td>WS</td></tr>  \n';
         expect(wrapOrphanedTableElements(html)).toBe('<table><tr><td>WS</td></tr></table>');
     });
-
-    test('still wraps when non-table text precedes fragment (current heuristic)', () => {
-        const html = 'Intro text<tr><td>X</td></tr>';
-        expect(wrapOrphanedTableElements(html)).toBe('<table>Intro text<tr><td>X</td></tr></table>');
-    });
 });

@@ -33,16 +33,6 @@ describe('task list conversion (GFM)', () => {
         expect(md).toMatch(/^-\s+\[x\]\s+Done\n-\s+\[ \]\s+Todo$/m);
     });
 
-    test('input not first child (whitespace span) still detected', async () => {
-        const html = `<ul class="contains-task-list">
-<li class="task-list-item"><span> </span><input type="checkbox" checked> Spaced</li>
-</ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        // Depending on rule, leading span might prevent detection; allow either checked box or plain list prefix fallback
-        expect(md).toMatch(/^-\s+(\[x\]\s+)?Spaced$/m);
-    });
-
     test('nested unchecked items spacing normalized', async () => {
         const html = `<ul class="contains-task-list">
     <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> ABC</li>

@@ -9,10 +9,6 @@ export default defineConfig({
                 find: /^api\/(.*)$/,
                 replacement: path.resolve(__dirname, 'src/__tests__/__mocks__/api/$1.ts'),
             },
-            {
-                find: '@bwat47/turndown-plugin-gfm',
-                replacement: path.resolve(__dirname, 'src/__tests__/__mocks__/turndownPluginGfm.ts'),
-            },
         ],
     },
     test: {
