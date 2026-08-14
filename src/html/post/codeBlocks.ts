@@ -39,6 +39,47 @@ const LANGUAGE_CLASS_PATTERNS: readonly RegExp[] = [
     /\bcode-([a-z0-9]+)\b/gi,
 ];
 
+/**
+ * Maps common language aliases to the name Joplin's highlighter expects.
+ *
+ * A `null` value marks a token that looks like a language but carries no highlighting intent
+ * (generic wrapper/tooling classes such as `code` or `container`), so the fence is emitted bare.
+ */
+const LANGUAGE_ALIASES: Readonly<Record<string, string | null>> = {
+    js: 'javascript',
+    mjs: 'javascript',
+    cjs: 'javascript',
+    ts: 'typescript',
+    py: 'python',
+    rb: 'ruby',
+    cxx: 'cpp',
+    'c++': 'cpp',
+    'c#': 'csharp',
+    cs: 'csharp',
+    sh: 'bash',
+    shell: 'bash',
+    zsh: 'bash',
+    htm: 'html',
+    md: 'markdown',
+    yml: 'yaml',
+    tml: 'toml',
+    rs: 'rust',
+    golang: 'go',
+    kt: 'kotlin',
+    docker: 'dockerfile',
+    plain: 'txt', //txt works to disable syntax highlighting in both joplin md editor and veiwer, text/plaintext only works in viewer
+    plain_text: 'txt',
+    plaintext: 'txt',
+    text: 'txt',
+    default: null,
+    none: null,
+    auto: null,
+    container: null,
+    code: null,
+    source: null,
+    sourcecode: null,
+};
+
 /** Outcome of scanning an element's previous siblings for a language label. */
 type LabelScanResult =
     | { status: 'found'; language: string }
@@ -463,42 +504,8 @@ function matchLanguageInClasses(classBlob: string, pattern: RegExp): string | nu
 
 function normalizeLangAlias(raw: string): string | null {
     const l = raw.toLowerCase();
-    const aliasMap: Record<string, string | null> = {
-        js: 'javascript',
-        mjs: 'javascript',
-        cjs: 'javascript',
-        ts: 'typescript',
-        py: 'python',
-        rb: 'ruby',
-        cxx: 'cpp',
-        'c++': 'cpp',
-        'c#': 'csharp',
-        cs: 'csharp',
-        sh: 'bash',
-        shell: 'bash',
-        zsh: 'bash',
-        htm: 'html',
-        md: 'markdown',
-        yml: 'yaml',
-        tml: 'toml',
-        rs: 'rust',
-        golang: 'go',
-        kt: 'kotlin',
-        docker: 'dockerfile',
-        plain: 'txt', //txt works to disable syntax highlighting in both joplin md editor and veiwer, text/plaintext only works in viewer
-        plain_text: 'txt',
-        plaintext: 'txt',
-        text: 'txt',
-        default: null,
-        none: null,
-        auto: null,
-        container: null,
-        code: null,
-        source: null,
-        sourcecode: null,
-    };
-    if (Object.hasOwn(aliasMap, l)) {
-        return aliasMap[l];
+    if (Object.hasOwn(LANGUAGE_ALIASES, l)) {
+        return LANGUAGE_ALIASES[l];
     }
     if (!/^[a-z0-9+#_.-]{1,40}$/.test(l)) {
         return null;
