@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 describe('Google Docs wrapper cleanup', () => {
     test('unwraps top-level <b id=docs-internal-guid-...> even with extra siblings (meta, Apple BR)', async () => {

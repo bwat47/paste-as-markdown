@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 test.each([
     {

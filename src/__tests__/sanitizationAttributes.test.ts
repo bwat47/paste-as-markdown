@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 /**
  * Verify style attributes and event handlers are stripped by sanitization.

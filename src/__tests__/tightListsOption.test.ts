@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 async function toMarkdown(html: string, forceTightLists: boolean): Promise<string> {
     const { markdown } = await convertHtmlToMarkdown(html, {

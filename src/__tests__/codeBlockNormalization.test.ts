@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 /**
  * Focused tests for code block normalization & language inference introduced in refactor.

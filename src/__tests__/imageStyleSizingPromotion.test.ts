@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 describe('image sizing: promote style to attributes (pre-sanitize)', () => {
     test('style-only width/height promoted to attributes and preserved as HTML', async () => {

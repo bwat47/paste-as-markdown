@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 // These tests exercise the real Turndown pipeline (no mocks) to validate
 // combined behaviors that unit tests cover in isolation.
