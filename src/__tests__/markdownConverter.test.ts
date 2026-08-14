@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
-import { DEFAULT_PASS_CONTEXT } from '../constants';
+import { DEFAULT_PASS_CONTEXT } from '../html/passContext';
 import { pasteOptions } from './helpers/pasteOptions';
 
 // Mock upstream turndown so we can assert rule wiring without invoking full conversion logic.

@@ -2,11 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
 import { convertImagesToResources } from '../resourceConverter';
 
-// Mock constants to drastically reduce MAX_IMAGE_BYTES for test (e.g., 64 bytes)
-vi.mock('../constants', async () => ({
-    ...(await vi.importActual<Record<string, unknown>>('../constants')),
-    MAX_IMAGE_BYTES: 64,
-}));
+const TEST_MAX_IMAGE_BYTES = 64;
 
 function body(html: string): HTMLElement {
     const parser = new DOMParser();
@@ -38,14 +34,14 @@ function installJoplin() {
 
 beforeEach(() => installJoplin());
 
-describe('oversize base64 (mocked small limit)', () => {
+describe('oversize base64 (configured small limit)', () => {
     test('rejects base64 exceeding mocked limit', async () => {
         // For 64 byte limit: need estimatedBytes > 64. estimatedBytes=floor(len*3/4)
         // Choose base64 length 100 -> floor(100*3/4)=75 > 64
         const b64 = 'A'.repeat(100);
         const url = `data:image/png;base64,${b64}`;
         const b = body(`<img src="${url}">`);
-        const result = await convertImagesToResources(b);
+        const result = await convertImagesToResources(b, { maxImageBytes: TEST_MAX_IMAGE_BYTES });
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
         expect(result.ids).toHaveLength(0);

@@ -5,6 +5,10 @@ export enum ToastType {
     Info = 'info',
 }
 
+export enum SettingItemType {
+    Bool = 3,
+}
+
 export interface Toast {
     message: string;
     type: ToastType;

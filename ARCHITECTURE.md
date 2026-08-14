@@ -20,7 +20,12 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Entry Point
 
-- `src/index.ts` registers the Joplin command and plugin settings.
+- `src/index.ts` registers the Joplin command and menus, and delegates settings setup to `src/settings.ts`.
+
+### Settings
+
+- `src/settings.ts` owns setting keys, paste-option defaults, Joplin settings registration, and loading raw values into validated `PasteOptions`.
+- Defaulting happens only at this boundary; the rest of the pipeline requires complete, already-resolved options.
 
 ### Paste Orchestration
 
@@ -50,8 +55,6 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Shared Infrastructure
 
-- `src/constants.ts` defines setting keys and shared configuration.
-- Paste option defaults are defined once in `src/constants.ts` and reused by setting registration and settings loading. Defaulting happens only at that boundary; the rest of the pipeline requires complete, already-resolved options.
 - `src/logger.ts` centralizes logging.
 - `src/utils.ts` contains shared helpers such as toast notifications.
 - `src/types.ts` defines the main data shapes shared across the pipeline.

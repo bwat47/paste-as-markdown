@@ -2,7 +2,8 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
-import { MAX_IMAGE_BYTES } from '../constants';
+
+const TEST_MAX_IMAGE_BYTES = 64;
 
 // Helper to build a DOM body from HTML string
 function makeBody(html: string): HTMLElement {
@@ -109,7 +110,7 @@ describe('resourceConverter edge cases', () => {
 
     test('streaming oversize remote aborts mid-stream', async () => {
         // Single chunk larger than limit to guarantee immediate failure
-        const hugeChunk = new Uint8Array(MAX_IMAGE_BYTES + 100);
+        const hugeChunk = new Uint8Array(TEST_MAX_IMAGE_BYTES + 1);
         let served = false;
         fetchMock = vi.fn(async () => ({
             ok: true,
@@ -126,7 +127,7 @@ describe('resourceConverter edge cases', () => {
         }));
         setGlobal('fetch', fetchMock);
         const body = makeBody('<img src="https://example.com/large.png">');
-        const result = await convertImagesToResources(body);
+        const result = await convertImagesToResources(body, { maxImageBytes: TEST_MAX_IMAGE_BYTES });
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
         expect(result.ids).toHaveLength(0);

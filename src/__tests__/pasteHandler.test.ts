@@ -5,7 +5,7 @@ import { convertHtmlToMarkdown } from '../markdownConverter';
 import { HtmlProcessingError } from '../html/processHtml';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
-import { SETTINGS } from '../constants';
+import { SETTINGS } from '../settings';
 import logger from '../logger';
 
 // Mock dependencies

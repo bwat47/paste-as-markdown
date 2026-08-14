@@ -5,7 +5,7 @@
  */
 
 import type { PassContext, PasteOptions, ResourceConversionMeta } from '../types';
-import { DEFAULT_PASS_CONTEXT } from '../constants';
+import { DEFAULT_PASS_CONTEXT } from './passContext';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';

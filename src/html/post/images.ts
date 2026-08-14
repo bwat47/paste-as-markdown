@@ -9,7 +9,8 @@
  * Note: Attribute whitelisting is handled by DOMPurify configuration.
  */
 import { normalizeAltText } from '../../textUtils';
-import { MAX_ALT_TEXT_LENGTH } from '../../constants';
+
+const MAX_ALT_TEXT_LENGTH = 120;
 
 /**
  * Derive a human-readable name from an image src for fallback alt text.
