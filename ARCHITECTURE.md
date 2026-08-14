@@ -32,6 +32,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - `src/html/processHtml.ts` owns the HTML preparation stage.
 - It parses clipboard HTML, runs pre-sanitize passes, sanitizes the result, runs post-sanitize passes, optionally converts images, and then runs post-image passes before returning a safe DOM subtree for Markdown conversion.
 - The pass registry under `src/html/passes/` groups passes into those three explicit phases. Passes execute in their declared array order.
+- Unexpected pass or pipeline-stage exceptions stop conversion and trigger plain-text fallback; expected per-image conversion failures remain recoverable and are reported through resource counts.
 - Settings that shape output structure (for example forcing tight lists) are implemented as conditional DOM passes rather than Markdown post-processing, so they can act on the real document tree instead of re-parsing generated text.
 
 ### Markdown Conversion

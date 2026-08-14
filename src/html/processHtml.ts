@@ -9,7 +9,7 @@ import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
 import { PROCESSING_PASSES } from './passes/registry';
-import { runPasses } from './passes/runner';
+import { PassExecutionError, runPasses } from './passes/runner';
 import type { PassContext } from './passes/types';
 import logger from '../logger';
 
@@ -25,21 +25,29 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
     failed: 0,
 };
 
-type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed';
+type HtmlProcessingFailureReason =
+    | 'dom-unavailable'
+    | 'sanitize-failed'
+    | 'pass-failed'
+    | 'image-conversion-failed';
 
 const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
     'dom-unavailable': 'DOM APIs unavailable; cannot process HTML safely.',
     'sanitize-failed': 'HTML sanitization failed; unable to continue processing.',
+    'pass-failed': 'HTML cleanup failed; unable to continue processing safely.',
+    'image-conversion-failed': 'Image conversion failed unexpectedly; unable to continue processing safely.',
 };
 
-/** Thrown when HTML processing cannot proceed (missing DOM APIs or sanitization failure). */
+/** Thrown when HTML processing cannot guarantee safe, correct output. */
 export class HtmlProcessingError extends Error {
     readonly reason: HtmlProcessingFailureReason;
+    readonly cause: unknown;
 
-    constructor(reason: HtmlProcessingFailureReason) {
+    constructor(reason: HtmlProcessingFailureReason, cause?: unknown) {
         super(FAILURE_MESSAGES[reason]);
         this.name = 'HtmlProcessingError';
         this.reason = reason;
+        this.cause = cause;
     }
 }
 
@@ -90,7 +98,6 @@ export async function processHtml(
 ): Promise<ProcessHtmlResult> {
     // Prerequisites check
     if (typeof window === 'undefined' || typeof DOMParser === 'undefined') {
-        logger.warn('DOM APIs unavailable; cannot process HTML safely.');
         throw new HtmlProcessingError('dom-unavailable');
     }
 
@@ -111,9 +118,8 @@ export async function processHtml(
         let sanitizedHtml: string;
         try {
             sanitizedHtml = performSanitization(rawBody.innerHTML, options.includeImages);
-        } catch (err) {
-            logger.warn('Sanitization failed', err);
-            throw new HtmlProcessingError('sanitize-failed');
+        } catch (cause) {
+            throw new HtmlProcessingError('sanitize-failed', cause);
         }
 
         // 4. Re-parse sanitized HTML
@@ -125,24 +131,26 @@ export async function processHtml(
         // 5. Post-sanitize passes
         runPasses(postSanitize, body, options, passContext);
 
-        // 6. Image conversion (graceful failure)
+        // 6. Image conversion. Expected per-image failures are reported in ResourceConversionMeta;
+        // an exception means the stage could not complete reliably.
         let resources: ResourceConversionMeta;
         try {
             resources = await handleImageConversion(body, options);
-        } catch (err) {
-            logger.warn('Image conversion failed; continuing without resources', err);
-            resources = EMPTY_RESOURCES;
+        } catch (cause) {
+            throw new HtmlProcessingError('image-conversion-failed', cause);
         }
 
         // 7. Post-image passes
         runPasses(postImage, body, options, passContext);
 
         return { body, resources };
-    } catch (err) {
-        if (err instanceof HtmlProcessingError) {
-            throw err;
+    } catch (cause) {
+        if (cause instanceof HtmlProcessingError) {
+            throw cause;
         }
-        logger.warn('Unexpected error in HTML processing', err);
-        throw new HtmlProcessingError('sanitize-failed');
+        if (cause instanceof PassExecutionError) {
+            throw new HtmlProcessingError('pass-failed', cause);
+        }
+        throw new HtmlProcessingError('sanitize-failed', cause);
     }
 }

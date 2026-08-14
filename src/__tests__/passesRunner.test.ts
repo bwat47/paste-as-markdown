@@ -1,9 +1,7 @@
-import { describe, expect, test, beforeEach, afterEach, vi } from 'vitest';
-import type { MockInstance } from 'vitest';
-import { runPasses } from '../html/passes/runner';
+import { describe, expect, test } from 'vitest';
+import { PassExecutionError, runPasses } from '../html/passes/runner';
 import type { ProcessingPass, PassContext } from '../html/passes/types';
 import type { PasteOptions } from '../types';
-import logger from '../logger';
 
 describe('runPasses', () => {
     const options: PasteOptions = {
@@ -14,19 +12,29 @@ describe('runPasses', () => {
     };
     const context: PassContext = { isGoogleDocs: false };
 
-    let warnSpy: MockInstance;
-
-    beforeEach(() => {
-        const loggerForTest = logger as unknown as { warn: (...args: unknown[]) => void };
-        warnSpy = vi.spyOn(loggerForTest, 'warn').mockImplementation(() => undefined);
-    });
-
-    afterEach(() => {
-        warnSpy.mockRestore();
-    });
-
-    test('collects warnings when a pass throws and continues with remaining passes', () => {
+    test('returns undefined after all eligible passes complete', () => {
         const order: string[] = [];
+        const passes: ProcessingPass[] = [
+            {
+                name: 'Skipped pass',
+                condition: () => false,
+                execute: () => order.push('skipped'),
+            },
+            {
+                name: 'Executed pass',
+                execute: () => order.push('executed'),
+            },
+        ];
+
+        const body = window.document.createElement('div');
+
+        expect(runPasses(passes, body, options, context)).toBeUndefined();
+        expect(order).toEqual(['executed']);
+    });
+
+    test('wraps a pass error and stops before later passes run', () => {
+        const order: string[] = [];
+        const cause = new Error('Boom');
         const passes: ProcessingPass[] = [
             {
                 name: 'First pass',
@@ -37,7 +45,7 @@ describe('runPasses', () => {
             {
                 name: 'Failing pass',
                 execute: () => {
-                    throw new Error('Boom');
+                    throw cause;
                 },
             },
             {
@@ -49,15 +57,44 @@ describe('runPasses', () => {
         ];
 
         const body = window.document.createElement('div');
-        const result = runPasses(passes, body, options, context);
+        let thrown: unknown;
+        try {
+            runPasses(passes, body, options, context);
+        } catch (error) {
+            thrown = error;
+        }
 
-        expect(order).toEqual(['first', 'final']);
-        expect(result.warnings).toHaveLength(1);
-        expect(result.warnings[0]).toContain('Failing pass');
-        expect(warnSpy).toHaveBeenCalledTimes(1);
-        const [message, error] = warnSpy.mock.calls[0];
-        expect(message).toBe('Failing pass failed');
-        expect(error).toBeInstanceOf(Error);
-        expect((error as Error).message).toBe('Boom');
+        expect(order).toEqual(['first']);
+        expect(thrown).toBeInstanceOf(PassExecutionError);
+        expect(thrown).toMatchObject({
+            name: 'PassExecutionError',
+            passName: 'Failing pass',
+            cause,
+            message: 'Failing pass failed: Boom',
+        });
+    });
+
+    test('wraps errors thrown while evaluating a pass condition', () => {
+        const cause = new Error('Condition failed');
+        const passes: ProcessingPass[] = [
+            {
+                name: 'Conditional pass',
+                condition: () => {
+                    throw cause;
+                },
+                execute: () => undefined,
+            },
+        ];
+        const body = window.document.createElement('div');
+        let thrown: unknown;
+
+        try {
+            runPasses(passes, body, options, context);
+        } catch (error) {
+            thrown = error;
+        }
+
+        expect(thrown).toBeInstanceOf(PassExecutionError);
+        expect(thrown).toMatchObject({ passName: 'Conditional pass', cause });
     });
 });

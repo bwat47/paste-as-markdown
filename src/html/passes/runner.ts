@@ -1,9 +1,18 @@
 import type { PasteOptions } from '../../types';
 import type { PassContext, ProcessingPass } from './types';
-import logger from '../../logger';
 
-export interface RunPassesResult {
-    readonly warnings: string[];
+/** Identifies the pass that made the HTML pipeline unsafe to continue. */
+export class PassExecutionError extends Error {
+    readonly passName: string;
+    readonly cause: unknown;
+
+    constructor(passName: string, cause: unknown) {
+        const message = cause instanceof Error ? cause.message : String(cause);
+        super(`${passName} failed: ${message}`);
+        this.name = 'PassExecutionError';
+        this.passName = passName;
+        this.cause = cause;
+    }
 }
 
 export function runPasses(
@@ -11,19 +20,13 @@ export function runPasses(
     body: HTMLElement,
     options: PasteOptions,
     context: PassContext
-): RunPassesResult {
-    const warnings: string[] = [];
-
-    passes.forEach((pass) => {
-        if (pass.condition && !pass.condition(options, context)) return;
+): void {
+    for (const pass of passes) {
         try {
+            if (pass.condition && !pass.condition(options, context)) continue;
             pass.execute(body, options, context);
-        } catch (err) {
-            logger.warn(`${pass.name} failed`, err);
-            const message = err instanceof Error ? err.message : String(err);
-            warnings.push(`${pass.name}: ${message}`);
+        } catch (cause) {
+            throw new PassExecutionError(pass.name, cause);
         }
-    });
-
-    return { warnings };
+    }
 }
