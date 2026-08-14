@@ -26,60 +26,26 @@ describe('code block normalization & language inference', () => {
     // --------------------------------------------------
     // Additional language inference tests
     // --------------------------------------------------
-    test('alias: cpp class name produces cpp fence (C++)', async () => {
-        const html = '<pre class="language-cpp"><code>int main() {}</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```cpp[\s\S]*int main/);
-    });
 
-    test('alias: cxx -> cpp', async () => {
-        const html = '<pre class="language-cxx"><code>int main() {}</code></pre>';
+    // One row per entry of LANGUAGE_ALIASES in src/html/post/codeBlocks.ts; the lookup itself is a
+    // plain record, so these cover the table's data rather than any per-language logic. `cpp` is
+    // not an alias and rides through unchanged.
+    test.each([
+        ['cpp', 'cpp', 'int main() {}'],
+        ['cxx', 'cpp', 'int main() {}'],
+        ['js', 'javascript', 'console.log(1)'],
+        ['mjs', 'javascript', 'export default 1;'],
+        ['cjs', 'javascript', 'module.exports = 1;'],
+        ['yml', 'yaml', 'key: value'],
+        ['golang', 'go', 'package main'],
+        ['kt', 'kotlin', 'fun main() {}'],
+        ['docker', 'dockerfile', 'FROM alpine'],
+    ])('class language-%s produces a %s fence', async (className, fence, source) => {
+        const html = `<pre class="language-${className}"><code>${source}</code></pre>`;
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
         const md = markdown.trim();
-        expect(md).toMatch(/```cpp[\s\S]*int main/);
-    });
-
-    test('alias: mjs -> javascript', async () => {
-        const html = '<pre class="language-mjs"><code>export default 1;</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```javascript[\s\S]*export default/);
-    });
-
-    test('alias: cjs -> javascript', async () => {
-        const html = '<pre class="language-cjs"><code>module.exports = 1;</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```javascript[\s\S]*module\.exports/);
-    });
-
-    test('alias: yml -> yaml', async () => {
-        const html = '<pre class="language-yml"><code>key: value</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```yaml[\s\S]*key: value/);
-    });
-
-    test('alias: golang -> go', async () => {
-        const html = '<pre class="language-golang"><code>package main</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```go[\s\S]*package main/);
-    });
-
-    test('alias: kt -> kotlin', async () => {
-        const html = '<pre class="language-kt"><code>fun main() {}</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```kotlin[\s\S]*fun main/);
-    });
-
-    test('alias: docker -> dockerfile', async () => {
-        const html = '<pre class="language-docker"><code>FROM alpine</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/```dockerfile[\s\S]*FROM alpine/);
+        expect(md).toContain(`\`\`\`${fence}\n`);
+        expect(md).toContain(source);
     });
 
     // Language names ending in punctuation (`c++`, `c#`) must not be truncated at the first word
@@ -192,12 +158,6 @@ describe('code block normalization & language inference', () => {
         const md = markdown.trim();
         // Should not emit an empty fenced code block
         expect(md).not.toMatch(/```/);
-    });
-
-    test('maps js alias to javascript', async () => {
-        const html = '<pre class="language-js"><code>console.log(1)</code></pre>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
-        expect(md).toMatch(/```javascript[\s\S]*console\.log/);
     });
 
     test('escaped tags preserved (no forced html heuristic)', async () => {
