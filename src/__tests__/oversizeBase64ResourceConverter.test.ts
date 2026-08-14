@@ -35,7 +35,7 @@ function installJoplin() {
 beforeEach(() => installJoplin());
 
 describe('oversize base64 (configured small limit)', () => {
-    test('rejects base64 exceeding mocked limit', async () => {
+    test('rejects base64 exceeding the configured limit', async () => {
         // For 64 byte limit: need estimatedBytes > 64. estimatedBytes=floor(len*3/4)
         // Choose base64 length 100 -> floor(100*3/4)=75 > 64
         const b64 = 'A'.repeat(100);

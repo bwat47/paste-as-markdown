@@ -19,7 +19,7 @@ import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
 
-interface ResourceConversionLimits {
+export interface ResourceConversionLimits {
     readonly maxImageBytes: number;
     readonly downloadTimeoutMs: number;
 }
@@ -74,7 +74,7 @@ function isRemoteSource(source: ImageSource): source is RemoteImageSource {
  *  - src does NOT already start with :/ (already a resource)
  *
  * @param body Root element whose descendant <img> nodes are inspected/modified.
- * @param limitOverrides Optional resource limits, primarily for focused tests.
+ * @param limitOverrides Resource limits to apply instead of {@link DEFAULT_RESOURCE_CONVERSION_LIMITS}.
  * @returns ids (resource IDs created), attempted (count of images we tried to convert), failed (conversion failures).
  */
 export async function convertImagesToResources(

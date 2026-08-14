@@ -4,12 +4,42 @@ import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
 
 const TEST_MAX_IMAGE_BYTES = 64;
+const TEST_DOWNLOAD_TIMEOUT_MS = 50;
+
+// Expected shipped default cap. The boundary pair below pins it: shrinking or growing
+// DEFAULT_RESOURCE_CONVERSION_LIMITS.maxImageBytes breaks one of the two tests.
+const DEFAULT_MAX_IMAGE_BYTES = 25 * 1024 * 1024;
 
 // Helper to build a DOM body from HTML string
 function makeBody(html: string): HTMLElement {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
     return doc.body as HTMLElement;
+}
+
+/** Remote PNG response advertising `contentLength` and streaming a single small chunk. */
+function mockRemotePngResponse(contentLength: number) {
+    let served = false;
+    return vi.fn(async () => ({
+        ok: true,
+        headers: {
+            get: (h: string) => {
+                const name = h.toLowerCase();
+                if (name === 'content-type') return 'image/png';
+                if (name === 'content-length') return String(contentLength);
+                return null;
+            },
+        },
+        body: {
+            getReader: () => ({
+                read: async () => {
+                    if (served) return { done: true };
+                    served = true;
+                    return { done: false, value: new Uint8Array(8) };
+                },
+            }),
+        },
+    }));
 }
 
 // Small 1x1 transparent png (same as existing tests)
@@ -133,8 +163,29 @@ describe('resourceConverter edge cases', () => {
         expect(result.ids).toHaveLength(0);
     });
 
+    test('remote image whose content-length sits at the default cap is accepted', async () => {
+        fetchMock = mockRemotePngResponse(DEFAULT_MAX_IMAGE_BYTES);
+        setGlobal('fetch', fetchMock);
+        const body = makeBody('<img src="https://example.com/at-cap.png">');
+        const result = await convertImagesToResources(body);
+        expect(result.attempted).toBe(1);
+        expect(result.failed).toBe(0);
+        expect(result.ids).toHaveLength(1);
+    });
+
+    test('remote image one byte over the default cap is rejected', async () => {
+        fetchMock = mockRemotePngResponse(DEFAULT_MAX_IMAGE_BYTES + 1);
+        setGlobal('fetch', fetchMock);
+        const body = makeBody('<img src="https://example.com/over-cap.png">');
+        const result = await convertImagesToResources(body);
+        expect(result.attempted).toBe(1);
+        expect(result.failed).toBe(1);
+        expect(result.ids).toHaveLength(0);
+        expect(dataPostMock).not.toHaveBeenCalled();
+    });
+
     test('network timeout abort increments failed count', async () => {
-        // Use fake timers to trigger the 15s AbortController timeout quickly
+        // Use fake timers to trigger the configured AbortController timeout quickly
         vi.useFakeTimers();
         fetchMock = vi.fn((...args: unknown[]) => {
             const opts = args[1];
@@ -147,9 +198,9 @@ describe('resourceConverter edge cases', () => {
         });
         setGlobal('fetch', fetchMock);
         const body = makeBody('<img src="https://example.com/slow.png">');
-        const conversionPromise = convertImagesToResources(body);
-        // Fast-forward time to trigger the 15000ms timeout inside downloadExternalImage
-        vi.advanceTimersByTime(15000);
+        const conversionPromise = convertImagesToResources(body, { downloadTimeoutMs: TEST_DOWNLOAD_TIMEOUT_MS });
+        // Fast-forward time to trigger the download timeout inside downloadExternalImage
+        vi.advanceTimersByTime(TEST_DOWNLOAD_TIMEOUT_MS);
         const result = await conversionPromise;
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
