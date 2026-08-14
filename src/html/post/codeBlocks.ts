@@ -497,7 +497,7 @@ function normalizeLangAlias(raw: string): string | null {
         source: null,
         sourcecode: null,
     };
-    if (Object.prototype.hasOwnProperty.call(aliasMap, l)) {
+    if (Object.hasOwn(aliasMap, l)) {
         return aliasMap[l];
     }
     if (!/^[a-z0-9+#_.-]{1,40}$/.test(l)) {
