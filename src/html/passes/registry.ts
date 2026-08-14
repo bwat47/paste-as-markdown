@@ -20,7 +20,7 @@ import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
 import type { ProcessingPass } from './types';
 
-export interface PassCollections {
+interface PassCollections {
     readonly preSanitize: readonly ProcessingPass[];
     readonly postSanitize: readonly ProcessingPass[];
     readonly postImage: readonly ProcessingPass[];
