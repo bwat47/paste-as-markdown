@@ -137,6 +137,34 @@ describe('pasteHandler', () => {
             );
         });
 
+        test('detects Google Docs from the HTML guid marker when the clipboard format is absent', async () => {
+            const html = '<b id="docs-internal-guid-abc"><p>Google Docs content</p></b>';
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockJoplin.clipboard.availableFormats.mockResolvedValue(['text/html', 'text/plain']);
+            mockConvertHtmlToMarkdown.mockResolvedValue({
+                markdown: 'Google Docs content',
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
+            });
+
+            await handlePasteAsMarkdown();
+
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, expect.anything(), { source: 'google-docs' });
+        });
+
+        test('falls back to HTML detection when clipboard formats cannot be read', async () => {
+            const html = '<b id="docs-internal-guid-abc"><p>Google Docs content</p></b>';
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockJoplin.clipboard.availableFormats.mockRejectedValue(new Error('Formats unavailable'));
+            mockConvertHtmlToMarkdown.mockResolvedValue({
+                markdown: 'Google Docs content',
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
+            });
+
+            await handlePasteAsMarkdown();
+
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, expect.anything(), { source: 'google-docs' });
+        });
+
         test('HTML conversion with images excluded', async () => {
             const html = '<p>Text</p><img src="test.png" alt="Test">';
             const expectedMarkdown = 'Text';
