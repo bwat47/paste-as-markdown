@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { convertHtmlToMarkdown } from './markdownConverter';
 import { HtmlProcessingError } from './html/processHtml';
-import { showToast, validatePasteSettings } from './utils';
+import { showToast } from './utils';
 import { ToastType } from 'api/types';
 import type {
     ClipboardSource,
@@ -10,10 +10,8 @@ import type {
     PassContext,
     PasteOptions,
     ResourceConversionMeta,
-    ValidationResult,
-    ValidatedSettings,
 } from './types';
-import { SETTINGS } from './constants';
+import { DEFAULT_PASTE_OPTIONS, SETTINGS } from './constants';
 import logger from './logger';
 
 async function readClipboardHtml(): Promise<string | null> {
@@ -123,14 +121,37 @@ async function fallbackOrFailure(
     };
 }
 
-async function loadPasteOptions(): Promise<ValidationResult<ValidatedSettings>> {
-    const rawSettings = {
-        includeImages: await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
-        convertImagesToResources: await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
-        normalizeQuotes: await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
-        forceTightLists: await joplin.settings.value(SETTINGS.FORCE_TIGHT_LISTS),
+function resolveBooleanSetting(setting: string, value: unknown, defaultValue: boolean): boolean {
+    if (typeof value === 'boolean') return value;
+    if (value !== undefined) {
+        logger.warn('Invalid boolean setting; using default', { setting, value, defaultValue });
+    }
+    return defaultValue;
+}
+
+async function loadPasteOptions(): Promise<PasteOptions> {
+    return {
+        includeImages: resolveBooleanSetting(
+            SETTINGS.INCLUDE_IMAGES,
+            await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
+            DEFAULT_PASTE_OPTIONS.includeImages
+        ),
+        convertImagesToResources: resolveBooleanSetting(
+            SETTINGS.CONVERT_IMAGES_TO_RESOURCES,
+            await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
+            DEFAULT_PASTE_OPTIONS.convertImagesToResources
+        ),
+        normalizeQuotes: resolveBooleanSetting(
+            SETTINGS.NORMALIZE_QUOTES,
+            await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
+            DEFAULT_PASTE_OPTIONS.normalizeQuotes
+        ),
+        forceTightLists: resolveBooleanSetting(
+            SETTINGS.FORCE_TIGHT_LISTS,
+            await joplin.settings.value(SETTINGS.FORCE_TIGHT_LISTS),
+            DEFAULT_PASTE_OPTIONS.forceTightLists
+        ),
     };
-    return validatePasteSettings(rawSettings);
 }
 
 /** Pastes clipboard plain text when no HTML flavour is available. */
@@ -190,13 +211,7 @@ async function handleConversionFailure(err: unknown): Promise<ConversionFailure>
  * inserts result at cursor, and provides user feedback. Falls back to plain text if conversion fails.
  */
 export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | ConversionFailure> {
-    const validation = await loadPasteOptions();
-    if (!validation.isValid || !validation.value) {
-        const msg = validation.error || 'Invalid settings';
-        await showToast(msg, ToastType.Error);
-        return { markdown: '', success: false, warnings: [msg], plainTextFallback: false };
-    }
-    const options = validation.value;
+    const options = await loadPasteOptions();
 
     // Read HTML and detect source
     const html = await readClipboardHtml();

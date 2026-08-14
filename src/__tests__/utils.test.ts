@@ -1,8 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { MockedFunction } from 'vitest';
-import { showToast, validatePasteSettings } from '../utils';
+import { showToast } from '../utils';
 import { ToastType } from 'api/types';
-import { DEFAULT_PASTE_OPTIONS } from '../constants';
 import logger from '../logger';
 
 // Mock the joplin API
@@ -53,103 +52,6 @@ describe('utils', () => {
             expect(warnSpy).toHaveBeenCalledWith('Failed to show toast', expect.any(Error));
 
             warnSpy.mockRestore();
-        });
-    });
-
-    describe('validatePasteSettings', () => {
-        test('returns error for null/undefined input', () => {
-            expect(validatePasteSettings(null)).toEqual({ isValid: false, error: 'Settings must be an object' });
-            expect(validatePasteSettings(undefined)).toEqual({ isValid: false, error: 'Settings must be an object' });
-        });
-
-        // Pinned literals rather than DEFAULT_PASTE_OPTIONS: these defaults are user-visible
-        // behavior, so an accidental flip must fail a test instead of moving with the constant.
-        test('returns default settings for empty object', () => {
-            expect(validatePasteSettings({})).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-        });
-
-        test('default settings constant matches the validated defaults', () => {
-            expect(validatePasteSettings({}).value).toEqual(DEFAULT_PASTE_OPTIONS);
-        });
-
-        test('preserves valid boolean includeImages setting', () => {
-            expect(validatePasteSettings({ includeImages: false })).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: false,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-            expect(validatePasteSettings({ includeImages: true })).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-        });
-
-        test('reports error for invalid includeImages values', () => {
-            expect(validatePasteSettings({ includeImages: 'true' })).toEqual({
-                isValid: false,
-                error: 'Invalid setting(s): includeImages must be boolean',
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-            expect(validatePasteSettings({ includeImages: 1 })).toEqual({
-                isValid: false,
-                error: 'Invalid setting(s): includeImages must be boolean',
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-            expect(validatePasteSettings({ includeImages: null as unknown as boolean })).toEqual({
-                isValid: false,
-                error: 'Invalid setting(s): includeImages must be boolean',
-                value: {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
-        });
-
-        test('ignores unknown properties', () => {
-            expect(
-                validatePasteSettings({
-                    includeImages: false,
-                    unknownProperty: 'value',
-                    anotherProperty: 123,
-                })
-            ).toEqual({
-                isValid: true,
-                value: {
-                    includeImages: false,
-                    convertImagesToResources: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-            });
         });
     });
 });
