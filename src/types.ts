@@ -1,7 +1,6 @@
 interface ConversionResult {
     markdown: string;
     success: boolean;
-    warnings?: string[];
     plainTextFallback?: boolean;
 }
 

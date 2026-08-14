@@ -370,6 +370,27 @@ describe('pasteHandler', () => {
             });
         });
 
+        test('pass execution failure falls back with a safe processing warning', async () => {
+            const html = '<p>HTML content</p>';
+            const error = new HtmlProcessingError('pass-failed', new Error('Internal pass detail'));
+            const fallbackText = 'plain clipboard text';
+
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockConvertHtmlToMarkdown.mockRejectedValue(error);
+            mockJoplin.clipboard.readText.mockResolvedValue(fallbackText);
+
+            const result = await handlePasteAsMarkdown();
+
+            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', fallbackText);
+            expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
+            expect(result).toEqual({
+                markdown: fallbackText,
+                success: false,
+                warnings: ['HTML cleanup failed; unable to continue processing safely.'],
+                plainTextFallback: true,
+            });
+        });
+
         test('HTML processing error without plain text keeps failure state', async () => {
             const html = '<p>HTML content</p>';
             const error = new HtmlProcessingError('sanitize-failed');

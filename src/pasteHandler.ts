@@ -170,7 +170,7 @@ function buildSuccessMessage(options: PasteOptions, resources: ResourceConversio
 async function handleConversionFailure(err: unknown): Promise<ConversionFailure> {
     if (err instanceof HtmlProcessingError) {
         // Technical error details logged for debugging, user sees only actionable result
-        logger.error('HTML processing prerequisites missing; aborting paste', err);
+        logger.error('HTML processing failed, attempting plain text fallback', err);
         return fallbackOrFailure(
             err.message,
             'Paste failed: unable to process HTML or read plain text',

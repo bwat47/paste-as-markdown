@@ -17,7 +17,7 @@ joplin.plugins.register({
                     const res = await handlePasteAsMarkdown();
                     if (res.success) {
                         // Success path already shows success toasts inside handler.
-                    } else if (res.warnings && res.warnings.length) {
+                    } else if (res.warnings.length) {
                         logger.warn('Paste reported warnings:', res.warnings);
                     }
                 } catch (err: unknown) {
