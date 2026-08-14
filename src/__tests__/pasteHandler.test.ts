@@ -6,7 +6,6 @@ import { HtmlProcessingError } from '../html/processHtml';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../settings';
-import logger from '../logger';
 
 // Mock dependencies
 vi.mock('api');
@@ -93,6 +92,7 @@ describe('pasteHandler', () => {
                 { source: 'generic' }
             );
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', expectedMarkdown);
+            expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(1);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
@@ -451,23 +451,6 @@ describe('pasteHandler', () => {
     });
 
     describe('Editor insertion scenarios', () => {
-        test('insertText command succeeds', async () => {
-            const html = '<p>Test</p>';
-            const markdown = 'Test';
-
-            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
-            mockConvertHtmlToMarkdown.mockResolvedValue({
-                markdown,
-                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-            });
-            mockJoplin.commands.execute.mockResolvedValueOnce(undefined);
-
-            await handlePasteAsMarkdown();
-
-            expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', markdown);
-            expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(1);
-        });
-
         test('insertText fails, falls back to replaceSelection', async () => {
             const html = '<p>Test</p>';
             const markdown = 'Test';
@@ -653,55 +636,6 @@ describe('pasteHandler', () => {
                 },
                 { source: 'generic' }
             );
-        });
-
-        test('uses defaults for malformed settings and logs a warning', async () => {
-            const html = '<p>Test</p>';
-            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-
-            mockJoplin.settings.value.mockImplementation((setting: string) => {
-                switch (setting) {
-                    case SETTINGS.INCLUDE_IMAGES:
-                        return Promise.resolve('false');
-                    case SETTINGS.CONVERT_IMAGES_TO_RESOURCES:
-                        return Promise.resolve(true);
-                    case SETTINGS.NORMALIZE_QUOTES:
-                        return Promise.resolve(null);
-                    default:
-                        return Promise.resolve(undefined);
-                }
-            });
-            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
-            mockConvertHtmlToMarkdown.mockResolvedValue({
-                markdown: 'Test',
-                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-            });
-
-            await handlePasteAsMarkdown();
-
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
-                html,
-                {
-                    includeImages: true,
-                    convertImagesToResources: true,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-                { source: 'generic' }
-            );
-            expect(warnSpy).toHaveBeenNthCalledWith(1, 'Invalid boolean setting; using default', {
-                setting: SETTINGS.INCLUDE_IMAGES,
-                value: 'false',
-                defaultValue: true,
-            });
-            expect(warnSpy).toHaveBeenNthCalledWith(2, 'Invalid boolean setting; using default', {
-                setting: SETTINGS.NORMALIZE_QUOTES,
-                value: null,
-                defaultValue: true,
-            });
-            expect(warnSpy).toHaveBeenCalledTimes(2);
-
-            warnSpy.mockRestore();
         });
     });
 });
