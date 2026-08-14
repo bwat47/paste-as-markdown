@@ -138,13 +138,14 @@ export async function convertHtmlToMarkdown(
     options: Partial<PasteOptions> = {},
     context: PassContext = DEFAULT_PASS_CONTEXT
 ): Promise<HtmlToMarkdownResult> {
-    const providedOptions = options ?? {};
+    // Resolved field by field rather than by spreading over the defaults: a caller that passes an
+    // explicitly undefined flag (e.g. from a partially populated settings object) must still get
+    // the default, whereas a spread would let that undefined overwrite it.
     const pasteOptions: PasteOptions = {
-        includeImages: providedOptions.includeImages ?? DEFAULT_PASTE_OPTIONS.includeImages,
-        convertImagesToResources:
-            providedOptions.convertImagesToResources ?? DEFAULT_PASTE_OPTIONS.convertImagesToResources,
-        normalizeQuotes: providedOptions.normalizeQuotes ?? DEFAULT_PASTE_OPTIONS.normalizeQuotes,
-        forceTightLists: providedOptions.forceTightLists ?? DEFAULT_PASTE_OPTIONS.forceTightLists,
+        includeImages: options.includeImages ?? DEFAULT_PASTE_OPTIONS.includeImages,
+        convertImagesToResources: options.convertImagesToResources ?? DEFAULT_PASTE_OPTIONS.convertImagesToResources,
+        normalizeQuotes: options.normalizeQuotes ?? DEFAULT_PASTE_OPTIONS.normalizeQuotes,
+        forceTightLists: options.forceTightLists ?? DEFAULT_PASTE_OPTIONS.forceTightLists,
     };
 
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)

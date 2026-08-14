@@ -26,11 +26,11 @@ export const DEFAULT_PASTE_OPTIONS = {
     convertImagesToResources: false,
     normalizeQuotes: true,
     forceTightLists: false,
-} as const satisfies Readonly<PasteOptions>;
+} as const satisfies PasteOptions;
 
 export const DEFAULT_PASS_CONTEXT = {
     source: 'generic',
-} as const satisfies Readonly<PassContext>;
+} as const satisfies PassContext;
 
 // Settings section identifiers
 export const SETTINGS_SECTION = 'pasteAsMarkdown' as const;
