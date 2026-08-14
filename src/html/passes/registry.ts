@@ -48,7 +48,7 @@ export const PROCESSING_PASSES: PassCollections = {
         },
         {
             name: 'Google Docs wrapper removal',
-            condition: (_, context) => context.isGoogleDocs,
+            condition: (_, context) => context.source === 'google-docs',
             execute: (body) => removeGoogleDocsWrappers(body),
         },
         {

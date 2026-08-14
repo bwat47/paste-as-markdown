@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { COMMANDS, SHORTCUTS, SETTINGS, SETTINGS_SECTION } from './constants';
+import { COMMANDS, DEFAULT_PASTE_OPTIONS, SHORTCUTS, SETTINGS, SETTINGS_SECTION } from './constants';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import { showToast } from './utils';
 import { MenuItemLocation, ToastType, SettingItemType } from 'api/types';
@@ -36,7 +36,7 @@ joplin.plugins.register({
 
         await joplin.settings.registerSettings({
             [SETTINGS.INCLUDE_IMAGES]: {
-                value: true,
+                value: DEFAULT_PASTE_OPTIONS.includeImages,
                 type: SettingItemType.Bool,
                 section: SETTINGS_SECTION,
                 public: true,
@@ -45,7 +45,7 @@ joplin.plugins.register({
                     'If enabled, images will be included in the pasted markdown. If disabled, images will be removed entirely.',
             },
             [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: {
-                value: false,
+                value: DEFAULT_PASTE_OPTIONS.convertImagesToResources,
                 type: SettingItemType.Bool,
                 section: SETTINGS_SECTION,
                 public: true,
@@ -54,7 +54,7 @@ joplin.plugins.register({
                     "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
             },
             [SETTINGS.NORMALIZE_QUOTES]: {
-                value: true,
+                value: DEFAULT_PASTE_OPTIONS.normalizeQuotes,
                 type: SettingItemType.Bool,
                 section: SETTINGS_SECTION,
                 public: true,
@@ -62,7 +62,7 @@ joplin.plugins.register({
                 description: 'Convert Word/Office smart quotes to regular quotes for better markdown compatibility.',
             },
             [SETTINGS.FORCE_TIGHT_LISTS]: {
-                value: false,
+                value: DEFAULT_PASTE_OPTIONS.forceTightLists,
                 type: SettingItemType.Bool,
                 section: SETTINGS_SECTION,
                 public: true,

@@ -2,6 +2,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { MockedFunction } from 'vitest';
 import { showToast, validatePasteSettings } from '../utils';
 import { ToastType } from 'api/types';
+import { DEFAULT_PASTE_OPTIONS } from '../constants';
 import logger from '../logger';
 
 // Mock the joplin API
@@ -61,6 +62,8 @@ describe('utils', () => {
             expect(validatePasteSettings(undefined)).toEqual({ isValid: false, error: 'Settings must be an object' });
         });
 
+        // Pinned literals rather than DEFAULT_PASTE_OPTIONS: these defaults are user-visible
+        // behavior, so an accidental flip must fail a test instead of moving with the constant.
         test('returns default settings for empty object', () => {
             expect(validatePasteSettings({})).toEqual({
                 isValid: true,
@@ -71,6 +74,10 @@ describe('utils', () => {
                     forceTightLists: false,
                 },
             });
+        });
+
+        test('default settings constant matches the validated defaults', () => {
+            expect(validatePasteSettings({}).value).toEqual(DEFAULT_PASTE_OPTIONS);
         });
 
         test('preserves valid boolean includeImages setting', () => {

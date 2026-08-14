@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { ToastType } from 'api/types';
-import { TOAST_DURATION } from './constants';
+import { DEFAULT_PASTE_OPTIONS, TOAST_DURATION } from './constants';
 import type { PasteOptions, ValidationResult, ValidatedSettings, SettingsInput } from './types';
 import logger from './logger';
 
@@ -26,15 +26,30 @@ export function validatePasteSettings(settings: unknown): ValidationResult<Valid
     const s = settings as SettingsInput;
     const invalid: string[] = [];
 
-    const includeImages = validateBoolean(s.includeImages, 'includeImages', true, invalid);
+    const includeImages = validateBoolean(
+        s.includeImages,
+        'includeImages',
+        DEFAULT_PASTE_OPTIONS.includeImages,
+        invalid
+    );
     const convertImagesToResources = validateBoolean(
         s.convertImagesToResources,
         'convertImagesToResources',
-        false,
+        DEFAULT_PASTE_OPTIONS.convertImagesToResources,
         invalid
     );
-    const normalizeQuotes = validateBoolean(s.normalizeQuotes, 'normalizeQuotes', true, invalid);
-    const forceTightLists = validateBoolean(s.forceTightLists, 'forceTightLists', false, invalid);
+    const normalizeQuotes = validateBoolean(
+        s.normalizeQuotes,
+        'normalizeQuotes',
+        DEFAULT_PASTE_OPTIONS.normalizeQuotes,
+        invalid
+    );
+    const forceTightLists = validateBoolean(
+        s.forceTightLists,
+        'forceTightLists',
+        DEFAULT_PASTE_OPTIONS.forceTightLists,
+        invalid
+    );
 
     const value: PasteOptions = { includeImages, convertImagesToResources, normalizeQuotes, forceTightLists };
     if (invalid.length) {

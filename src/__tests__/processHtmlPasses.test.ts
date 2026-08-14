@@ -29,7 +29,7 @@ describe('processHtml pass orchestration', () => {
             });
 
         const html = '<p>Hello <strong>world</strong></p>';
-        const result = await processHtml(html, defaultOptions, false);
+        const result = await processHtml(html, defaultOptions);
 
         expect(result.body).not.toBeNull();
         expect(runPassesSpy).toHaveBeenCalledTimes(3);
@@ -56,7 +56,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<p>Content</p>', defaultOptions, false);
+            await processHtml('<p>Content</p>', defaultOptions);
         } catch (error) {
             thrown = error;
         }
@@ -74,7 +74,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<p>Content</p>', defaultOptions, false);
+            await processHtml('<p>Content</p>', defaultOptions);
         } catch (error) {
             thrown = error;
         }
@@ -105,7 +105,7 @@ describe('processHtml pass orchestration', () => {
         });
         const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
 
-        const result = await processHtml('<img src="https://example.com/image.png">', options, false);
+        const result = await processHtml('<img src="https://example.com/image.png">', options);
 
         expect(runPassesSpy).toHaveBeenCalledTimes(3);
         expect(result.resources).toEqual({
@@ -129,7 +129,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<img src="data:image/png;base64,AAAA">', options, false);
+            await processHtml('<img src="data:image/png;base64,AAAA">', options);
         } catch (error) {
             thrown = error;
         }

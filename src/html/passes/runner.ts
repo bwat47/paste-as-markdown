@@ -1,5 +1,5 @@
-import type { PasteOptions } from '../../types';
-import type { PassContext, ProcessingPass } from './types';
+import type { PassContext, PasteOptions } from '../../types';
+import type { ProcessingPass } from './types';
 
 const describeCause = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { PassExecutionError, runPasses } from '../html/passes/runner';
-import type { ProcessingPass, PassContext } from '../html/passes/types';
-import type { PasteOptions } from '../types';
+import type { ProcessingPass } from '../html/passes/types';
+import type { PassContext, PasteOptions } from '../types';
 
 describe('runPasses', () => {
     const options: PasteOptions = {
@@ -10,7 +10,7 @@ describe('runPasses', () => {
         normalizeQuotes: false,
         forceTightLists: false,
     };
-    const context: PassContext = { isGoogleDocs: false };
+    const context: PassContext = { source: 'generic' };
 
     test('skips passes whose condition is false and runs the rest', () => {
         const order: string[] = [];

@@ -25,7 +25,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Paste Orchestration
 
 - `src/pasteHandler.ts` coordinates the end-to-end paste flow.
-- It reads clipboard content, validates settings, detects special sources such as Google Docs, calls the converter, inserts the result into the editor, and manages user-facing fallback behavior.
+- It reads clipboard content, validates settings, detects a clipboard source discriminant such as `google-docs`, builds the shared pass context, calls the converter, inserts the result into the editor, and manages user-facing fallback behavior.
 
 ### HTML Processing
 
@@ -50,6 +50,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Shared Infrastructure
 
 - `src/constants.ts` defines setting keys and shared configuration.
+- Paste option defaults are defined once in `src/constants.ts` and reused by setting registration, validation, and conversion.
 - `src/logger.ts` centralizes logging.
 - `src/utils.ts` contains shared helpers such as settings validation and toast notifications.
 - `src/types.ts` defines the main data shapes shared across the pipeline.

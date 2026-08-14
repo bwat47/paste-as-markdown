@@ -4,8 +4,10 @@ import { HtmlProcessingError } from './html/processHtml';
 import { showToast, validatePasteSettings } from './utils';
 import { ToastType } from 'api/types';
 import type {
+    ClipboardSource,
     ConversionSuccess,
     ConversionFailure,
+    PassContext,
     PasteOptions,
     ResourceConversionMeta,
     ValidationResult,
@@ -22,7 +24,7 @@ async function readClipboardHtml(): Promise<string | null> {
     }
 }
 
-async function detectGoogleDocsSource(html: string | null): Promise<boolean> {
+async function detectClipboardSource(html: string | null): Promise<ClipboardSource> {
     let formats: string[] | null = null;
     try {
         // Primary detection: Google Docs specific MIME type
@@ -32,15 +34,15 @@ async function detectGoogleDocsSource(html: string | null): Promise<boolean> {
     }
 
     if (formats && formats.includes('application/x-vnd.google-docs-document-slice-clip+wrapped')) {
-        return true;
+        return 'google-docs';
     }
 
     // Secondary detection: Check HTML content for Google Docs internal GUID pattern
     if (html && /docs-internal-guid-/.test(html)) {
-        return true;
+        return 'google-docs';
     }
 
-    return false;
+    return 'generic';
 }
 
 async function readClipboardText(): Promise<string> {
@@ -198,24 +200,18 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
 
     // Read HTML and detect source
     const html = await readClipboardHtml();
-    const isGoogleDocs = await detectGoogleDocsSource(html);
+    const source = await detectClipboardSource(html);
+    const passContext: PassContext = { source };
 
     if (!html || !/</.test(html)) {
         return pastePlainTextOnly();
     }
 
     try {
-        // Pass detection result to conversion
-        const { markdown, resources } = await convertHtmlToMarkdown(html, {
-            includeImages: options.includeImages,
-            convertImagesToResources: options.convertImagesToResources,
-            normalizeQuotes: options.normalizeQuotes,
-            forceTightLists: options.forceTightLists,
-            isGoogleDocs,
-        });
+        const { markdown, resources } = await convertHtmlToMarkdown(html, options, passContext);
 
         // Add Google Docs indicator to success message for debugging
-        if (isGoogleDocs) {
+        if (source === 'google-docs') {
             logger.debug('Processed Google Docs content');
         }
 
