@@ -39,6 +39,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Markdown Conversion
 
 - `src/markdownConverter.ts` translates the processed DOM into Markdown.
+- It requires a complete `PasteOptions` and an explicit `PassContext` from its caller, so option resolution stays in the paste handler.
 - It builds a fresh Turndown pipeline for each paste, applies the GFM plugin, adds a small set of project-specific rules, and performs final Markdown cleanup before returning the result.
 - `src/markdown/fencedCode.ts` uses a read-only Lezer CST to identify fenced-code ranges so cleanup never changes code contents.
 
@@ -50,7 +51,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Shared Infrastructure
 
 - `src/constants.ts` defines setting keys and shared configuration.
-- Paste option defaults are defined once in `src/constants.ts` and reused by setting registration, settings loading, and conversion.
+- Paste option defaults are defined once in `src/constants.ts` and reused by setting registration and settings loading. Defaulting happens only at that boundary; the rest of the pipeline requires complete, already-resolved options.
 - `src/logger.ts` centralizes logging.
 - `src/utils.ts` contains shared helpers such as toast notifications.
 - `src/types.ts` defines the main data shapes shared across the pipeline.
