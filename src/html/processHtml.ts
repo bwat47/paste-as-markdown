@@ -43,13 +43,13 @@ const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
 /** Thrown when HTML processing cannot guarantee safe, correct output. */
 export class HtmlProcessingError extends Error {
     readonly reason: HtmlProcessingFailureReason;
-    readonly cause: unknown;
 
     constructor(reason: HtmlProcessingFailureReason, cause?: unknown) {
-        super(FAILURE_MESSAGES[reason]);
+        // `cause` is the native ES2022 Error option. Do not redeclare it as a class field:
+        // under `useDefineForClassFields` that would shadow the native property with undefined.
+        super(FAILURE_MESSAGES[reason], { cause });
         this.name = 'HtmlProcessingError';
         this.reason = reason;
-        this.cause = cause;
     }
 }
 
