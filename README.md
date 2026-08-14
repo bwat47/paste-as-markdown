@@ -2,7 +2,7 @@
 > This plugin was created entirely with AI tools.
 
 > [!note]
-> Joplin 3.6 now has a built-in Paste as Markdown function. The main difference with this plugin vs the native feature, is the plugin does some opinionated pre-processing to cleanup the HTML for cleaner markdown conversion.
+> Joplin 3.6 now has a built-in Paste as Markdown function. The main difference with this plugin vs the native feature is that this plugin does some opinionated pre-processing to cleanup the HTML for cleaner markdown conversion and uses the upstream version of turndown with a customized turndown-gfm plugin to avoid certain quirks with joplin's turndown fork (such as `<br>` tags making it into converted markdown and certain tables being kept as html).
 
 # Paste as Markdown
 
@@ -31,7 +31,7 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 - **DOM preprocessing** - Sanitizes HTML with DOMPurify and uses DOM pre-processing to remove unwanted elements before turndown conversion.
     - **Heading normalization** - Removes all nested markup from Headings so that turndown emits a clean markdown heading. Normalize to ensure that each heading is at most 1 level deeper than the previous heading.
 
-    - **Code block normalization** - Improved reliability when pasting code blocks. Normalizes known code block wrappers/containers to simple `<pre>`/`<code>` and infers language from common class patterns and applies a normalized class="language-xxx".
+    - **Code block normalization** - Improved reliability (e.g better language detection) when pasting code blocks. Normalizes known code block wrappers/containers to simple `<pre>`/`<code>` and infers language from common class patterns and applies a normalized class="language-xxx".
 
     - **Text normalization** - Removes zero width spaces and replaces "thin" spaces with normal spaces. (Optionally) normalizes smart quotes to regular quotes.
 
@@ -41,7 +41,9 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 - **Whitspace normalization** - Minimal post-processing to remove excess whitespace between paragraphs.
 
-- **Table support** - HTML tables are converted to markdown tables via turndown-plugin-gfm. Additionally, the plugin wraps orphaned table elements with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
+- **Table support** - HTML tables are converted to markdown tables via turndown-plugin-gfm.
+    - Orphaned table elements are wrapped with `<table>` tags, allowing pasted cells from excel/google sheets to be pasted as tables.
+    - Tables are always converted to Markdown (never kept as HTML).
 
 ## Settings
 
@@ -51,4 +53,4 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
 - **Normalize smart quotes** - Convert Word/Office smart quotes to regular quotes for better markdown compatibility.
 
-- **Force tight lists** - Removes space between list items.
+- **Force tight lists** - Prevents space between list items (unless they contain multi-block content).
