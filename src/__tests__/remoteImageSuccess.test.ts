@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { processHtml } from '../html/processHtml';
-import type { PasteOptions } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
 
 // 40 byte tiny PNG binary (fake) for streaming
 function tinyPngBytes(): Uint8Array {
@@ -55,12 +55,7 @@ describe('remote image success path', () => {
 
     test('successful remote image conversion increments metrics and rewrites src', async () => {
         const html = '<img src="https://example.com/image.png" alt="Remote">';
-        const options: PasteOptions = {
-            includeImages: true,
-            convertImagesToResources: true,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        };
+        const options = pasteOptions({ convertImagesToResources: true });
         const result = await processHtml(html, options);
         expect(result.resources.attempted).toBe(1);
         expect(result.resources.failed).toBe(0);

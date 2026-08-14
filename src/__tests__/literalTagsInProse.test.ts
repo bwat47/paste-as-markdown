@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 describe('literal HTML tag mentions in prose', () => {
     test('wraps <table>, <tr>, <th>, <td>, <li> mentions in inline code', async () => {

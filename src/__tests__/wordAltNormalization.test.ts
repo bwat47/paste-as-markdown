@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 describe('word alt normalization', () => {
     test('collapses line breaks in alt text from Word (&#10;)', async () => {

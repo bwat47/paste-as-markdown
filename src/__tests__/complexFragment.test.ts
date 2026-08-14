@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 // Snapshot test: combined real-world fragment (email artifacts + table + image + code span)
 // Guards against regressions across multiple transformation features simultaneously.

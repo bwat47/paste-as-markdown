@@ -1,15 +1,10 @@
 import { describe, test, expect } from 'vitest';
 import { processHtml } from '../html/processHtml';
-import type { PasteOptions } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
 
 // Security-focused tests to guard against XSS via clipboard HTML
 
-const TEST_OPTIONS: PasteOptions = {
-    includeImages: true,
-    convertImagesToResources: false,
-    normalizeQuotes: true,
-    forceTightLists: false,
-};
+const TEST_OPTIONS = pasteOptions();
 
 const DANGEROUS_ELEMENTS = 'script, iframe, object, embed, applet, frame, frameset, base, meta, link, svg, math';
 const URL_ATTRIBUTES = new Set(['href', 'src', 'xlink:href', 'data', 'action', 'formaction']);

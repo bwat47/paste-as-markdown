@@ -1,6 +1,6 @@
 import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
-import { DEFAULT_PASS_CONTEXT, DEFAULT_PASTE_OPTIONS, TURNDOWN_OPTIONS } from './constants';
+import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
 import type { PassContext, PasteOptions, HtmlToMarkdownResult } from './types';
@@ -128,34 +128,23 @@ function createTurndownService(includeImages: boolean): TurndownService {
  * and performs final Markdown cleanup.
  *
  * @param html Raw HTML fragment captured from the clipboard.
- * @param options Paste behavior flags. Supports `includeImages`, `convertImagesToResources`,
- * `normalizeQuotes`, and `forceTightLists` to tailor preprocessing.
+ * @param options Complete, validated paste behavior flags for preprocessing and conversion.
  * @param context Metadata used to select source-specific processing passes.
  * @returns Markdown output alongside resource metadata.
  */
 export async function convertHtmlToMarkdown(
     html: string,
-    options: Partial<PasteOptions> = {},
-    context: PassContext = DEFAULT_PASS_CONTEXT
+    options: PasteOptions,
+    context: PassContext
 ): Promise<HtmlToMarkdownResult> {
-    // Resolved field by field rather than by spreading over the defaults: a caller that passes an
-    // explicitly undefined flag (e.g. from a partially populated settings object) must still get
-    // the default, whereas a spread would let that undefined overwrite it.
-    const pasteOptions: PasteOptions = {
-        includeImages: options.includeImages ?? DEFAULT_PASTE_OPTIONS.includeImages,
-        convertImagesToResources: options.convertImagesToResources ?? DEFAULT_PASTE_OPTIONS.convertImagesToResources,
-        normalizeQuotes: options.normalizeQuotes ?? DEFAULT_PASTE_OPTIONS.normalizeQuotes,
-        forceTightLists: options.forceTightLists ?? DEFAULT_PASTE_OPTIONS.forceTightLists,
-    };
-
     // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
     const input = wrapOrphanedTableElements(html);
 
     // Apply DOM preprocessing to clean and sanitize the HTML
-    const processed = await processHtml(input, pasteOptions, context);
+    const processed = await processHtml(input, options, context);
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
-    const service = createTurndownService(pasteOptions.includeImages);
+    const service = createTurndownService(options.includeImages);
     let markdown = service.turndown(processed.body);
 
     // Post-process the markdown for final cleanup

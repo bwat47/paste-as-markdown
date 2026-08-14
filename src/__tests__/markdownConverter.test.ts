@@ -1,5 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
+import { DEFAULT_PASS_CONTEXT } from '../constants';
+import { pasteOptions } from './helpers/pasteOptions';
 
 // Mock upstream turndown so we can assert rule wiring without invoking full conversion logic.
 vi.mock('turndown', () => {
@@ -38,7 +40,7 @@ describe('markdownConverter', () => {
 
     test('processes HTML and calls turndown service', async () => {
         const { default: TurndownService } = await import('turndown');
-        const { markdown: result } = await convertHtmlToMarkdown('<p>Test</p>');
+        const { markdown: result } = await convertHtmlToMarkdown('<p>Test</p>', pasteOptions(), DEFAULT_PASS_CONTEXT);
         expect(TurndownService).toHaveBeenCalled();
         const instance = (TurndownService as unknown as Mock).mock.results[0].value as {
             use: Mock;
@@ -51,7 +53,11 @@ describe('markdownConverter', () => {
 
     test('processes HTML through DOM preprocessing when includeImages is false (defensive removals still applied)', async () => {
         const { default: TurndownService } = await import('turndown');
-        await convertHtmlToMarkdown('<p>Test <img src="test.jpg"> content</p>', { includeImages: false });
+        await convertHtmlToMarkdown(
+            '<p>Test <img src="test.jpg"> content</p>',
+            pasteOptions({ includeImages: false }),
+            DEFAULT_PASS_CONTEXT
+        );
         const instance = (TurndownService as unknown as Mock).mock.results[0].value as {
             remove: Mock;
             addRule: Mock;
@@ -68,7 +74,7 @@ describe('markdownConverter', () => {
 
     test('strips leading blank lines from output', async () => {
         const html = '<p>ABC<br>DEF</p>';
-        const { markdown: result } = await convertHtmlToMarkdown(html);
+        const { markdown: result } = await convertHtmlToMarkdown(html, pasteOptions(), DEFAULT_PASS_CONTEXT);
         // Our mock always returns '# Mock Output', so we cannot assert actual trimming here.
         // Instead, simulate the trimming function directly to validate regex behavior.
         const simulate = (md: string) => md.replace(/^(?:[ \t]*\n)+/, '');

@@ -5,14 +5,10 @@ import { PROCESSING_PASSES } from '../html/passes/registry';
 import * as resourceConverter from '../resourceConverter';
 import logger from '../logger';
 import type { ProcessingPass } from '../html/passes/types';
-import type { PasteOptions } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
 
-const defaultOptions: PasteOptions = {
-    includeImages: false,
-    convertImagesToResources: false,
-    normalizeQuotes: false,
-    forceTightLists: false,
-};
+/** Everything off, so each test opts into only the flags whose passes it asserts on. */
+const inertOptions = pasteOptions({ includeImages: false, normalizeQuotes: false });
 
 afterEach(() => {
     vi.restoreAllMocks();
@@ -29,7 +25,7 @@ describe('processHtml pass orchestration', () => {
             });
 
         const html = '<p>Hello <strong>world</strong></p>';
-        const result = await processHtml(html, defaultOptions);
+        const result = await processHtml(html, inertOptions);
 
         expect(result.body).not.toBeNull();
         expect(runPassesSpy).toHaveBeenCalledTimes(3);
@@ -56,7 +52,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<p>Content</p>', defaultOptions);
+            await processHtml('<p>Content</p>', inertOptions);
         } catch (error) {
             thrown = error;
         }
@@ -74,7 +70,7 @@ describe('processHtml pass orchestration', () => {
 
         let thrown: unknown;
         try {
-            await processHtml('<p>Content</p>', defaultOptions);
+            await processHtml('<p>Content</p>', inertOptions);
         } catch (error) {
             thrown = error;
         }
@@ -87,8 +83,8 @@ describe('processHtml pass orchestration', () => {
         // Resources are already created at this point, so aborting would orphan them without
         // making the output any more correct: the remaining transforms are cosmetic.
         const passError = new passRunner.PassExecutionError('post-image test pass', new Error('post-image failed'));
-        const options: PasteOptions = {
-            ...defaultOptions,
+        const options = {
+            ...inertOptions,
             includeImages: true,
             convertImagesToResources: true,
         };
@@ -121,8 +117,8 @@ describe('processHtml pass orchestration', () => {
     test('treats an unexpected image conversion exception as fatal', async () => {
         const cause = new Error('Resource API unavailable');
         vi.spyOn(resourceConverter, 'convertImagesToResources').mockRejectedValue(cause);
-        const options: PasteOptions = {
-            ...defaultOptions,
+        const options = {
+            ...inertOptions,
             includeImages: true,
             convertImagesToResources: true,
         };

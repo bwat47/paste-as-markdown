@@ -1,15 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import { PassExecutionError, runPasses } from '../html/passes/runner';
 import type { ProcessingPass } from '../html/passes/types';
-import type { PassContext, PasteOptions } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
+import type { PassContext } from '../types';
 
 describe('runPasses', () => {
-    const options: PasteOptions = {
-        includeImages: true,
-        convertImagesToResources: false,
-        normalizeQuotes: false,
-        forceTightLists: false,
-    };
+    const options = pasteOptions({ normalizeQuotes: false });
     const context: PassContext = { source: 'generic' };
 
     test('skips passes whose condition is false and runs the rest', () => {

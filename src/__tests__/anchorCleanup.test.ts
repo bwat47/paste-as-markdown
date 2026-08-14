@@ -1,14 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { processHtml } from '../html/processHtml';
-import type { PasteOptions } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
 
 describe('empty anchor cleanup', () => {
-    const defaultOptions: PasteOptions = {
-        includeImages: true,
-        convertImagesToResources: false,
-        normalizeQuotes: false,
-        forceTightLists: false,
-    };
+    const options = pasteOptions({ normalizeQuotes: false });
 
     test('removes anchors that only contain decorative svg content', async () => {
         const input = `
@@ -18,14 +13,14 @@ describe('empty anchor cleanup', () => {
                 </a>
             </p>
         `;
-        const { body } = await processHtml(input, defaultOptions);
+        const { body } = await processHtml(input, options);
         expect(body).not.toBeNull();
         expect(body!.querySelector('a[href="https://example.com"]')).toBeNull();
     });
 
     test('preserves image anchors when images are included', async () => {
         const input = '<p><a href="https://example.com"><img src="test.png" alt="Example"></a></p>';
-        const { body } = await processHtml(input, defaultOptions);
+        const { body } = await processHtml(input, options);
         expect(body).not.toBeNull();
         const anchor = body!.querySelector('a[href="https://example.com"]');
         expect(anchor).not.toBeNull();
@@ -38,7 +33,7 @@ describe('empty anchor cleanup', () => {
                 <a class="headerlink" href="#rate-limits" title="Permalink to this heading">¶</a>
             </h2>
         `;
-        const { body } = await processHtml(input, defaultOptions);
+        const { body } = await processHtml(input, options);
         expect(body).not.toBeNull();
         const heading = body!.querySelector('h2#rate-limits');
         expect(heading).not.toBeNull();
@@ -52,7 +47,7 @@ describe('empty anchor cleanup', () => {
                 <a class="headerlink" href="https://example.com/docs#quota" title="Permalink to this heading">¶</a>
             </h2>
         `;
-        const { body } = await processHtml(input, defaultOptions);
+        const { body } = await processHtml(input, options);
         expect(body).not.toBeNull();
         const heading = body!.querySelector('h2#quota');
         expect(heading).not.toBeNull();
