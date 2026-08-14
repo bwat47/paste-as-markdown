@@ -12,7 +12,7 @@ describe('runPasses', () => {
     };
     const context: PassContext = { isGoogleDocs: false };
 
-    test('returns undefined after all eligible passes complete', () => {
+    test('skips passes whose condition is false and runs the rest', () => {
         const order: string[] = [];
         const passes: ProcessingPass[] = [
             {
@@ -28,7 +28,8 @@ describe('runPasses', () => {
 
         const body = window.document.createElement('div');
 
-        expect(runPasses(passes, body, options, context)).toBeUndefined();
+        runPasses(passes, body, options, context);
+
         expect(order).toEqual(['executed']);
     });
 

@@ -1,7 +1,6 @@
 import { describe, expect, test, afterEach, vi } from 'vitest';
 import { HtmlProcessingError, processHtml } from '../html/processHtml';
 import * as passRunner from '../html/passes/runner';
-import { PassExecutionError } from '../html/passes/runner';
 import { PROCESSING_PASSES } from '../html/passes/registry';
 import * as resourceConverter from '../resourceConverter';
 import logger from '../logger';
@@ -48,7 +47,7 @@ describe('processHtml pass orchestration', () => {
         { phase: 'post-sanitize', failingCall: 2 },
     ])('turns a $phase pass error into a fatal HTML processing error', async ({ phase, failingCall }) => {
         const cause = new Error(`${phase} failed`);
-        const passError = new PassExecutionError(`${phase} test pass`, cause);
+        const passError = new passRunner.PassExecutionError(`${phase} test pass`, cause);
         let callCount = 0;
         const runPassesSpy = vi.spyOn(passRunner, 'runPasses').mockImplementation(() => {
             callCount++;
@@ -87,7 +86,7 @@ describe('processHtml pass orchestration', () => {
     test('keeps the converted DOM when a post-image pass fails', async () => {
         // Resources are already created at this point, so aborting would orphan them without
         // making the output any more correct: the remaining transforms are cosmetic.
-        const passError = new PassExecutionError('post-image test pass', new Error('post-image failed'));
+        const passError = new passRunner.PassExecutionError('post-image test pass', new Error('post-image failed'));
         let callCount = 0;
         const runPassesSpy = vi.spyOn(passRunner, 'runPasses').mockImplementation(() => {
             callCount++;
