@@ -1,4 +1,4 @@
-import { DEFAULT_PASTE_OPTIONS } from '../../constants';
+import { DEFAULT_PASTE_OPTIONS } from '../../settings';
 import type { PasteOptions } from '../../types';
 
 /**

@@ -14,11 +14,21 @@
  *  - Enforces strict base64 and size limits
  */
 
-import { MAX_IMAGE_BYTES, DOWNLOAD_TIMEOUT_MS } from './constants';
 import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
+
+export interface ResourceConversionLimits {
+    readonly maxImageBytes: number;
+    readonly downloadTimeoutMs: number;
+}
+
+const DEFAULT_RESOURCE_CONVERSION_LIMITS: ResourceConversionLimits = {
+    // Hard cap for image resource conversion to avoid excessive memory/disk usage (approximately 25 MB).
+    maxImageBytes: 25 * 1024 * 1024,
+    downloadTimeoutMs: 15000,
+};
 
 // Global joplin API (available at runtime in Joplin plugin environment)
 declare const joplin: Joplin;
@@ -64,11 +74,14 @@ function isRemoteSource(source: ImageSource): source is RemoteImageSource {
  *  - src does NOT already start with :/ (already a resource)
  *
  * @param body Root element whose descendant <img> nodes are inspected/modified.
+ * @param limitOverrides Resource limits to apply instead of {@link DEFAULT_RESOURCE_CONVERSION_LIMITS}.
  * @returns ids (resource IDs created), attempted (count of images we tried to convert), failed (conversion failures).
  */
 export async function convertImagesToResources(
-    body: HTMLElement
+    body: HTMLElement,
+    limitOverrides: Partial<ResourceConversionLimits> = {}
 ): Promise<{ ids: string[]; attempted: number; failed: number }> {
+    const limits = { ...DEFAULT_RESOURCE_CONVERSION_LIMITS, ...limitOverrides };
     let fs: FileSystem;
     try {
         fs = joplin.require('fs-extra');
@@ -86,8 +99,8 @@ export async function convertImagesToResources(
         try {
             attempted++;
             let data: ParsedImageData | null = null;
-            if (isDataSource(source)) data = await parseBase64Image(source.url);
-            else if (isRemoteSource(source)) data = await downloadExternalImage(source.url);
+            if (isDataSource(source)) data = await parseBase64Image(source.url, limits.maxImageBytes);
+            else if (isRemoteSource(source)) data = await downloadExternalImage(source.url, limits);
             if (!data) continue;
             const id = await createJoplinResource(fs, data);
             img.setAttribute('src', `:/${id}`);
@@ -111,7 +124,7 @@ export async function convertImagesToResources(
  * Decode and validate a base64 data URL image.
  * Performs early size estimation before allocating full decoded buffer.
  */
-async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
+async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
     const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
     if (!match) throw new Error('Invalid data URL');
     const mime = match[1].toLowerCase();
@@ -121,7 +134,7 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
     if (/[^A-Za-z0-9+/=]/.test(b64)) throw new Error('Invalid base64 characters');
     if (b64.length % 4 === 1) throw new Error('Malformed base64 length');
     const estimatedBytes = Math.floor((b64.length * 3) / 4);
-    if (estimatedBytes > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
+    if (estimatedBytes > maxImageBytes) throw new Error('Image exceeds maximum size');
     let binary: string;
     try {
         binary = atob(b64);
@@ -129,17 +142,17 @@ async function parseBase64Image(dataUrl: string): Promise<ParsedImageData> {
         throw new Error('Base64 decode failed');
     }
     const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
-    if (bytes.byteLength > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
+    if (bytes.byteLength > maxImageBytes) throw new Error('Image exceeds maximum size');
     return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
 }
 
 /**
  * Download an external image with streaming size enforcement.
- * Aborts if cumulative bytes exceed MAX_IMAGE_BYTES.
+ * Aborts if cumulative bytes exceed the configured maximum.
  */
-async function downloadExternalImage(url: string): Promise<ParsedImageData> {
+async function downloadExternalImage(url: string, limits: ResourceConversionLimits): Promise<ParsedImageData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), limits.downloadTimeoutMs);
     const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
     clearTimeout(timeout);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -148,7 +161,7 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
     const contentLengthHeader = resp.headers.get('content-length');
     if (contentLengthHeader) {
         const asInt = parseInt(contentLengthHeader, 10);
-        if (!isNaN(asInt) && asInt > MAX_IMAGE_BYTES) throw new Error('Image exceeds maximum size');
+        if (!isNaN(asInt) && asInt > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
     }
     const reader = resp.body!.getReader();
     const chunks: Uint8Array[] = [];
@@ -159,7 +172,7 @@ async function downloadExternalImage(url: string): Promise<ParsedImageData> {
         if (value) {
             chunks.push(value);
             received += value.length;
-            if (received > MAX_IMAGE_BYTES) {
+            if (received > limits.maxImageBytes) {
                 controller.abort();
                 throw new Error('Image exceeds maximum size');
             }

@@ -1,7 +1,8 @@
 import joplin from 'api';
 import { ToastType } from 'api/types';
-import { TOAST_DURATION } from './constants';
 import logger from './logger';
+
+const TOAST_DURATION = 4000;
 
 export async function showToast(message: string, type: ToastType = ToastType.Info, duration = TOAST_DURATION) {
     try {

@@ -1,11 +1,21 @@
 import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
-import { TURNDOWN_OPTIONS } from './constants';
 import { processHtml } from './html/processHtml';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
 import type { PassContext, PasteOptions, HtmlToMarkdownResult } from './types';
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
+
+const TURNDOWN_OPTIONS = {
+    headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+    bulletListMarker: '-',
+    emDelimiter: '*',
+    strongDelimiter: '**',
+    // Two spaces ensure <br> converts correctly. See https://github.com/laurent22/joplin/commit/ac66332a4eb83d8829fbd6cc68a11ef3053c41de
+    br: '  ',
+    linkStyle: 'inlined',
+} as const;
 
 /**
  * Collapses a run of trailing newlines down to a single one, leaving content without a

@@ -11,8 +11,8 @@ import type {
     PasteOptions,
     ResourceConversionMeta,
 } from './types';
-import { DEFAULT_PASS_CONTEXT, DEFAULT_PASTE_OPTIONS, SETTINGS } from './constants';
-import type { SettingKey } from './constants';
+import { DEFAULT_PASS_CONTEXT } from './html/passContext';
+import { loadPasteOptions } from './settings';
 import logger from './logger';
 
 async function readClipboardHtml(): Promise<string | null> {
@@ -119,39 +119,6 @@ async function fallbackOrFailure(
         success: false,
         warnings: [errorMessage, fallbackWarning],
         plainTextFallback: false,
-    };
-}
-
-function resolveBooleanSetting(setting: SettingKey, value: unknown, defaultValue: boolean): boolean {
-    if (typeof value === 'boolean') return value;
-    if (value !== undefined) {
-        logger.warn('Invalid boolean setting; using default', { setting, value, defaultValue });
-    }
-    return defaultValue;
-}
-
-async function loadPasteOptions(): Promise<PasteOptions> {
-    return {
-        includeImages: resolveBooleanSetting(
-            SETTINGS.INCLUDE_IMAGES,
-            await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
-            DEFAULT_PASTE_OPTIONS.includeImages
-        ),
-        convertImagesToResources: resolveBooleanSetting(
-            SETTINGS.CONVERT_IMAGES_TO_RESOURCES,
-            await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
-            DEFAULT_PASTE_OPTIONS.convertImagesToResources
-        ),
-        normalizeQuotes: resolveBooleanSetting(
-            SETTINGS.NORMALIZE_QUOTES,
-            await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
-            DEFAULT_PASTE_OPTIONS.normalizeQuotes
-        ),
-        forceTightLists: resolveBooleanSetting(
-            SETTINGS.FORCE_TIGHT_LISTS,
-            await joplin.settings.value(SETTINGS.FORCE_TIGHT_LISTS),
-            DEFAULT_PASTE_OPTIONS.forceTightLists
-        ),
     };
 }
 

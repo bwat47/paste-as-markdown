@@ -1,4 +1,4 @@
-import { DEFAULT_PASS_CONTEXT } from '../../constants';
+import { DEFAULT_PASS_CONTEXT } from '../../html/passContext';
 import { convertHtmlToMarkdown as convertHtmlToMarkdownWithOptions } from '../../markdownConverter';
 import { pasteOptions } from './pasteOptions';
 import type { HtmlToMarkdownResult, PassContext, PasteOptions } from '../../types';
