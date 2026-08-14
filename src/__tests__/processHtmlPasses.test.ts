@@ -67,6 +67,23 @@ describe('processHtml pass orchestration', () => {
         expect(thrown).toMatchObject({ reason: 'pass-failed', cause: passError });
     });
 
+    test('classifies an unclassified error as unexpected rather than a sanitization failure', async () => {
+        const cause = new Error('Escaped a stage that should classify its own failures');
+        vi.spyOn(passRunner, 'runPasses').mockImplementation(() => {
+            throw cause;
+        });
+
+        let thrown: unknown;
+        try {
+            await processHtml('<p>Content</p>', defaultOptions, false);
+        } catch (error) {
+            thrown = error;
+        }
+
+        expect(thrown).toBeInstanceOf(HtmlProcessingError);
+        expect(thrown).toMatchObject({ reason: 'unexpected', cause });
+    });
+
     test('keeps the converted DOM when a post-image pass fails', async () => {
         // Resources are already created at this point, so aborting would orphan them without
         // making the output any more correct: the remaining transforms are cosmetic.

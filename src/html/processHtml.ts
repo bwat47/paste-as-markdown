@@ -25,13 +25,19 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
     failed: 0,
 };
 
-type HtmlProcessingFailureReason = 'dom-unavailable' | 'sanitize-failed' | 'pass-failed' | 'image-conversion-failed';
+type HtmlProcessingFailureReason =
+    | 'dom-unavailable'
+    | 'sanitize-failed'
+    | 'pass-failed'
+    | 'image-conversion-failed'
+    | 'unexpected';
 
 const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
     'dom-unavailable': 'DOM APIs unavailable; cannot process HTML safely.',
     'sanitize-failed': 'HTML sanitization failed; unable to continue processing.',
     'pass-failed': 'HTML cleanup failed; unable to continue processing safely.',
     'image-conversion-failed': 'Image conversion failed unexpectedly; unable to continue processing safely.',
+    unexpected: 'HTML processing failed unexpectedly; unable to continue processing safely.',
 };
 
 /** Thrown when HTML processing cannot guarantee safe, correct output. */
@@ -153,6 +159,7 @@ export async function processHtml(
         if (cause instanceof PassExecutionError) {
             throw new HtmlProcessingError('pass-failed', cause);
         }
-        throw new HtmlProcessingError('sanitize-failed', cause);
+        // Anything else escaped a stage that was expected to classify its own failures.
+        throw new HtmlProcessingError('unexpected', cause);
     }
 }
