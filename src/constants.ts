@@ -21,6 +21,8 @@ export const SETTINGS = {
     FORCE_TIGHT_LISTS: 'forceTightLists',
 } as const;
 
+export type SettingKey = (typeof SETTINGS)[keyof typeof SETTINGS];
+
 export const DEFAULT_PASTE_OPTIONS = {
     includeImages: true,
     convertImagesToResources: false,

@@ -12,6 +12,7 @@ import type {
     ResourceConversionMeta,
 } from './types';
 import { DEFAULT_PASTE_OPTIONS, SETTINGS } from './constants';
+import type { SettingKey } from './constants';
 import logger from './logger';
 
 async function readClipboardHtml(): Promise<string | null> {
@@ -121,7 +122,7 @@ async function fallbackOrFailure(
     };
 }
 
-function resolveBooleanSetting(setting: string, value: unknown, defaultValue: boolean): boolean {
+function resolveBooleanSetting(setting: SettingKey, value: unknown, defaultValue: boolean): boolean {
     if (typeof value === 'boolean') return value;
     if (value !== undefined) {
         logger.warn('Invalid boolean setting; using default', { setting, value, defaultValue });
