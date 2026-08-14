@@ -30,24 +30,18 @@ describe('runPasses', () => {
         const passes: ProcessingPass[] = [
             {
                 name: 'First pass',
-                phase: 'pre-sanitize',
-                priority: 10,
                 execute: () => {
                     order.push('first');
                 },
             },
             {
                 name: 'Failing pass',
-                phase: 'pre-sanitize',
-                priority: 20,
                 execute: () => {
                     throw new Error('Boom');
                 },
             },
             {
                 name: 'Final pass',
-                phase: 'pre-sanitize',
-                priority: 30,
                 execute: () => {
                     order.push('final');
                 },

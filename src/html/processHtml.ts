@@ -1,14 +1,14 @@
 /**
- * HTML processing pipeline: parse → pre-sanitize passes → DOMPurify → post-sanitize passes → image conversion.
+ * HTML processing pipeline: parse → pre-sanitize passes → DOMPurify → post-sanitize passes →
+ * image conversion → post-image passes.
  * Throws HtmlProcessingError on failure; callers should catch and attempt plain text fallback.
  */
 
 import type { PasteOptions, ResourceConversionMeta } from '../types';
-import { POST_IMAGE_PASS_PRIORITY } from '../constants';
 import { convertImagesToResources } from '../resourceConverter';
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from '../sanitizerConfig';
-import { getProcessingPasses } from './passes/registry';
+import { PROCESSING_PASSES } from './passes/registry';
 import { runPasses } from './passes/runner';
 import type { PassContext } from './passes/types';
 import logger from '../logger';
@@ -68,17 +68,6 @@ function performSanitization(html: string, includeImages: boolean): string {
     return purifier.sanitize(html, buildSanitizerConfig({ includeImages })) as string;
 }
 
-/** Split post-sanitize passes into pre-image and post-image groups by priority threshold. */
-function splitPassesByPriority(passes: ReturnType<typeof getProcessingPasses>['postSanitize']): {
-    preImage: typeof passes;
-    postImage: typeof passes;
-} {
-    return {
-        preImage: passes.filter((p) => p.priority < POST_IMAGE_PASS_PRIORITY),
-        postImage: passes.filter((p) => p.priority >= POST_IMAGE_PASS_PRIORITY),
-    };
-}
-
 /** Convert images to Joplin resources if enabled. Returns empty metadata if disabled. */
 async function handleImageConversion(body: HTMLElement, options: PasteOptions): Promise<ResourceConversionMeta> {
     if (!options.includeImages || !options.convertImagesToResources) {
@@ -106,8 +95,7 @@ export async function processHtml(
     }
 
     const passContext: PassContext = { isGoogleDocs };
-    const { preSanitize, postSanitize } = getProcessingPasses();
-    const { preImage, postImage } = splitPassesByPriority(postSanitize);
+    const { preSanitize, postSanitize, postImage } = PROCESSING_PASSES;
 
     try {
         // 1. Parse raw HTML
@@ -134,8 +122,8 @@ export async function processHtml(
             throw new HtmlProcessingError('sanitize-failed');
         }
 
-        // 5. Post-sanitize passes (pre-image)
-        runPasses(preImage, body, options, passContext);
+        // 5. Post-sanitize passes
+        runPasses(postSanitize, body, options, passContext);
 
         // 6. Image conversion (graceful failure)
         let resources: ResourceConversionMeta;
@@ -147,9 +135,7 @@ export async function processHtml(
         }
 
         // 7. Post-image passes
-        if (options.includeImages && postImage.length > 0) {
-            runPasses(postImage, body, options, passContext);
-        }
+        runPasses(postImage, body, options, passContext);
 
         return { body, resources };
     } catch (err) {
