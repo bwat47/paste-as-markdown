@@ -154,16 +154,48 @@ function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | nul
 }
 
 /**
+ * Collect the srcset values that may supply a src for one image, in preference order.
+ *
+ * The image's own srcset comes first because it is the author's declared fallback and needs no
+ * media-query or type evaluation to be a safe choice. A <picture> ancestor's <source> elements
+ * follow in document order, which is the order a browser would test them.
+ */
+function collectSrcsetCandidatePool(image: HTMLImageElement): string[] {
+    const pool: string[] = [];
+
+    const ownSrcset = image.getAttribute('srcset');
+    if (ownSrcset) pool.push(ownSrcset);
+
+    const picture = image.closest('picture');
+    if (picture) {
+        picture.querySelectorAll('source[srcset]').forEach((source) => {
+            const sourceSrcset = source.getAttribute('srcset');
+            if (sourceSrcset) pool.push(sourceSrcset);
+        });
+    }
+
+    return pool;
+}
+
+/**
  * Set src to the highest-resolution comparable srcset candidate when src is missing or blank.
- * Existing src values remain authoritative, and DOMPurify validates every promoted URL later.
+ *
+ * Covers both a bare <img srcset> and an <img> inside a <picture>, since the sanitizer keeps
+ * <source> elements but strips their srcset, which would otherwise leave the image with no source
+ * at all. Existing src values remain authoritative, and DOMPurify validates every promoted URL.
  */
 export function promoteLargestSrcsetCandidateToSrc(body: HTMLElement): void {
-    const images = Array.from(body.querySelectorAll('img[srcset]')) as HTMLImageElement[];
+    const images = Array.from(body.querySelectorAll('img')) as HTMLImageElement[];
 
     images.forEach((image) => {
         if (image.getAttribute('src')?.trim()) return;
 
-        const candidate = selectLargestComparableCandidate(image.getAttribute('srcset') || '');
-        if (candidate) image.setAttribute('src', candidate.url);
+        for (const srcset of collectSrcsetCandidatePool(image)) {
+            const candidate = selectLargestComparableCandidate(srcset);
+            if (candidate) {
+                image.setAttribute('src', candidate.url);
+                return;
+            }
+        }
     });
 }

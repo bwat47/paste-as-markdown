@@ -99,6 +99,46 @@ const SELECTION_CASES: readonly SelectionCase[] = [
     },
 ];
 
+/** <picture> cases, where the srcset that can rescue the image lives on a sibling <source>. */
+interface PictureCase {
+    readonly name: string;
+    readonly html: string;
+    readonly expected: string | null;
+}
+
+const PICTURE_CASES: readonly PictureCase[] = [
+    {
+        name: 'promotes a picture source when the image has no src or srcset',
+        html: '<picture><source srcset="big.webp 1600w"><img alt="Hero"></picture>',
+        expected: 'big.webp',
+    },
+    {
+        name: 'uses the first picture source that yields a candidate',
+        html: '<picture><source srcset="first.webp 800w"><source srcset="second.jpg 1600w"><img alt="Hero"></picture>',
+        expected: 'first.webp',
+    },
+    {
+        name: 'skips a picture source whose candidates are all malformed',
+        html: '<picture><source srcset="broken.webp nope"><source srcset="usable.jpg 800w"><img alt="Hero"></picture>',
+        expected: 'usable.jpg',
+    },
+    {
+        name: 'prefers the image own srcset over a picture source',
+        html: '<picture><source srcset="source.webp 1600w"><img alt="Hero" srcset="own.jpg 320w"></picture>',
+        expected: 'own.jpg',
+    },
+    {
+        name: 'keeps an existing image src ahead of any picture source',
+        html: '<picture><source srcset="source.webp 1600w"><img alt="Hero" src="existing.jpg"></picture>',
+        expected: 'existing.jpg',
+    },
+    {
+        name: 'promotes nothing when no picture source yields a candidate',
+        html: '<picture><source srcset="broken.webp nope"><img alt="Hero"></picture>',
+        expected: null,
+    },
+];
+
 describe('image srcset fallback promotion', () => {
     test('uses the largest width candidate when src is missing', async () => {
         const { markdown } = await convertHtmlToMarkdown(
@@ -128,6 +168,12 @@ describe('image srcset fallback promotion', () => {
 
     test.each(SELECTION_CASES)('$name', async ({ srcset, expected }) => {
         const result = await processHtml(`<img alt="Hero" srcset="${srcset}">`, IMAGE_OPTIONS);
+
+        expect(result.body.querySelector('img')?.getAttribute('src')).toBe(expected);
+    });
+
+    test.each(PICTURE_CASES)('$name', async ({ html, expected }) => {
+        const result = await processHtml(html, IMAGE_OPTIONS);
 
         expect(result.body.querySelector('img')?.getAttribute('src')).toBe(expected);
     });
