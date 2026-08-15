@@ -18,9 +18,11 @@ function lineStartAt(markdown: string, position: number): number {
  *
  * Ranges are widened backwards to the start of the opening line so the container prefix
  * (list indentation, blockquote markers) stays inside the protected range. Turndown emits
- * fences whose opening line is nothing but indentation - `- foo\n\n    ```\n    a\n    ``` `
+ * fences whose opening line is nothing but indentation - `- foo\n\n\t```\n\ta\n\t``` `
  * for a `<pre>` after a paragraph in a list item - and leaving that indentation in the
  * preceding segment lets a whitespace-only line strip delete it and unnest the fence.
+ * The indent is tabs or spaces per the list indentation setting; either way it is
+ * whitespace that the strip would otherwise remove.
  */
 function findFencedCodeRanges(markdown: string): SourceRange[] {
     const ranges: SourceRange[] = [];
