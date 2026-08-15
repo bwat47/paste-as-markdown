@@ -1,6 +1,12 @@
 import { isInCode } from '../shared/dom';
 
-const BADGE_IMAGE_EXTENSIONS = '(?:svg|png|gif|webp)';
+/**
+ * Badge assets are effectively always SVG, so the generic `/badges/` path rule is limited to that
+ * extension. Raster formats under such a path are far more likely to be photographs.
+ */
+const BADGE_ASSET_EXTENSION = 'svg';
+/** Status and donation badges render at roughly 20 CSS pixels tall; taller images are content. */
+const MAX_BADGE_ASSET_HEIGHT = 40;
 const MAX_CAMO_ENCODED_URL_LENGTH = 16 * 1024;
 const HEX_PAIR_LENGTH = 2;
 const GITHUB_CAMO_URL_PATTERN = /^https?:\/\/camo\.githubusercontent\.com\/[0-9a-f]+\/([0-9a-f]+)(?:[?#]|$)/i;
@@ -32,7 +38,7 @@ const BADGE_IMAGE_URL_PATTERNS: readonly RegExp[] = [
     /^https?:\/\/(?:www\.)?opencollective\.com\/[^/?#]+\/(?:sponsors|backers)\/badge\.svg(?:[?#]|$)/i,
     /^https?:\/\/issuestats\.com\/github(?:\/[^/?#]+){2}\/badge\/(?:pr|issue)\/?(?:[?#]|$)/i,
     /^https?:\/\/(?:www\.)?circleci\.com\/(?:gh|bb)(?:\/[^/?#]+){2}\.(?:svg|png)(?:[?#]|$)/i,
-    new RegExp(`^https?:\\/\\/[^/?#]+\\/(?:[^?#]*\\/)?badges?\\/[^?#]+\\.${BADGE_IMAGE_EXTENSIONS}(?:[?#]|$)`, 'i'),
+    new RegExp(`^https?:\\/\\/[^/?#]+\\/(?:[^?#]*\\/)?badges?\\/[^?#]+\\.${BADGE_ASSET_EXTENSION}(?:[?#]|$)`, 'i'),
 ];
 
 /**
@@ -48,9 +54,29 @@ const DONATION_LINK_URL_PATTERNS: readonly RegExp[] = [
     /^https?:\/\/[^/?#]+\/(?:donate|donations|sponsor|sponsors)(?:[/?#]|$)/i,
 ];
 
-/** Accessible labels used by common donation buttons, including custom-hosted images. */
-const DONATION_ALT_PATTERN =
-    /\b(?:donat(?:e|ion)|sponsor(?:ship)?|become a patron|buy me a coffee|ko-fi|patreon|paypal)\b/i;
+/**
+ * Accessible labels used by common donation buttons, including custom-hosted images.
+ *
+ * These are call-to-action phrases rather than bare nouns such as "donate" or "paypal", because an
+ * alt attribute is matched on its own: a screenshot labelled "PayPal checkout screen" or a photo
+ * labelled "Blood donation drive" is ordinary content and must survive the pass.
+ */
+const DONATION_ALT_PATTERNS: readonly RegExp[] = [
+    /\bdonate\s+(?:using|with|via|through|to)\b/i,
+    /\bbecome\s+a\s+(?:patron|sponsor|backer)\b/i,
+    /\bbuy\s+me\s+a\s+(?:coffee|beer)\b/i,
+    /\bsponsor\s+(?:me|us|on|this)\b/i,
+    /\bsupport\s+(?:me|us|this\s+project)\b/i,
+    /\b(?:donate|donation|sponsor)s?\s+button\b/i,
+    /\bko-?fi\b/i,
+];
+
+/**
+ * Filename hints that corroborate a donation link. Word boundaries are spelled out because
+ * separators such as `_` count as word characters (for example `btn_donate_LG.gif`).
+ */
+const BADGE_FILENAME_HINT_PATTERN =
+    /(?:^|[^a-z0-9])(?:badges?|buttons?|donate|donation|sponsor|patreon|kofi|paypal)(?:[^a-z0-9]|$)/i;
 
 function matchesAny(value: string | null, patterns: readonly RegExp[]): boolean {
     if (!value) return false;
@@ -84,12 +110,41 @@ function isKnownBadgeImageUrl(value: string | null): boolean {
     return matchesAny(decodeGithubCamoUrl(value), BADGE_IMAGE_URL_PATTERNS);
 }
 
-function isBadgeImage(image: HTMLImageElement): boolean {
-    if (isKnownBadgeImageUrl(image.getAttribute('src'))) return true;
-    if (DONATION_ALT_PATTERN.test(image.getAttribute('alt')?.trim() || '')) return true;
+/** The path of a URL, with any query string and fragment removed. */
+function getUrlPath(url: string): string {
+    return url.split(/[?#]/)[0];
+}
 
+function hasBadgeSizedHeight(image: HTMLImageElement): boolean {
+    const height = Number.parseInt(image.getAttribute('height') || '', 10);
+    return Number.isFinite(height) && height > 0 && height <= MAX_BADGE_ASSET_HEIGHT;
+}
+
+/**
+ * Whether the image itself looks like a badge asset: an SVG, a badge-like filename, or an image
+ * declared at badge height. Used to corroborate a donation link, which describes where the image
+ * points rather than what the image is.
+ */
+function looksLikeBadgeAsset(image: HTMLImageElement): boolean {
+    const src = image.getAttribute('src')?.trim();
+    if (src) {
+        const path = getUrlPath(src).toLowerCase();
+        if (path.endsWith(`.${BADGE_ASSET_EXTENSION}`)) return true;
+        if (BADGE_FILENAME_HINT_PATTERN.test(path.slice(path.lastIndexOf('/') + 1))) return true;
+    }
+    return hasBadgeSizedHeight(image);
+}
+
+function isBadgeImage(image: HTMLImageElement): boolean {
+    // A known badge-service URL identifies a badge on its own.
+    if (isKnownBadgeImageUrl(image.getAttribute('src'))) return true;
+    // A donation call-to-action label describes the image itself, so it also stands alone.
+    if (matchesAny(image.getAttribute('alt'), DONATION_ALT_PATTERNS)) return true;
+
+    // A donation link only says where the image points, so it needs corroboration from the asset.
+    // Without it, a photograph linked from a project's sponsors page would be dropped as a badge.
     const anchor = image.closest('a[href]');
-    return matchesAny(anchor?.getAttribute('href') || null, DONATION_LINK_URL_PATTERNS);
+    return matchesAny(anchor?.getAttribute('href') || null, DONATION_LINK_URL_PATTERNS) && looksLikeBadgeAsset(image);
 }
 
 /**

@@ -130,6 +130,62 @@ describe('badge removal', () => {
         expect(body.querySelector('img')).toBeNull();
     });
 
+    test.each([
+        ['Donate using PayPal', 'https://cdn.example.com/button.svg'],
+        ['Become a patron', 'https://cdn.example.com/button.svg'],
+        ['Buy me a coffee', 'https://cdn.example.com/button.svg'],
+        ['Sponsor on GitHub', 'https://cdn.example.com/button.svg'],
+        ['Support me on Ko-fi', 'https://cdn.example.com/button.svg'],
+    ])('treats the donation call to action %s as a badge label', (alt, src) => {
+        const body = makeBody(`<img src="${src}" alt="${alt}">`);
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).toBeNull();
+    });
+
+    test.each([
+        ['PayPal checkout screen', 'https://example.com/screenshots/checkout.png'],
+        ['Blood donation drive', 'https://news.example.com/img/2026/blood-drive.jpg'],
+        ['Our sponsors on stage', 'https://example.com/photos/stage.jpg'],
+        ['Patreon homepage', 'https://example.com/screenshots/patreon-home.png'],
+    ])('keeps the ordinary image labelled %s', (alt, src) => {
+        const body = makeBody(`<img src="${src}" alt="${alt}">`);
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).not.toBeNull();
+    });
+
+    test('keeps a photograph linked from a donation or sponsor page', () => {
+        const body = makeBody(
+            '<a href="https://conference.example.com/sponsors"><img src="https://cdn.example.com/keynote-photo.jpg" alt="Keynote"></a>'
+        );
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).not.toBeNull();
+    });
+
+    test.each([
+        ['a badge-height image', '<img src="https://cdn.example.com/img/a1b2c3.png" alt="Project" height="20">'],
+        ['a donation filename', '<img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="">'],
+    ])('removes %s inside a donation link', (_label, image) => {
+        const body = makeBody(`<a href="https://paypal.me/example">${image}</a>`);
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).toBeNull();
+    });
+
+    test('keeps a raster image served from a badges directory', () => {
+        const body = makeBody('<img src="https://example.com/photos/badges/police-badge.png" alt="Police badge">');
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).not.toBeNull();
+    });
+
     test('preserves ordinary images and meaningful text beside a removed badge', async () => {
         const html = `
             <a href="https://www.paypal.com/donate/">

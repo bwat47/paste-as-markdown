@@ -41,7 +41,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - Unexpected pass or pipeline-stage exceptions stop conversion and trigger plain-text fallback; expected per-image conversion failures remain recoverable and are reported through resource counts.
 - The post-image phase is the exception: resources are already created and no pass runs after it, so a failure there is logged and the converted DOM is kept rather than discarding the paste and orphaning those resources.
 - Settings that shape output structure (for example forcing tight lists) are implemented as conditional DOM passes rather than Markdown post-processing, so they can act on the real document tree instead of re-parsing generated text.
-- Optional badge removal is a post-sanitize pass. It matches known badge image URLs and donation-link metadata, then runs before empty-anchor cleanup and image resource conversion.
+- Optional badge removal is a post-sanitize pass. A known badge-service URL or a donation call-to-action alt label identifies a badge on its own; an enclosing donation link only counts when the image itself also looks like a badge asset, so linked photographs survive. It runs before empty-anchor cleanup and image resource conversion.
 
 ### Markdown Conversion
 
