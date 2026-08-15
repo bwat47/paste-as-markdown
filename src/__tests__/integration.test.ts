@@ -370,6 +370,23 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\[\s*\n/);
     });
 
+    test.each([
+        ['a single break', '<a href="https://example.com"><span>Open on</span><br><span>Scrimba</span></a>'],
+        ['consecutive breaks', '<a href="https://example.com"><span>Open on</span><br><br><span>Scrimba</span></a>'],
+    ])('replaces %s inside an anchor with a space instead of a hard break', async (_caseName, html) => {
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Open on Scrimba](https://example.com)');
+    });
+
+    test('keeps <br> hard breaks outside anchors', async () => {
+        const html = '<p>First line<br>Second line</p>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        // Turndown emits either a backslash or two trailing spaces for a hard break.
+        expect(md).toMatch(/First line(\\| {2})\nSecond line/);
+    });
+
     test('flattens table internals in anchors so no table rows leak into link text', async () => {
         // Unwrapping only <table> would leave rows behind for Turndown's GFM table rules,
         // which emit pipe rows and a leading newline inside the link text.
