@@ -370,6 +370,23 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\[\s*\n/);
     });
 
+    test.each([
+        ['nested paragraphs', '<div><p>First</p><p>Second</p></div>'],
+        ['list items', '<ul><li>First</li><li>Second</li></ul>'],
+    ])('preserves text boundaries between compact %s in anchors', async (_caseName, content) => {
+        const html = `<a href="https://example.com"><span>Before</span>${content}<span>After</span></a>`;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Before First Second After](https://example.com)');
+    });
+
+    test('does not add leading whitespace for a compact empty block in an anchor', async () => {
+        const html = '<a href="https://example.com"><div></div><span>Open</span></a>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Open](https://example.com)');
+    });
+
     test('preserves images inside divs with role=button', async () => {
         // This is the actual clipboard HTML after browser auto-correction
         const html = `<p>So without any more delay, here are the results of my not-very-scientific at all benchmark using the experimentation platform inside of Skald.</p><p></p><div class="cursor-pointer rounded-lg overflow-hidden transition-opacity hover:opacity-90" role="button" tabindex="0"><img alt="skald experiments" class="rounded-lg" src="https://blog.yakkomajuri.com/images/voyage-claude.png"></div><p></p><h3 id="voyage-claude"><a class="anchor" href="https://blog.yakkomajuri.com/blog/local-rag#voyage-claude"></a>Voyage + Claude</h3><p>This is our default Cloud setup.</p>`;

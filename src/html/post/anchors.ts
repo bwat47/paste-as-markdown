@@ -39,6 +39,7 @@ const BLOCK_LEVEL_TAGS = [
     'summary',
 ] as const;
 const BLOCK_LEVEL_SELECTOR = BLOCK_LEVEL_TAGS.join(', ');
+const BLOCK_BOUNDARY_SEPARATOR = ' ';
 
 /**
  * Analyze an anchor element to determine permalink / heading context.
@@ -127,6 +128,47 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
     });
 }
 
+function startsWithWhitespace(node: Node): boolean {
+    const text = node.textContent || '';
+    return text.length > 0 && text.trimStart().length < text.length;
+}
+
+function endsWithWhitespace(node: Node): boolean {
+    const text = node.textContent || '';
+    return text.length > 0 && text.trimEnd().length < text.length;
+}
+
+/** Preserve the visual boundary around a block before removing its wrapper. */
+function preserveBlockBoundaryWhitespace(blockElement: HTMLElement): void {
+    const parent = blockElement.parentNode;
+    if (!parent) return;
+
+    const previousSibling = blockElement.previousSibling;
+    const nextSibling = blockElement.nextSibling;
+
+    // An empty block contributes no label content, but when it separates two content runs it
+    // still represents a visual boundary. Avoid adding leading/trailing spaces for empty icons.
+    if (!blockElement.hasChildNodes()) {
+        if (
+            previousSibling &&
+            nextSibling &&
+            !endsWithWhitespace(previousSibling) &&
+            !startsWithWhitespace(nextSibling)
+        ) {
+            parent.insertBefore(blockElement.ownerDocument.createTextNode(BLOCK_BOUNDARY_SEPARATOR), blockElement);
+        }
+        return;
+    }
+
+    if (previousSibling && !endsWithWhitespace(previousSibling) && !startsWithWhitespace(blockElement)) {
+        parent.insertBefore(blockElement.ownerDocument.createTextNode(BLOCK_BOUNDARY_SEPARATOR), blockElement);
+    }
+
+    if (nextSibling && !endsWithWhitespace(blockElement) && !startsWithWhitespace(nextSibling)) {
+        parent.insertBefore(blockElement.ownerDocument.createTextNode(BLOCK_BOUNDARY_SEPARATOR), nextSibling);
+    }
+}
+
 /**
  * Unwrap every block-level descendant of an anchor to prevent newlines in link syntax.
  * Markdown inline links cannot span blank lines, so any block inside an anchor breaks the
@@ -136,9 +178,10 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
 function flattenBlockElementsInAnchor(anchor: HTMLElement): void {
     // Static list in document order: unwrapping an outer block leaves its descendants in the
     // tree (re-parented to the anchor), so nested blocks are still unwrapped by later entries.
-    const blockElements = anchor.querySelectorAll(BLOCK_LEVEL_SELECTOR);
+    const blockElements = anchor.querySelectorAll<HTMLElement>(BLOCK_LEVEL_SELECTOR);
     blockElements.forEach((blockEl) => {
-        unwrapElement(blockEl as HTMLElement);
+        preserveBlockBoundaryWhitespace(blockEl);
+        unwrapElement(blockEl);
     });
 }
 
