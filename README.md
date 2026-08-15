@@ -4,7 +4,9 @@ Paste content from websites, email, Office, Google Docs, and spreadsheets into J
 
 This is useful when the Web Clipper is not available, such as when copying from an email client, or when you want to paste formatted content without opening Joplin's rich text editor and risking changes to the rest of the note.
 
-![Paste HTML as Markdown demonstration](https://github.com/user-attachments/assets/78d2b555-f848-42c0-a30e-e4267a4b1957)
+![Paste HTML as Markdown demonstration](https://github.com/bwat47/paste-as-markdown/blob/main/images/paste-html-as-md-examples.gif)
+
+_Example comparison with image handling and codeblock language detection_
 
 ## Why use this instead of Joplin's built-in command?
 
