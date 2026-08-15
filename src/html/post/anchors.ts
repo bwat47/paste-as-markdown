@@ -1,4 +1,4 @@
-import { onlyContains, unwrapElement, isTextNode, isElement } from '../shared/dom';
+import { isElement, isTextNode, onlyContains, unwrapElement } from '../shared/dom';
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
@@ -37,6 +37,7 @@ const BLOCK_LEVEL_TAGS = new Set([
     'details',
     'summary',
 ]);
+const BLOCK_LEVEL_SELECTOR = Array.from(BLOCK_LEVEL_TAGS).join(',');
 
 /**
  * Analyze an anchor element to determine permalink / heading context.
@@ -126,35 +127,15 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
 }
 
 /**
- * Check if anchor contains only block-level elements (ignoring whitespace text nodes).
- */
-function containsOnlyBlockElements(anchor: HTMLElement): boolean {
-    const children = Array.from(anchor.childNodes).filter(
-        (node) =>
-            !(isTextNode(node) && (!node.textContent || !node.textContent.trim())) &&
-            node.nodeType !== Node.COMMENT_NODE
-    );
-
-    if (children.length === 0) return false;
-
-    return children.every((child) => {
-        if (!isElement(child)) return false;
-        return BLOCK_LEVEL_TAGS.has(child.tagName.toLowerCase());
-    });
-}
-
-/**
  * Unwrap block-level elements from inside anchors to prevent newlines in link syntax.
- * Transforms <a href="url"><p>text</p></a> into <a href="url">text</a>
+ * Transforms <a href="url"><div></div><span>text</span></a> into
+ * <a href="url"><span>text</span></a>. All descendant wrappers are inspected because a
+ * block nested inside inline content can also make Turndown emit a multiline link label.
  */
 function unwrapBlockElementsInAnchor(anchor: HTMLElement): void {
-    const blockElements = Array.from(anchor.children).filter((child) =>
-        BLOCK_LEVEL_TAGS.has(child.tagName.toLowerCase())
-    );
+    const blockElements = Array.from(anchor.querySelectorAll<HTMLElement>(BLOCK_LEVEL_SELECTOR));
 
-    blockElements.forEach((blockEl) => {
-        unwrapElement(blockEl as HTMLElement);
-    });
+    blockElements.forEach(unwrapElement);
 }
 
 /**
@@ -181,8 +162,9 @@ export function normalizeAnchors(body: HTMLElement): void {
             } else {
                 unwrapElement(anchor as HTMLElement);
             }
-        } else if (containsOnlyBlockElements(anchor as HTMLElement)) {
-            // Unwrap block-level elements to prevent newlines inside link syntax
+        } else {
+            // Markdown links cannot contain blocks; flatten every block wrapper even when the
+            // anchor also has inline content.
             unwrapBlockElementsInAnchor(anchor as HTMLElement);
         }
     });

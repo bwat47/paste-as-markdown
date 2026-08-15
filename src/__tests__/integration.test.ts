@@ -341,6 +341,19 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\n[ \t]*\]\(/);
     });
 
+    test('unwraps block-level elements from anchors with mixed inline content', async () => {
+        const html = `
+            <a href="https://scrimba.com/frontend-path-c0j/~03s?via=mdn&amp;embed=">
+                <div class="scrim-link"></div>
+                <span class="visually-hidden">Open on Scrimba</span>
+            </a>
+        `;
+        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(markdown).toBe('[Open on Scrimba](https://scrimba.com/frontend-path-c0j/~03s?via=mdn&embed=)');
+        expect(markdown).not.toMatch(/\[\s*\n/);
+    });
+
     test('preserves images inside divs with role=button', async () => {
         // This is the actual clipboard HTML after browser auto-correction
         const html = `<p>So without any more delay, here are the results of my not-very-scientific at all benchmark using the experimentation platform inside of Skald.</p><p></p><div class="cursor-pointer rounded-lg overflow-hidden transition-opacity hover:opacity-90" role="button" tabindex="0"><img alt="skald experiments" class="rounded-lg" src="https://blog.yakkomajuri.com/images/voyage-claude.png"></div><p></p><h3 id="voyage-claude"><a class="anchor" href="https://blog.yakkomajuri.com/blog/local-rag#voyage-claude"></a>Voyage + Claude</h3><p>This is our default Cloud setup.</p>`;
