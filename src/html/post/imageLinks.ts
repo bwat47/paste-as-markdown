@@ -1,4 +1,7 @@
-import { isTextNode } from '../shared/dom';
+import { isElement, isTextNode } from '../shared/dom';
+
+const PICTURE_TAG = 'picture';
+const SOURCE_TAG = 'source';
 
 /**
  * Unwrap anchors that only wrap converted image resources so the resulting Markdown
@@ -29,18 +32,25 @@ function unwrapConvertedImageLink(img: HTMLImageElement): void {
     if (!img.getAttribute('src')?.startsWith(':/')) return;
 
     const isWhitespace = (n: Node) => isTextNode(n) && !n.textContent.trim();
-    const childrenWithoutWs = (el: Element) => Array.from(el.childNodes).filter((n) => !isWhitespace(n));
+    // A <source> is an alternative for the same <picture> image, not separate anchor content.
+    // Keep the exception parent-scoped so other source elements and meaningful siblings still block unwrapping.
+    const isPictureSource = (parent: Element, child: Node) =>
+        parent.tagName.toLowerCase() === PICTURE_TAG &&
+        isElement(child) &&
+        child.tagName.toLowerCase() === SOURCE_TAG;
+    const relevantChildren = (el: Element) =>
+        Array.from(el.childNodes).filter((n) => !isWhitespace(n) && !isPictureSource(el, n));
 
     let node: Node = img;
     while (node.parentElement && node.parentElement !== anchor) {
         const p = node.parentElement;
-        const kids = childrenWithoutWs(p);
+        const kids = relevantChildren(p);
         if (!(kids.length === 1 && kids[0] === node)) return;
         node = p;
     }
 
     const topNode = node;
-    const anchorKids = childrenWithoutWs(anchor);
+    const anchorKids = relevantChildren(anchor);
     if (!(anchorKids.length === 1 && anchorKids[0] === topNode)) return;
 
     const grand = anchor.parentNode;
