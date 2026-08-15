@@ -6,10 +6,6 @@ import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
 const TEST_MAX_IMAGE_BYTES = 64;
 const TEST_DOWNLOAD_TIMEOUT_MS = 50;
 
-// Expected shipped default cap. The boundary pair below pins it: shrinking or growing
-// DEFAULT_RESOURCE_CONVERSION_LIMITS.maxImageBytes breaks one of the two tests.
-const DEFAULT_MAX_IMAGE_BYTES = 25 * 1024 * 1024;
-
 // Helper to build a DOM body from HTML string
 function makeBody(html: string): HTMLElement {
     const parser = new DOMParser();
@@ -163,25 +159,19 @@ describe('resourceConverter edge cases', () => {
         expect(result.ids).toHaveLength(0);
     });
 
-    test('remote image whose content-length sits at the default cap is accepted', async () => {
-        fetchMock = mockRemotePngResponse(DEFAULT_MAX_IMAGE_BYTES);
+    // The content-length guard compares with a strict `>`, so exactly-at-cap must pass.
+    test.each([
+        { label: 'at the cap is accepted', contentLength: TEST_MAX_IMAGE_BYTES, failed: 0, ids: 1 },
+        { label: 'one byte over the cap is rejected', contentLength: TEST_MAX_IMAGE_BYTES + 1, failed: 1, ids: 0 },
+    ])('remote image whose content-length sits $label', async ({ contentLength, failed, ids }) => {
+        fetchMock = mockRemotePngResponse(contentLength);
         setGlobal('fetch', fetchMock);
-        const body = makeBody('<img src="https://example.com/at-cap.png">');
-        const result = await convertImagesToResources(body);
+        const body = makeBody('<img src="https://example.com/sized.png">');
+        const result = await convertImagesToResources(body, { maxImageBytes: TEST_MAX_IMAGE_BYTES });
         expect(result.attempted).toBe(1);
-        expect(result.failed).toBe(0);
-        expect(result.ids).toHaveLength(1);
-    });
-
-    test('remote image one byte over the default cap is rejected', async () => {
-        fetchMock = mockRemotePngResponse(DEFAULT_MAX_IMAGE_BYTES + 1);
-        setGlobal('fetch', fetchMock);
-        const body = makeBody('<img src="https://example.com/over-cap.png">');
-        const result = await convertImagesToResources(body);
-        expect(result.attempted).toBe(1);
-        expect(result.failed).toBe(1);
-        expect(result.ids).toHaveLength(0);
-        expect(dataPostMock).not.toHaveBeenCalled();
+        expect(result.failed).toBe(failed);
+        expect(result.ids).toHaveLength(ids);
+        expect(dataPostMock).toHaveBeenCalledTimes(ids);
     });
 
     test('network timeout abort increments failed count', async () => {
