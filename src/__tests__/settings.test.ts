@@ -101,17 +101,19 @@ describe('settings', () => {
         });
 
         await expect(loadPasteOptions()).resolves.toEqual(DEFAULT_PASTE_OPTIONS);
-        expect(warnSpy).toHaveBeenNthCalledWith(1, 'Invalid boolean setting; using default', {
+        // Each payload is distinct, so matching all three against an exact call count pins the
+        // warnings exactly without coupling to the order settings are resolved in.
+        expect(warnSpy).toHaveBeenCalledWith('Invalid boolean setting; using default', {
             setting: SETTINGS.INCLUDE_IMAGES,
             value: 'false',
             defaultValue: true,
         });
-        expect(warnSpy).toHaveBeenNthCalledWith(2, 'Invalid boolean setting; using default', {
+        expect(warnSpy).toHaveBeenCalledWith('Invalid boolean setting; using default', {
             setting: SETTINGS.NORMALIZE_QUOTES,
             value: null,
             defaultValue: true,
         });
-        expect(warnSpy).toHaveBeenNthCalledWith(3, 'Invalid list indentation setting; using default', {
+        expect(warnSpy).toHaveBeenCalledWith('Invalid list indentation setting; using default', {
             setting: SETTINGS.LIST_INDENTATION,
             value: 'two-spaces',
             defaultValue: LIST_INDENTATION.TABS,
