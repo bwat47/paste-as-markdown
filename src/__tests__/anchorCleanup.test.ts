@@ -81,15 +81,11 @@ describe('anchor line-breaking element normalization', () => {
             '<a href="https://example.com"><span>Before</span><div><img src="test.png" alt="Example"></div><span>After</span></a>'
         );
 
-        expect(anchor.innerHTML).toBe(
-            '<span>Before</span> <img src="test.png" alt="Example"> <span>After</span>'
-        );
+        expect(anchor.innerHTML).toBe('<span>Before</span> <img src="test.png" alt="Example"> <span>After</span>');
     });
 
     test('does not add trailing whitespace when a block is the last child', () => {
-        const anchor = normalizeAnchorHtml(
-            '<a href="https://example.com"><span>Before</span><div>After</div></a>'
-        );
+        const anchor = normalizeAnchorHtml('<a href="https://example.com"><span>Before</span><div>After</div></a>');
 
         expect(anchor.innerHTML).toBe('<span>Before</span> After');
         expect(anchor.textContent).toBe('Before After');
