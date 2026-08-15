@@ -76,6 +76,44 @@ describe('image resource conversion', () => {
         expect(image?.hasAttribute('data-pam-converted')).toBe(false);
     });
 
+    // Substack-style markup: the anchor wraps a <picture> whose <source> siblings describe the same
+    // image. Exercised through the full pipeline because the wrapper <div> is already flattened by
+    // the anchor normalization pass before the unwrap pass sees it.
+    test('unwraps an external link around a converted picture image', async () => {
+        dataPostMock.mockResolvedValue({ id: 'res1' });
+        const html =
+            `<figure><a class="image-link" href="https://example.com/original.png" target="_blank">` +
+            `<div class="image-inset"><picture>` +
+            `<source type="image/webp" srcset="https://example.com/w_1456.webp 1456w">` +
+            `<img src="${ONE_BY_ONE_PNG_BASE64}" width="1456" height="816" alt="shot">` +
+            `</picture></div></a></figure>`;
+        const result = await processHtml(html, options);
+
+        expect(result.resources.resourcesCreated).toBe(1);
+        expect(result.body.querySelector('a')).toBeNull();
+        expect(result.body.querySelector('picture')).toBeNull();
+        const image = result.body.querySelector('img');
+        expect(image?.getAttribute('src')).toBe(':/res1');
+        expect(image?.getAttribute('alt')).toBe('shot');
+        expect(image?.parentElement?.tagName.toLowerCase()).toBe('figure');
+    });
+
+    test('keeps the external link when the anchor holds content beyond the picture', async () => {
+        dataPostMock.mockResolvedValue({ id: 'res1' });
+        const html =
+            `<a href="https://example.com/original.png"><picture>` +
+            `<source type="image/webp" srcset="https://example.com/w_1456.webp 1456w">` +
+            `<img src="${ONE_BY_ONE_PNG_BASE64}" alt="shot">` +
+            `</picture>Read more</a>`;
+        const result = await processHtml(html, options);
+
+        expect(result.resources.resourcesCreated).toBe(1);
+        const anchor = result.body.querySelector('a');
+        expect(anchor).not.toBeNull();
+        expect(anchor?.textContent).toContain('Read more');
+        expect(anchor?.querySelector('img')?.getAttribute('src')).toBe(':/res1');
+    });
+
     test('partial failure still converts earlier image and reports counts', async () => {
         dataPostMock
             .mockImplementationOnce(() => Promise.resolve({ id: 'resA' }))
