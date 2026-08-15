@@ -3,7 +3,14 @@ import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
 const MEDIA_TAGS = new Set(['img', 'picture', 'source']);
-const BLOCK_LEVEL_TAGS = new Set([
+/**
+ * Tags that force a line break in Markdown output and therefore cannot survive inside a link.
+ * Restricted to tags the sanitizer allows through (see SANITIZER_ALLOWED_TAGS_BASE): anything
+ * else is already unwrapped by DOMPurify before this post-sanitize pass runs. Table internals
+ * are listed too, since unwrapping only <table> would leave rows for Turndown's GFM table rules,
+ * and <br> because Turndown emits a hard break for it just as readily inside link text.
+ */
+const LINE_BREAKING_TAGS = [
     'p',
     'div',
     'blockquote',
@@ -19,24 +26,15 @@ const BLOCK_LEVEL_TAGS = new Set([
     'h6',
     'hr',
     'table',
-    'form',
-    'fieldset',
-    'address',
-    'section',
-    'article',
-    'aside',
-    'header',
-    'footer',
-    'nav',
-    'main',
-    'dl',
-    'dt',
-    'dd',
-    'figure',
-    'figcaption',
-    'details',
-    'summary',
-]);
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
+    'br',
+] as const;
+const LINE_BREAKING_SELECTOR = LINE_BREAKING_TAGS.join(', ');
+const LINE_BREAK_BOUNDARY_SEPARATOR = ' ';
 
 /**
  * Analyze an anchor element to determine permalink / heading context.
@@ -125,35 +123,61 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
     });
 }
 
-/**
- * Check if anchor contains only block-level elements (ignoring whitespace text nodes).
- */
-function containsOnlyBlockElements(anchor: HTMLElement): boolean {
-    const children = Array.from(anchor.childNodes).filter(
-        (node) =>
-            !(isTextNode(node) && (!node.textContent || !node.textContent.trim())) &&
-            node.nodeType !== Node.COMMENT_NODE
-    );
+function startsWithWhitespace(node: Node): boolean {
+    const text = node.textContent || '';
+    return text.length > 0 && text.trimStart().length < text.length;
+}
 
-    if (children.length === 0) return false;
+function endsWithWhitespace(node: Node): boolean {
+    const text = node.textContent || '';
+    return text.length > 0 && text.trimEnd().length < text.length;
+}
 
-    return children.every((child) => {
-        if (!isElement(child)) return false;
-        return BLOCK_LEVEL_TAGS.has(child.tagName.toLowerCase());
-    });
+/** Preserve the visual boundary around an element before removing it. */
+function preserveBoundaryWhitespace(element: HTMLElement): void {
+    const parent = element.parentNode;
+    if (!parent) return;
+
+    const previousSibling = element.previousSibling;
+    const nextSibling = element.nextSibling;
+
+    // A childless element (an empty icon <div>, a <br>) contributes no label content, but when it
+    // separates two content runs it still represents a visual boundary. Avoid adding
+    // leading/trailing spaces when it sits at either end.
+    if (!element.hasChildNodes()) {
+        if (
+            previousSibling &&
+            nextSibling &&
+            !endsWithWhitespace(previousSibling) &&
+            !startsWithWhitespace(nextSibling)
+        ) {
+            parent.insertBefore(element.ownerDocument.createTextNode(LINE_BREAK_BOUNDARY_SEPARATOR), element);
+        }
+        return;
+    }
+
+    if (previousSibling && !endsWithWhitespace(previousSibling) && !startsWithWhitespace(element)) {
+        parent.insertBefore(element.ownerDocument.createTextNode(LINE_BREAK_BOUNDARY_SEPARATOR), element);
+    }
+
+    if (nextSibling && !endsWithWhitespace(element) && !startsWithWhitespace(nextSibling)) {
+        parent.insertBefore(element.ownerDocument.createTextNode(LINE_BREAK_BOUNDARY_SEPARATOR), nextSibling);
+    }
 }
 
 /**
- * Unwrap block-level elements from inside anchors to prevent newlines in link syntax.
- * Transforms <a href="url"><p>text</p></a> into <a href="url">text</a>
+ * Unwrap every line-breaking descendant of an anchor to prevent newlines in link syntax.
+ * Markdown inline links cannot span blank lines, so a block inside an anchor breaks the link
+ * regardless of whether it sits next to inline siblings, and a <br> splits the label across
+ * lines: `<a href="url"><div></div><span>text</span></a>` becomes `<a href="url">text</a>`.
  */
-function unwrapBlockElementsInAnchor(anchor: HTMLElement): void {
-    const blockElements = Array.from(anchor.children).filter((child) =>
-        BLOCK_LEVEL_TAGS.has(child.tagName.toLowerCase())
-    );
-
-    blockElements.forEach((blockEl) => {
-        unwrapElement(blockEl as HTMLElement);
+function flattenLineBreakingElementsInAnchor(anchor: HTMLElement): void {
+    // Static list in document order: unwrapping an outer block leaves its descendants in the
+    // tree (re-parented to the anchor), so nested blocks are still unwrapped by later entries.
+    const breakingElements = anchor.querySelectorAll<HTMLElement>(LINE_BREAKING_SELECTOR);
+    breakingElements.forEach((el) => {
+        preserveBoundaryWhitespace(el);
+        unwrapElement(el);
     });
 }
 
@@ -181,9 +205,8 @@ export function normalizeAnchors(body: HTMLElement): void {
             } else {
                 unwrapElement(anchor as HTMLElement);
             }
-        } else if (containsOnlyBlockElements(anchor as HTMLElement)) {
-            // Unwrap block-level elements to prevent newlines inside link syntax
-            unwrapBlockElementsInAnchor(anchor as HTMLElement);
+        } else if (anchor.getAttribute('href')) {
+            flattenLineBreakingElementsInAnchor(anchor as HTMLElement);
         }
     });
 }

@@ -341,6 +341,88 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\n[ \t]*\]\(/);
     });
 
+    test('unwraps block-level elements from anchors that also contain inline siblings', async () => {
+        // MDN embeds an icon <div> next to a visually-hidden <span> label inside the link.
+        const html = `
+            <div class="header">
+                <a class="external" href="https://scrimba.com/frontend-path-c0j/~03s?via=mdn&amp;embed=">
+                    <div class="scrim-link"></div>
+                    <span class="visually-hidden">Open on Scrimba</span>
+                </a>
+            </div>
+        `;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toContain('[Open on Scrimba](https://scrimba.com/frontend-path-c0j/~03s?via=mdn&embed=)');
+        expect(md).not.toMatch(/\[\s*\n/);
+        expect(md).not.toMatch(/\n[ \t]*\]\(/);
+    });
+
+    test('unwraps block-level elements nested deeper inside anchors', async () => {
+        const html = `
+            <a href="https://example.com/card">
+                <div class="card"><p>Card title</p></div>
+            </a>
+        `;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toContain('[Card title](https://example.com/card)');
+        expect(md).not.toMatch(/\[\s*\n/);
+    });
+
+    test.each([
+        ['a single break', '<a href="https://example.com"><span>Open on</span><br><span>Scrimba</span></a>'],
+        ['consecutive breaks', '<a href="https://example.com"><span>Open on</span><br><br><span>Scrimba</span></a>'],
+    ])('replaces %s inside an anchor with a space instead of a hard break', async (_caseName, html) => {
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Open on Scrimba](https://example.com)');
+    });
+
+    test('keeps <br> hard breaks outside anchors', async () => {
+        const html = '<p>First line<br>Second line</p>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        // Turndown emits either a backslash or two trailing spaces for a hard break.
+        expect(md).toMatch(/First line(\\| {2})\nSecond line/);
+    });
+
+    test('flattens table internals in anchors so no table rows leak into link text', async () => {
+        // Unwrapping only <table> would leave rows behind for Turndown's GFM table rules,
+        // which emit pipe rows and a leading newline inside the link text.
+        const html =
+            '<a href="https://example.com"><table><thead><tr><th>Head</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table></a>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Head Cell](https://example.com)');
+    });
+
+    test.each([
+        ['nested paragraphs', '<div><p>First</p><p>Second</p></div>'],
+        ['list items', '<ul><li>First</li><li>Second</li></ul>'],
+    ])('preserves text boundaries between compact %s in anchors', async (_caseName, content) => {
+        const html = `<a href="https://example.com"><span>Before</span>${content}<span>After</span></a>`;
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Before First Second After](https://example.com)');
+    });
+
+    test('does not add leading whitespace for a compact empty block in an anchor', async () => {
+        const html = '<a href="https://example.com"><div></div><span>Open</span></a>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Open](https://example.com)');
+    });
+
+    test.each([
+        ['a missing href', '<a><p>First</p><p>Second</p></a>', 'First\n\nSecond'],
+        ['an empty href', '<a href=""><ul><li>First</li><li>Second</li></ul></a>', '- First\n- Second'],
+    ])('preserves block structure for anchors with %s', async (_caseName, html, expected) => {
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe(expected);
+    });
+
     test('preserves images inside divs with role=button', async () => {
         // This is the actual clipboard HTML after browser auto-correction
         const html = `<p>So without any more delay, here are the results of my not-very-scientific at all benchmark using the experimentation platform inside of Skald.</p><p></p><div class="cursor-pointer rounded-lg overflow-hidden transition-opacity hover:opacity-90" role="button" tabindex="0"><img alt="skald experiments" class="rounded-lg" src="https://blog.yakkomajuri.com/images/voyage-claude.png"></div><p></p><h3 id="voyage-claude"><a class="anchor" href="https://blog.yakkomajuri.com/blog/local-rag#voyage-claude"></a>Voyage + Claude</h3><p>This is our default Cloud setup.</p>`;
