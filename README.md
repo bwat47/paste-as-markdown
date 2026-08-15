@@ -8,6 +8,10 @@ This is useful when the Web Clipper is not available, such as when copying from 
 
 _Example comparison with image handling and codeblock language detection_
 
+![Paste HTML as Markdown demonstration](https://github.com/bwat47/paste-as-markdown/blob/main/images/table-conversion-examples.gif)
+
+_Example comparison showing table conversion behavior_
+
 ## Why use this instead of Joplin's built-in command?
 
 This plugin was originally created when Joplin's markdown editor lacked a Paste as Markdown command (and the only options were using the web clipper or rich text editor).
