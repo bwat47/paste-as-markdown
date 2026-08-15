@@ -44,8 +44,29 @@ describe('image srcset fallback promotion', () => {
         expect(result.body.querySelector('img')?.getAttribute('src')).toBe('large.jpg');
     });
 
-    test('does not choose between mixed width and density descriptors', async () => {
+    test('prefers width candidates over density candidates when descriptor families are mixed', async () => {
         const result = await processHtml('<img alt="Hero" srcset="wide.jpg 1200w, retina.jpg 2x">', IMAGE_OPTIONS);
+
+        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('wide.jpg');
+    });
+
+    test('ignores a descriptorless fallback when width candidates are present', async () => {
+        const result = await processHtml(
+            '<img alt="Hero" srcset="fallback.jpg, small.jpg 320w, large.jpg 1600w">',
+            IMAGE_OPTIONS
+        );
+
+        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('large.jpg');
+    });
+
+    test('falls back to density candidates when no width candidates exist', async () => {
+        const result = await processHtml('<img alt="Hero" srcset="fallback.jpg, retina.jpg 2x">', IMAGE_OPTIONS);
+
+        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('retina.jpg');
+    });
+
+    test('promotes nothing when every candidate is malformed', async () => {
+        const result = await processHtml('<img alt="Hero" srcset="broken.jpg nope, worse.jpg -5w">', IMAGE_OPTIONS);
 
         expect(result.body.querySelector('img')?.hasAttribute('src')).toBe(false);
     });

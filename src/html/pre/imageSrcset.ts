@@ -119,14 +119,25 @@ function parseSrcsetCandidates(input: string): SrcsetCandidate[] {
     return candidates;
 }
 
+/**
+ * Select the largest candidate from a single descriptor family.
+ *
+ * Width and density values are not comparable, so only one family can be ranked. When both are
+ * present the uncomparable candidates are ignored rather than the whole set, since discarding
+ * everything would lose the image entirely. Width wins the tie-break because descriptorless
+ * candidates default to 1x, so a bare fallback URL would otherwise suppress an explicitly sized
+ * set such as "fallback.jpg, small.jpg 320w, large.jpg 1600w".
+ */
 function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | null {
     const candidates = parseSrcsetCandidates(srcset);
     if (candidates.length === 0) return null;
 
-    const kind = candidates[0].kind;
-    if (candidates.some((candidate) => candidate.kind !== kind)) return null;
+    const preferredKind: CandidateKind = candidates.some((candidate) => candidate.kind === 'width')
+        ? 'width'
+        : 'density';
+    const comparable = candidates.filter((candidate) => candidate.kind === preferredKind);
 
-    return candidates.reduce((largest, candidate) => (candidate.value > largest.value ? candidate : largest));
+    return comparable.reduce((largest, candidate) => (candidate.value > largest.value ? candidate : largest));
 }
 
 /**
