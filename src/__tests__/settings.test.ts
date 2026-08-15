@@ -3,6 +3,7 @@ import type { Mock } from 'vitest';
 import { SettingItemType } from 'api/types';
 import { DEFAULT_PASTE_OPTIONS, loadPasteOptions, registerPluginSettings, SETTINGS } from '../settings';
 import logger from '../logger';
+import { LIST_INDENTATION } from '../types';
 
 vi.mock('api');
 
@@ -55,10 +56,20 @@ describe('settings', () => {
                 type: SettingItemType.Bool,
                 section: 'pasteAsMarkdown',
             },
+            [SETTINGS.LIST_INDENTATION]: {
+                value: DEFAULT_PASTE_OPTIONS.listIndentation,
+                type: SettingItemType.String,
+                section: 'pasteAsMarkdown',
+                isEnum: true,
+                options: {
+                    [LIST_INDENTATION.SPACES]: 'Spaces',
+                    [LIST_INDENTATION.TABS]: 'Tabs',
+                },
+            },
         });
     });
 
-    test('loads boolean setting values into complete paste options', async () => {
+    test('loads setting values into complete paste options', async () => {
         value.mockImplementation((setting: string) =>
             Promise.resolve(
                 {
@@ -66,6 +77,7 @@ describe('settings', () => {
                     [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true,
                     [SETTINGS.NORMALIZE_QUOTES]: false,
                     [SETTINGS.FORCE_TIGHT_LISTS]: true,
+                    [SETTINGS.LIST_INDENTATION]: LIST_INDENTATION.TABS,
                 }[setting]
             )
         );
@@ -75,6 +87,7 @@ describe('settings', () => {
             convertImagesToResources: true,
             normalizeQuotes: false,
             forceTightLists: true,
+            listIndentation: LIST_INDENTATION.TABS,
         });
     });
 
@@ -83,6 +96,7 @@ describe('settings', () => {
         value.mockImplementation((setting: string) => {
             if (setting === SETTINGS.INCLUDE_IMAGES) return Promise.resolve('false');
             if (setting === SETTINGS.NORMALIZE_QUOTES) return Promise.resolve(null);
+            if (setting === SETTINGS.LIST_INDENTATION) return Promise.resolve('two-spaces');
             return Promise.resolve(undefined);
         });
 
@@ -97,7 +111,12 @@ describe('settings', () => {
             value: null,
             defaultValue: true,
         });
-        expect(warnSpy).toHaveBeenCalledTimes(2);
+        expect(warnSpy).toHaveBeenNthCalledWith(3, 'Invalid list indentation setting; using default', {
+            setting: SETTINGS.LIST_INDENTATION,
+            value: 'two-spaces',
+            defaultValue: LIST_INDENTATION.SPACES,
+        });
+        expect(warnSpy).toHaveBeenCalledTimes(3);
 
         warnSpy.mockRestore();
     });

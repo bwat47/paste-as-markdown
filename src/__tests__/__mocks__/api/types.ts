@@ -6,6 +6,7 @@ export enum ToastType {
 }
 
 export enum SettingItemType {
+    String = 2,
     Bool = 3,
 }
 

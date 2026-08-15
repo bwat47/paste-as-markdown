@@ -2,9 +2,12 @@ import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
 import { processHtml } from './html/processHtml';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
-import type { PassContext, PasteOptions, HtmlToMarkdownResult } from './types';
+import { LIST_INDENTATION } from './types';
+import type { PassContext, PasteOptions, HtmlToMarkdownResult, ListIndentation } from './types';
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
+const MARKDOWN_TAB_WIDTH = 4;
+const MINIMUM_LIST_INDENT_WIDTH = 4;
 
 const TURNDOWN_OPTIONS = {
     headingStyle: 'atx',
@@ -30,7 +33,22 @@ function collapseTrailingNewlines(text: string): string {
     return end === text.length ? text : `${text.slice(0, end)}\n`;
 }
 
-function createTurndownService(includeImages: boolean): TurndownService {
+/**
+ * Builds indentation wide enough to keep child blocks inside a list item. Tabs advance to
+ * four-column stops, so wide ordered markers such as `100. ` require two tabs.
+ */
+function createListIndent(prefixWidth: number, listIndentation: ListIndentation): string {
+    const indentWidth = Math.max(prefixWidth, MINIMUM_LIST_INDENT_WIDTH);
+    if (listIndentation === LIST_INDENTATION.TABS) {
+        return '\t'.repeat(Math.ceil(indentWidth / MARKDOWN_TAB_WIDTH));
+    }
+    return ' '.repeat(indentWidth);
+}
+
+function createTurndownService({
+    includeImages,
+    listIndentation,
+}: Pick<PasteOptions, 'includeImages' | 'listIndentation'>): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
     service.use(gfm);
 
@@ -107,11 +125,9 @@ function createTurndownService(includeImages: boolean): TurndownService {
                 prefix = `${bulletMarker} `;
             }
 
-            const minimumIndentWidth = 4; // Ensure that nested list items are indented by >=4 spaces
-            const indentWidth = Math.max(prefix.length, minimumIndentWidth);
-            const indent = ' '.repeat(indentWidth);
+            const indent = createListIndent(prefix.length, listIndentation);
             content = collapseTrailingNewlines(content.replace(/^\n+/, '')) // trim leading newlines, collapse trailing ones
-                .replace(/\n/g, `\n${indent}`); // indent child lines while preserving 4-space nested list requirement
+                .replace(/\n/g, `\n${indent}`); // indent child lines while preserving Markdown nesting
 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
             const taskMatch = content.match(/^(\[[ xX]\])([\s\S]*)$/);
@@ -154,7 +170,7 @@ export async function convertHtmlToMarkdown(
     const processed = await processHtml(input, options, context);
 
     // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
-    const service = createTurndownService(options.includeImages);
+    const service = createTurndownService(options);
     let markdown = service.turndown(processed.body);
 
     // Post-process the markdown for final cleanup

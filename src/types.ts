@@ -8,11 +8,19 @@ interface ConversionResult {
 export type ConversionSuccess = ConversionResult & { success: true };
 export type ConversionFailure = ConversionResult & { success: false; warnings: readonly string[] };
 
+export const LIST_INDENTATION = {
+    SPACES: 'spaces',
+    TABS: 'tabs',
+} as const;
+
+export type ListIndentation = (typeof LIST_INDENTATION)[keyof typeof LIST_INDENTATION];
+
 export interface PasteOptions {
     includeImages: boolean;
     convertImagesToResources: boolean;
     normalizeQuotes: boolean;
     forceTightLists: boolean;
+    listIndentation: ListIndentation;
 }
 
 export type ClipboardSource = 'generic' | 'google-docs';
