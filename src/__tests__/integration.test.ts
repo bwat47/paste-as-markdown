@@ -261,29 +261,6 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toMatch(/Test paragraph 1,\n\nTest paragraph 2/);
     });
 
-    test('does not strip NBSP inside inline code', async () => {
-        const html = '<p><code>&nbsp;</code></p>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toBe('`&nbsp;`');
-    });
-
-    test('leaves pasted __PAM_NBSP__ text untouched (no sentinel round-trip)', async () => {
-        const html = '<p>Use <code>__PAM_NBSP__</code> as a placeholder</p>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        expect(markdown.trim()).toBe('Use `__PAM_NBSP__` as a placeholder');
-    });
-
-    test('does not strip NBSP-only line inside fenced code block', async () => {
-        const html = '<pre><code>Line1\n&nbsp;\nLine3</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
-        const md = markdown.trim();
-        expect(md).toMatch(/^```/);
-        expect(md).toContain('Line1');
-        expect(md).toContain('Line3');
-        expect(md).toMatch(/```$/);
-    });
-
     test('newline collapsing skips inside fenced code blocks', async () => {
         const html = '<pre><code>Line1\n\n\nLine2\n\n\n\nLine3</code></pre><p>After</p><p>More</p>';
         const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });

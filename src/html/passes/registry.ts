@@ -14,7 +14,7 @@ import {
     unwrapInvalidListWrappers,
     unwrapTightListItemParagraphs,
 } from '../post/lists';
-import { normalizeCodeBlocks, preserveNbspOnlyInlineCode } from '../post/codeBlocks';
+import { normalizeCodeBlocks } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
@@ -111,10 +111,6 @@ export const PROCESSING_PASSES: PassCollections = {
         {
             name: 'Code block normalization',
             execute: (body) => normalizeCodeBlocks(body),
-        },
-        {
-            name: 'NBSP-only inline code preservation',
-            execute: (body) => preserveNbspOnlyInlineCode(body),
         },
         {
             name: 'Image alt normalization',

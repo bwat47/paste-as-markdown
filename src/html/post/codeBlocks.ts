@@ -86,27 +86,6 @@ type LabelScanResult =
     | { status: 'blocked' } // a sibling carries real content, so no label can precede this block
     | { status: 'continue' };
 
-/**
- * Turndown's blankRule runs before any custom rule and treats an inline <code> holding only
- * NBSP as blank (JS `\s` matches U+00A0), so such code spans are dropped entirely. Rewrite the
- * content to the literal entity text instead: Turndown emits text inside <code> verbatim and
- * never escapes '&', so this reaches the Markdown as `&nbsp;` with no post-processing needed.
- */
-const NBSP_ENTITY_TEXT = '&nbsp;';
-
-export function preserveNbspOnlyInlineCode(body: HTMLElement): void {
-    const codes = Array.from(body.querySelectorAll('code')) as HTMLElement[];
-    codes.forEach((code) => {
-        if (code.parentElement && code.parentElement.tagName === 'PRE') return;
-        const text = code.textContent || '';
-        if (!text) return;
-        const hasNbsp = /\u00A0/.test(text);
-        if (hasNbsp && text.replace(/\u00A0|\s/g, '') === '') {
-            code.textContent = NBSP_ENTITY_TEXT;
-        }
-    });
-}
-
 export function normalizeCodeBlocks(body: HTMLElement): void {
     convertCodeMirrorEditors(body);
     const pres = findAndUnwrapCodeBlocks(body);
