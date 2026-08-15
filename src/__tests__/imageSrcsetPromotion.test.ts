@@ -137,6 +137,21 @@ const PICTURE_CASES: readonly PictureCase[] = [
         html: '<picture><source srcset="broken.webp nope"><img alt="Hero"></picture>',
         expected: null,
     },
+    {
+        name: 'ignores a picture source that follows the image',
+        html: '<picture><img alt="Hero"><source srcset="late.jpg 2x"></picture>',
+        expected: null,
+    },
+    {
+        name: 'ignores a picture source nested inside another element',
+        html: '<picture><span><source srcset="nested.jpg 2x"></span><img alt="Hero"></picture>',
+        expected: null,
+    },
+    {
+        name: 'uses a preceding picture source and ignores a following one',
+        html: '<picture><source srcset="early.jpg 800w"><img alt="Hero"><source srcset="late.jpg 1600w"></picture>',
+        expected: 'early.jpg',
+    },
 ];
 
 describe('image srcset fallback promotion', () => {

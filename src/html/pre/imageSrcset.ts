@@ -154,27 +154,41 @@ function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | nul
 }
 
 /**
+ * Collect the srcset values of the <source> elements that apply to an image.
+ *
+ * The source set algorithm only consults direct children of the <picture> that precede the image,
+ * so a <source> nested inside another element or placed after the image never applies. Iteration
+ * stops at the child holding the image, which is the image itself in valid markup.
+ */
+function collectPrecedingPictureSources(image: HTMLImageElement): string[] {
+    const picture = image.closest('picture');
+    if (!picture) return [];
+
+    const srcsets: string[] = [];
+
+    for (const child of Array.from(picture.children)) {
+        if (child === image || child.contains(image)) break;
+        if (child.tagName.toLowerCase() !== 'source') continue;
+
+        const srcset = child.getAttribute('srcset');
+        if (srcset) srcsets.push(srcset);
+    }
+
+    return srcsets;
+}
+
+/**
  * Collect the srcset values that may supply a src for one image, in preference order.
  *
  * The image's own srcset comes first because it is the author's declared fallback and needs no
- * media-query or type evaluation to be a safe choice. A <picture> ancestor's <source> elements
- * follow in document order, which is the order a browser would test them.
+ * media-query or type evaluation to be a safe choice. Applicable <source> elements follow in
+ * document order, which is the order a browser would test them.
  */
 function collectSrcsetCandidatePool(image: HTMLImageElement): string[] {
-    const pool: string[] = [];
-
     const ownSrcset = image.getAttribute('srcset');
-    if (ownSrcset) pool.push(ownSrcset);
+    const sourceSrcsets = collectPrecedingPictureSources(image);
 
-    const picture = image.closest('picture');
-    if (picture) {
-        picture.querySelectorAll('source[srcset]').forEach((source) => {
-            const sourceSrcset = source.getAttribute('srcset');
-            if (sourceSrcset) pool.push(sourceSrcset);
-        });
-    }
-
-    return pool;
+    return ownSrcset ? [ownSrcset, ...sourceSrcsets] : sourceSrcsets;
 }
 
 /**
