@@ -12,6 +12,10 @@ const GITHUB_CAMO_URL_PATTERN = /^https?:\/\/camo\.githubusercontent\.com\/[0-9a
  * - https://img.shields.io/npm/v/example.svg
  * - https://github.com/owner/repo/actions/workflows/test.yml/badge.svg
  * - https://raw.githubusercontent.com/owner/repo/main/assets/badges/Donate-PayPal-green.svg
+ *
+ * Patterns adapted from https://github.com/wooorm/is-badge
+ * Copyright (c) 2015 Titus Wormer <mailto:tituswormer@gmail.com>
+ * Licensed under the MIT License
  */
 const BADGE_IMAGE_URL_PATTERNS: readonly RegExp[] = [
     /^https?:\/\/img\.shields\.io(?:\/|$)/i,
