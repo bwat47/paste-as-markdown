@@ -13,8 +13,9 @@ const ASCII_WHITESPACE_RUN = /[\t\n\f\r ]+/;
 const WIDTH_DESCRIPTOR = /^(\d+)w$/;
 // Positive floating-point density descriptors, for example "1x", "1.5x", ".5x", or "1e2x".
 // The unit is lowercase-only per spec ("2X" is not a density descriptor), but the exponent
-// marker of a valid floating-point number accepts either case.
-const DENSITY_DESCRIPTOR = /^((?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)x$/;
+// marker of a valid floating-point number accepts either case. A decimal point must be followed
+// by at least one digit, so "2.x" is not a density descriptor either.
+const DENSITY_DESCRIPTOR = /^((?:\d+(?:\.\d+)?|\.\d+)(?:[eE][+-]?\d+)?)x$/;
 const DEFAULT_DENSITY = 1;
 
 type CandidateKind = 'width' | 'density';
@@ -34,14 +35,23 @@ function isAsciiWhitespace(character: string): boolean {
     return ASCII_WHITESPACE.test(character);
 }
 
+/**
+ * Find the comma that ends the current candidate's descriptors, or the end of the input.
+ *
+ * The descriptor tokenizer's in-parens state is a flag rather than a depth counter: it starts at
+ * "(" and ends at the first ")", so a nested "(" does not stack and cannot keep the state open
+ * past that first ")". Modelling it as a depth counter would let "(x(y)" swallow every later
+ * candidate instead of only its own.
+ */
 function findCandidateSeparator(input: string, startPosition: number): number {
-    let parenthesesDepth = 0;
+    let inParentheses = false;
 
     for (let position = startPosition; position < input.length; position++) {
         const character = input[position];
-        if (character === '(') parenthesesDepth++;
-        else if (character === ')' && parenthesesDepth > 0) parenthesesDepth--;
-        else if (character === ',' && parenthesesDepth === 0) return position;
+        if (inParentheses) {
+            if (character === ')') inParentheses = false;
+        } else if (character === '(') inParentheses = true;
+        else if (character === ',') return position;
     }
 
     return input.length;

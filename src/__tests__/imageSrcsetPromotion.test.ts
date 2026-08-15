@@ -35,6 +35,16 @@ const SELECTION_CASES: readonly SelectionCase[] = [
         expected: 'big.jpg',
     },
     {
+        name: 'accepts a density with no digit before the decimal point',
+        srcset: 'half.jpg .5x, quarter.jpg .25x',
+        expected: 'half.jpg',
+    },
+    {
+        name: 'rejects a density with no digit after the decimal point',
+        srcset: 'broken.jpg 2.x, good.jpg 1x',
+        expected: 'good.jpg',
+    },
+    {
         name: 'prefers width candidates over density candidates when descriptor families are mixed',
         srcset: 'wide.jpg 1200w, retina.jpg 2x',
         expected: 'wide.jpg',
@@ -81,6 +91,11 @@ const SELECTION_CASES: readonly SelectionCase[] = [
         name: 'treats an unclosed parenthesis as swallowing the remaining candidates',
         srcset: 'a.jpg 320w, b.jpg (x, c.jpg 640w',
         expected: 'a.jpg',
+    },
+    {
+        name: 'ends the in-parens state at the first closing parenthesis',
+        srcset: 'bad.jpg (x(y), good.jpg 2x',
+        expected: 'good.jpg',
     },
 ];
 
