@@ -22,7 +22,7 @@ In addition to converting HTML to markdown with Turndown and a customized turndo
 - Removes copied interface elements such as buttons, toolbars, menus, form controls, and permalink anchors while preserving meaningful content.
 - Removes zero-width characters, replaces thin spaces, and optionally converts smart quotes to plain quotes.
 - Normalizes excessive whitespace without changing the contents of fenced code blocks.
-- Protects literal HTML tag mentions in prose so text such as `<table>` remains visible instead of being interpreted as markup or unsightly html entity codes.
+- Protects literal HTML tag mentions in prose so text such as `<table>` remains cleanly visible (as markdown inline code) instead of being interpreted as markup or displaying unsightly html entity codes.
 - Falls back to pasting plain text when HTML is unavailable or cannot be processed safely.
 
 ### Better structure from messy sources
