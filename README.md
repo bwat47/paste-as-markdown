@@ -38,7 +38,7 @@ In addition to converting HTML to markdown with Turndown and a customized turndo
 ### Tables and spreadsheets
 
 - Consistently converts HTML tables to Markdown tables instead of leaving certain tables as raw HTML.
-- Repairs orphaned table elements, allowing copied cells from Excel and Google Sheets to remain tables.
+- Repairs orphaned table elements, allowing copied cells from Excel and Google Sheets to paste as tables without an empty header row.
 - Preserves line breaks inside table cells without splitting Markdown rows.
 
 ### Code blocks
