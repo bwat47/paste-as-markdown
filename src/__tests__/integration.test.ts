@@ -351,7 +351,6 @@ describe('integration: convertHtmlToMarkdown', () => {
         const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
 
         expect(markdown).toBe('[Open on Scrimba](https://scrimba.com/frontend-path-c0j/~03s?via=mdn&embed=)');
-        expect(markdown).not.toMatch(/\[\s*\n/);
     });
 
     test.each([
