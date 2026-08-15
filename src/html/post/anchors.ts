@@ -209,7 +209,7 @@ export function normalizeAnchors(body: HTMLElement): void {
             } else {
                 unwrapElement(anchor as HTMLElement);
             }
-        } else {
+        } else if (anchor.getAttribute('href')) {
             flattenBlockElementsInAnchor(anchor as HTMLElement);
         }
     });

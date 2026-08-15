@@ -387,6 +387,15 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toBe('[Open](https://example.com)');
     });
 
+    test.each([
+        ['a missing href', '<a><p>First</p><p>Second</p></a>', 'First\n\nSecond'],
+        ['an empty href', '<a href=""><ul><li>First</li><li>Second</li></ul></a>', '- First\n- Second'],
+    ])('preserves block structure for anchors with %s', async (_caseName, html, expected) => {
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe(expected);
+    });
+
     test('preserves images inside divs with role=button', async () => {
         // This is the actual clipboard HTML after browser auto-correction
         const html = `<p>So without any more delay, here are the results of my not-very-scientific at all benchmark using the experimentation platform inside of Skald.</p><p></p><div class="cursor-pointer rounded-lg overflow-hidden transition-opacity hover:opacity-90" role="button" tabindex="0"><img alt="skald experiments" class="rounded-lg" src="https://blog.yakkomajuri.com/images/voyage-claude.png"></div><p></p><h3 id="voyage-claude"><a class="anchor" href="https://blog.yakkomajuri.com/blog/local-rag#voyage-claude"></a>Voyage + Claude</h3><p>This is our default Cloud setup.</p>`;
