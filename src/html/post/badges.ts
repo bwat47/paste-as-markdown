@@ -10,6 +10,9 @@ const MAX_BADGE_ASSET_HEIGHT = 40;
 const MAX_CAMO_ENCODED_URL_LENGTH = 16 * 1024;
 const HEX_PAIR_LENGTH = 2;
 const GITHUB_CAMO_URL_PATTERN = /^https?:\/\/camo\.githubusercontent\.com\/[0-9a-f]+\/([0-9a-f]+)(?:[?#]|$)/i;
+/** Scheme assumed for protocol-relative URLs (`//img.shields.io/...`) so patterns can require one. */
+const PROTOCOL_RELATIVE_URL_PATTERN = /^\/\//;
+const ASSUMED_URL_SCHEME = 'https:';
 
 /**
  * Known badge service and badge-asset URL shapes.
@@ -38,6 +41,8 @@ const BADGE_IMAGE_URL_PATTERNS: readonly RegExp[] = [
     /^https?:\/\/(?:www\.)?opencollective\.com\/[^/?#]+\/(?:sponsors|backers)\/badge\.svg(?:[?#]|$)/i,
     /^https?:\/\/issuestats\.com\/github(?:\/[^/?#]+){2}\/badge\/(?:pr|issue)\/?(?:[?#]|$)/i,
     /^https?:\/\/(?:www\.)?circleci\.com\/(?:gh|bb)(?:\/[^/?#]+){2}\.(?:svg|png)(?:[?#]|$)/i,
+    // Deploy-status badges carry no file extension, so the generic /badges/ rule cannot see them.
+    /^https?:\/\/api\.netlify\.com\/api\/v1\/badges(?:\/[^/?#]+)+\/deploy-status(?:[?#]|$)/i,
     new RegExp(`^https?:\\/\\/[^/?#]+\\/(?:[^?#]*\\/)?badges?\\/[^?#]+\\.${BADGE_ASSET_EXTENSION}(?:[?#]|$)`, 'i'),
 ];
 
@@ -85,14 +90,28 @@ function matchesAny(value: string | null, patterns: readonly RegExp[]): boolean 
 }
 
 /**
+ * Trim a URL attribute and give a protocol-relative URL an explicit scheme, so every URL pattern
+ * can anchor on `https?://` instead of spelling out the optional-scheme case.
+ */
+function normalizeUrl(value: string | null): string | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    return PROTOCOL_RELATIVE_URL_PATTERN.test(trimmed) ? `${ASSUMED_URL_SCHEME}${trimmed}` : trimmed;
+}
+
+function matchesAnyUrl(value: string | null, patterns: readonly RegExp[]): boolean {
+    return matchesAny(normalizeUrl(value), patterns);
+}
+
+/**
  * Recover the canonical image URL embedded as hexadecimal bytes in a GitHub Camo URL.
  *
  * Example: `/hash/68747470733a2f2f696d672e736869656c64732e696f...` decodes to an
  * `https://img.shields.io/...` URL. Decoding is bounded because clipboard HTML is untrusted.
  */
 function decodeGithubCamoUrl(value: string | null): string | null {
-    if (!value) return null;
-    const match = value.trim().match(GITHUB_CAMO_URL_PATTERN);
+    const match = normalizeUrl(value)?.match(GITHUB_CAMO_URL_PATTERN);
     const encodedUrl = match?.[1];
     if (!encodedUrl || encodedUrl.length % HEX_PAIR_LENGTH !== 0 || encodedUrl.length > MAX_CAMO_ENCODED_URL_LENGTH) {
         return null;
@@ -106,8 +125,8 @@ function decodeGithubCamoUrl(value: string | null): string | null {
 }
 
 function isKnownBadgeImageUrl(value: string | null): boolean {
-    if (matchesAny(value, BADGE_IMAGE_URL_PATTERNS)) return true;
-    return matchesAny(decodeGithubCamoUrl(value), BADGE_IMAGE_URL_PATTERNS);
+    if (matchesAnyUrl(value, BADGE_IMAGE_URL_PATTERNS)) return true;
+    return matchesAnyUrl(decodeGithubCamoUrl(value), BADGE_IMAGE_URL_PATTERNS);
 }
 
 /** The path of a URL, with any query string and fragment removed. */
@@ -126,7 +145,7 @@ function hasBadgeSizedHeight(image: HTMLImageElement): boolean {
  * points rather than what the image is.
  */
 function looksLikeBadgeAsset(image: HTMLImageElement): boolean {
-    const src = image.getAttribute('src')?.trim();
+    const src = normalizeUrl(image.getAttribute('src'));
     if (src) {
         const path = getUrlPath(src).toLowerCase();
         if (path.endsWith(`.${BADGE_ASSET_EXTENSION}`)) return true;
@@ -144,7 +163,9 @@ function isBadgeImage(image: HTMLImageElement): boolean {
     // A donation link only says where the image points, so it needs corroboration from the asset.
     // Without it, a photograph linked from a project's sponsors page would be dropped as a badge.
     const anchor = image.closest('a[href]');
-    return matchesAny(anchor?.getAttribute('href') || null, DONATION_LINK_URL_PATTERNS) && looksLikeBadgeAsset(image);
+    return (
+        matchesAnyUrl(anchor?.getAttribute('href') || null, DONATION_LINK_URL_PATTERNS) && looksLikeBadgeAsset(image)
+    );
 }
 
 /**

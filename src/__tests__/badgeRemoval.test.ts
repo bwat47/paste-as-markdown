@@ -95,6 +95,8 @@ describe('badge removal', () => {
         'https://opencollective.com/example/sponsors/badge.svg',
         'https://circleci.com/gh/owner/repo.svg?style=shield',
         'https://raw.githubusercontent.com/owner/repo/main/assets/badges/custom-donate.svg',
+        'https://api.netlify.com/api/v1/badges/00000000-1111-2222-3333-444444444444/deploy-status',
+        '//img.shields.io/npm/v/example.svg',
     ])('recognizes badge image URL %s', (src) => {
         const body = makeBody(`<p><img src="${src}" alt="Project information"></p>`);
 
@@ -110,6 +112,7 @@ describe('badge removal', () => {
         'https://joplinapp.org/donate/#donations',
         'https://ko-fi.com/example',
         'https://buymeacoffee.com/example',
+        '//www.patreon.com/example',
     ])('recognizes a custom-hosted donation image through link URL %s', (href) => {
         const body = makeBody(
             `<a href="${href}"><img src="https://cdn.example.com/custom-button.svg" alt="Project"></a>`
