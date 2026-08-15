@@ -152,6 +152,11 @@ const PICTURE_CASES: readonly PictureCase[] = [
         html: '<picture><source srcset="early.jpg 800w"><img alt="Hero"><source srcset="late.jpg 1600w"></picture>',
         expected: 'early.jpg',
     },
+    {
+        name: 'ignores picture sources when the picture is not the image direct parent',
+        html: '<picture><source srcset="outer.jpg 2x"><span><img alt="Hero"></span></picture>',
+        expected: null,
+    },
 ];
 
 describe('image srcset fallback promotion', () => {

@@ -156,18 +156,19 @@ function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | nul
 /**
  * Collect the srcset values of the <source> elements that apply to an image.
  *
- * The source set algorithm only consults direct children of the <picture> that precede the image,
- * so a <source> nested inside another element or placed after the image never applies. Iteration
- * stops at the child holding the image, which is the image itself in valid markup.
+ * The source set algorithm runs only when a <picture> is the image's direct parent, and it walks
+ * that parent's children until it reaches the image. So a <source> applies only when it is a
+ * direct sibling that precedes the image: one nested inside another element, one placed after the
+ * image, and every source of a <picture> that merely encloses the image all fail to qualify.
  */
 function collectPrecedingPictureSources(image: HTMLImageElement): string[] {
-    const picture = image.closest('picture');
-    if (!picture) return [];
+    const parent = image.parentElement;
+    if (!parent || parent.tagName.toLowerCase() !== 'picture') return [];
 
     const srcsets: string[] = [];
 
-    for (const child of Array.from(picture.children)) {
-        if (child === image || child.contains(image)) break;
+    for (const child of Array.from(parent.children)) {
+        if (child === image) break;
         if (child.tagName.toLowerCase() !== 'source') continue;
 
         const srcset = child.getAttribute('srcset');
