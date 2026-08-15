@@ -6,6 +6,7 @@ import { HtmlProcessingError } from '../html/processHtml';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../settings';
+import { pasteOptions } from './helpers/pasteOptions';
 
 // Mock dependencies
 vi.mock('api');
@@ -81,17 +82,7 @@ describe('pasteHandler', () => {
             const result = await handlePasteAsMarkdown();
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
-                html,
-                {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    removeBadges: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-                { source: 'generic' }
-            );
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, pasteOptions(), { source: 'generic' });
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', expectedMarkdown);
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(1);
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown', ToastType.Success);
@@ -115,17 +106,7 @@ describe('pasteHandler', () => {
 
             await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
-                html,
-                {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    removeBadges: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-                { source: 'google-docs' }
-            );
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, pasteOptions(), { source: 'google-docs' });
         });
 
         test('detects Google Docs from the HTML guid marker when the clipboard format is absent', async () => {
@@ -172,17 +153,9 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
-                html,
-                {
-                    includeImages: false,
-                    convertImagesToResources: false,
-                    removeBadges: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-                { source: 'generic' }
-            );
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, pasteOptions({ includeImages: false }), {
+                source: 'generic',
+            });
             expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown (images excluded)', ToastType.Success);
             expect(result).toEqual({
                 markdown: expectedMarkdown,
@@ -214,13 +187,7 @@ describe('pasteHandler', () => {
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
-                {
-                    includeImages: true,
-                    convertImagesToResources: true,
-                    removeBadges: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+                pasteOptions({ convertImagesToResources: true }),
                 { source: 'generic' }
             );
             expect(mockShowToast).toHaveBeenCalledWith(
@@ -362,17 +329,7 @@ describe('pasteHandler', () => {
 
             const result = await handlePasteAsMarkdown();
 
-            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
-                html,
-                {
-                    includeImages: true,
-                    convertImagesToResources: false,
-                    removeBadges: false,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
-                { source: 'generic' }
-            );
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, pasteOptions(), { source: 'generic' });
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('insertText', plainText);
             expect(mockShowToast).toHaveBeenCalledWith('Conversion failed; pasted plain text', ToastType.Error);
             expect(result).toEqual({
@@ -636,13 +593,7 @@ describe('pasteHandler', () => {
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.REMOVE_BADGES);
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
-                {
-                    includeImages: false,
-                    convertImagesToResources: true,
-                    removeBadges: true,
-                    normalizeQuotes: true,
-                    forceTightLists: false,
-                },
+                pasteOptions({ includeImages: false, convertImagesToResources: true, removeBadges: true }),
                 { source: 'generic' }
             );
         });

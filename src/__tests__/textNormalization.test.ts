@@ -1,17 +1,12 @@
 import { describe, test, expect } from 'vitest';
 
 import { processHtml } from '../html/processHtml';
+import { pasteOptions } from './helpers/pasteOptions';
 
 describe('text normalization toggle', () => {
     test('does not normalize smart quotes when normalizeQuotes is false', async () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            removeBadges: false,
-            normalizeQuotes: false,
-            forceTightLists: false,
-        });
+        const { body } = await processHtml(input, pasteOptions({ includeImages: false, normalizeQuotes: false }));
         expect(body).not.toBeNull();
         const html = body!.innerHTML;
 
@@ -26,13 +21,7 @@ describe('text normalization toggle', () => {
 
     test('normalizes smart quotes when normalizeQuotes is true', async () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            removeBadges: false,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        });
+        const { body } = await processHtml(input, pasteOptions({ includeImages: false }));
         expect(body).not.toBeNull();
         const html = body!.innerHTML;
 
@@ -71,13 +60,7 @@ describe('character normalization', () => {
             expected: 'Mixed nbsp thinzerodir',
         },
     ])('$name', async ({ input, expected }) => {
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            removeBadges: false,
-            normalizeQuotes: false,
-            forceTightLists: false,
-        });
+        const { body } = await processHtml(input, pasteOptions({ includeImages: false, normalizeQuotes: false }));
         expect(body).not.toBeNull();
         expect(body!.textContent).toBe(expected);
     });

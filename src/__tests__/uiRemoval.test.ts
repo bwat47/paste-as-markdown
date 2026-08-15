@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { processHtml } from '../html/processHtml';
+import { pasteOptions } from './helpers/pasteOptions';
 
 describe('removeNonContentUi pre-sanitize cleanup', () => {
     test('removes noisy UI controls but preserves inline button text', async () => {
@@ -15,13 +16,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
             <pre><code><button>UI</button><input type="text" value="x"></code></pre>
         `;
 
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            removeBadges: false,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        });
+        const { body } = await processHtml(input, pasteOptions({ includeImages: false }));
         expect(body).not.toBeNull();
         const html = body!.innerHTML;
 
