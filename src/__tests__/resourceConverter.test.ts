@@ -280,4 +280,40 @@ describe('resourceConverter edge cases', () => {
         expect(img!.parentElement?.tagName.toLowerCase()).not.toBe('a');
         expect(body.querySelector('a')).toBeNull();
     });
+
+    test('anchor wrapping a converted picture image is removed despite source siblings', async () => {
+        const body = makeBody(
+            `<a href="https://example.com/original.png"><div><picture>` +
+                `<source srcset="small.webp 1x"><source srcset="large.webp 2x">` +
+                `<img src="${PNG_DATA_URL}" alt="image">` +
+                `</picture></div></a>`
+        );
+        const result = await convertImagesToResources(body);
+        expect(result.ids).toHaveLength(1);
+
+        unwrapAllConvertedImageLinks(body);
+
+        const img = body.querySelector('img');
+        expect(img?.parentElement).toBe(body);
+        expect(img?.hasAttribute('data-pam-converted')).toBe(false);
+        expect(body.querySelector('a')).toBeNull();
+        expect(body.querySelector('picture')).toBeNull();
+        expect(body.querySelector('source')).toBeNull();
+    });
+
+    test('picture source exception does not unwrap an anchor with other sibling content', async () => {
+        const body = makeBody(
+            `<a href="https://example.com/original.png"><div>` +
+                `<picture><source srcset="image.webp 1x"><img src="${PNG_DATA_URL}" alt="image"></picture>` +
+                `<span>Caption</span>` +
+                `</div></a>`
+        );
+        const result = await convertImagesToResources(body);
+        expect(result.ids).toHaveLength(1);
+
+        unwrapAllConvertedImageLinks(body);
+
+        expect(body.querySelector('a')).not.toBeNull();
+        expect(body.querySelector('span')?.textContent).toBe('Caption');
+    });
 });
