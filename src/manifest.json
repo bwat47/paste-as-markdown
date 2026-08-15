@@ -35,7 +35,7 @@
         },
         "convertImagesToResources": {
             "type": "bool",
-            "label": "Include images",
+            "label": "Convert images to Joplin resources",
             "description": "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
             "value": false
         },
@@ -47,7 +47,7 @@
         },
         "normalizeQuotes": {
             "type": "bool",
-            "label": "Include images",
+            "label": "Normalize smart quotes",
             "description": "Convert Word/Office smart quotes to regular quotes for better markdown compatibility.",
             "value": true
         },
