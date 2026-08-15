@@ -18,6 +18,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
+            removeBadges: false,
             normalizeQuotes: true,
             forceTightLists: false,
         });

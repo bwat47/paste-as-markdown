@@ -11,6 +11,7 @@ export type ConversionFailure = ConversionResult & { success: false; warnings: r
 export interface PasteOptions {
     includeImages: boolean;
     convertImagesToResources: boolean;
+    removeBadges: boolean;
     normalizeQuotes: boolean;
     forceTightLists: boolean;
 }

@@ -39,6 +39,12 @@
             "description": "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
             "value": false
         },
+        "removeBadges": {
+            "type": "bool",
+            "label": "Remove badges",
+            "description": "Remove common status, donation, and sponsorship badge images (requires 'Include images').",
+            "value": false
+        },
         "normalizeQuotes": {
             "type": "bool",
             "label": "Include images",

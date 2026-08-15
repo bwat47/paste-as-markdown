@@ -39,6 +39,8 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 
     - **Image normalization** - HTML `<img>` embeds will only contain a standardized set of attributes: src, alt, title, width, height. Images that are converted to joplin resources will be unwrapped from external anchor links. Promotes inline css width/height to HTML attributes so that image sizes are maintained through turndown conversion.
 
+    - **Optional badge removal** - Removes common status, donation, and sponsorship badge images before Markdown or Joplin resource conversion.
+
 - **Whitspace normalization** - Minimal post-processing to remove excess whitespace between paragraphs.
 
 - **Table support** - HTML tables are converted to markdown tables via turndown-plugin-gfm.
@@ -50,6 +52,8 @@ If you don't have HTML formatted text in the clipboard, the plugin will fall bac
 - **Include Images** - By default, images (external or base64 encoded) are included in the pasted text. If desired, you can un-check include images in the plugin settings so that images are not included in the pasted text.
 
 - **Convert images to Joplin resources** - If enabled (along with Include images), external (http/https) and base64 encoded images will automatically be converted to Joplin resources.
+
+- **Remove badges** - If enabled (along with Include images), common status, donation, and sponsorship badge images are removed before conversion.
 
 - **Normalize smart quotes** - Convert Word/Office smart quotes to regular quotes for better markdown compatibility.
 

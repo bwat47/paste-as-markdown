@@ -86,6 +86,7 @@ describe('pasteHandler', () => {
                 {
                     includeImages: true,
                     convertImagesToResources: false,
+                    removeBadges: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
                 },
@@ -119,6 +120,7 @@ describe('pasteHandler', () => {
                 {
                     includeImages: true,
                     convertImagesToResources: false,
+                    removeBadges: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
                 },
@@ -175,6 +177,7 @@ describe('pasteHandler', () => {
                 {
                     includeImages: false,
                     convertImagesToResources: false,
+                    removeBadges: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
                 },
@@ -214,6 +217,7 @@ describe('pasteHandler', () => {
                 {
                     includeImages: true,
                     convertImagesToResources: true,
+                    removeBadges: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
                 },
@@ -363,6 +367,7 @@ describe('pasteHandler', () => {
                 {
                     includeImages: true,
                     convertImagesToResources: false,
+                    removeBadges: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
                 },
@@ -611,6 +616,8 @@ describe('pasteHandler', () => {
                         return Promise.resolve(false);
                     case SETTINGS.CONVERT_IMAGES_TO_RESOURCES:
                         return Promise.resolve(true);
+                    case SETTINGS.REMOVE_BADGES:
+                        return Promise.resolve(true);
                     default:
                         return Promise.resolve(undefined);
                 }
@@ -626,11 +633,13 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.INCLUDE_IMAGES);
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.CONVERT_IMAGES_TO_RESOURCES);
+            expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.REMOVE_BADGES);
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
                 {
                     includeImages: false,
                     convertImagesToResources: true,
+                    removeBadges: true,
                     normalizeQuotes: true,
                     forceTightLists: false,
                 },

@@ -9,6 +9,7 @@ describe('smart quotes normalization with large code block present', () => {
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
+            removeBadges: false,
             normalizeQuotes: true,
             forceTightLists: false,
         });

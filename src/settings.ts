@@ -6,6 +6,7 @@ import type { PasteOptions } from './types';
 export const SETTINGS = {
     INCLUDE_IMAGES: 'includeImages',
     CONVERT_IMAGES_TO_RESOURCES: 'convertImagesToResources',
+    REMOVE_BADGES: 'removeBadges',
     NORMALIZE_QUOTES: 'normalizeQuotes',
     FORCE_TIGHT_LISTS: 'forceTightLists',
 } as const;
@@ -15,6 +16,7 @@ type SettingKey = (typeof SETTINGS)[keyof typeof SETTINGS];
 export const DEFAULT_PASTE_OPTIONS = {
     includeImages: true,
     convertImagesToResources: false,
+    removeBadges: false,
     normalizeQuotes: true,
     forceTightLists: false,
 } as const satisfies PasteOptions;
@@ -45,6 +47,14 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'Convert images to Joplin resources',
             description:
                 "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
+        },
+        [SETTINGS.REMOVE_BADGES]: {
+            value: DEFAULT_PASTE_OPTIONS.removeBadges,
+            type: SettingItemType.Bool,
+            section: SETTINGS_SECTION,
+            public: true,
+            label: 'Remove badges',
+            description: "Remove common status, donation, and sponsorship badge images (requires 'Include images').",
         },
         [SETTINGS.NORMALIZE_QUOTES]: {
             value: DEFAULT_PASTE_OPTIONS.normalizeQuotes,
@@ -85,6 +95,11 @@ export async function loadPasteOptions(): Promise<PasteOptions> {
             SETTINGS.CONVERT_IMAGES_TO_RESOURCES,
             await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
             DEFAULT_PASTE_OPTIONS.convertImagesToResources
+        ),
+        removeBadges: resolveBooleanSetting(
+            SETTINGS.REMOVE_BADGES,
+            await joplin.settings.value(SETTINGS.REMOVE_BADGES),
+            DEFAULT_PASTE_OPTIONS.removeBadges
         ),
         normalizeQuotes: resolveBooleanSetting(
             SETTINGS.NORMALIZE_QUOTES,

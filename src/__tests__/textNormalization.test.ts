@@ -8,6 +8,7 @@ describe('text normalization toggle', () => {
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
+            removeBadges: false,
             normalizeQuotes: false,
             forceTightLists: false,
         });
@@ -28,6 +29,7 @@ describe('text normalization toggle', () => {
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
+            removeBadges: false,
             normalizeQuotes: true,
             forceTightLists: false,
         });
@@ -72,6 +74,7 @@ describe('character normalization', () => {
         const { body } = await processHtml(input, {
             includeImages: false,
             convertImagesToResources: false,
+            removeBadges: false,
             normalizeQuotes: false,
             forceTightLists: false,
         });

@@ -45,6 +45,11 @@ describe('settings', () => {
                 type: SettingItemType.Bool,
                 section: 'pasteAsMarkdown',
             },
+            [SETTINGS.REMOVE_BADGES]: {
+                value: DEFAULT_PASTE_OPTIONS.removeBadges,
+                type: SettingItemType.Bool,
+                section: 'pasteAsMarkdown',
+            },
             [SETTINGS.NORMALIZE_QUOTES]: {
                 value: DEFAULT_PASTE_OPTIONS.normalizeQuotes,
                 type: SettingItemType.Bool,
@@ -64,6 +69,7 @@ describe('settings', () => {
                 {
                     [SETTINGS.INCLUDE_IMAGES]: false,
                     [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true,
+                    [SETTINGS.REMOVE_BADGES]: true,
                     [SETTINGS.NORMALIZE_QUOTES]: false,
                     [SETTINGS.FORCE_TIGHT_LISTS]: true,
                 }[setting]
@@ -73,6 +79,7 @@ describe('settings', () => {
         await expect(loadPasteOptions()).resolves.toEqual({
             includeImages: false,
             convertImagesToResources: true,
+            removeBadges: true,
             normalizeQuotes: false,
             forceTightLists: true,
         });

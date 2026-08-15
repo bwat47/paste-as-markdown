@@ -18,6 +18,7 @@ import {
 import { normalizeCodeBlocks } from '../post/codeBlocks';
 import { normalizeImageAltAttributes } from '../post/images';
 import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
+import { removeBadgeImages } from '../post/badges';
 
 import type { ProcessingPass } from './types';
 
@@ -65,6 +66,11 @@ export const PROCESSING_PASSES: PassCollections = {
         },
     ],
     postSanitize: [
+        {
+            name: 'Post-sanitize badge removal',
+            condition: (options) => options.includeImages && options.removeBadges,
+            execute: (body) => removeBadgeImages(body),
+        },
         {
             name: 'Post-sanitize empty anchor removal',
             execute: (body, options) => removeEmptyAnchors(body, options),
