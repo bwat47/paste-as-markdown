@@ -30,7 +30,7 @@ ARCHITECTURE.md
 - Filenames: `camelCase.ts` for modules; tests in `__tests__/<name>.test.ts`.
 - Documentation: Use JSDoc for complex functions; document regex patterns with examples.
 - Constants and configuration: No magic literals — extract to constants, enums, config objects, or dedicated types.
-- Structure and Testability: Pure logic lives in small, focused units when internal behaviour is non-trivial. Global state and hidden side effects are avoided in favour of explicit dependencies when possible.
+- Structure and Testability: Pure logic lives in small, focused units when internal behaviour is non-trivial. Global state and hidden side effects are avoided in favour of explicit dependencies when possible. A helper that closes over no locals belongs at module scope; keep it inside a function only when it captures that function's state.
 - Log messages should use `src\logger.ts`.
 
 ## HTML Processing & Security Guidelines
