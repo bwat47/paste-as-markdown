@@ -24,6 +24,8 @@ const SANITIZER_ALLOWED_TAGS_BASE = [
     'ol',
     'li',
     'blockquote',
+    'figure',
+    'figcaption',
     'hr',
     'br',
     'h1',
