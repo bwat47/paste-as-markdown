@@ -51,6 +51,37 @@ const GITHUB_CAMO_BADGES = `
     </p>
 `;
 
+/**
+ * Camo-proxied badges from the DOMPurify README. Several of these are generated on request rather
+ * than stored, so their URLs carry no file extension: cloudback, bestpractices.dev, scorecard.dev
+ * and the badge.socket.dev host.
+ */
+const GITHUB_CAMO_ENDPOINT_BADGES = `
+    <div dir="auto"><h1 tabindex="-1" dir="auto">DOMPurify</h1></div>
+    <p dir="auto">
+        <a href="https://cloudback.it/" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/6a78fe4f69f9763e575c7259d0e34df46e766629b4693ea79430ec318f7e5f1c/68747470733a2f2f6170702e636c6f75646261636b2e69742f62616467652f6375726535332f444f4d507572696679" alt="Cloudback"/>
+        </a>
+        &nbsp;
+        <a href="https://www.bestpractices.dev/projects/12162" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/26fa9facd58871bdfe001b9dff5f782833d2d939f4b86640e95ef3a8f2b04b25/68747470733a2f2f7777772e626573747072616374696365732e6465762f70726f6a656374732f31323136322f6261646765" alt="OpenSSF Best Practices"/>
+        </a>
+        &nbsp;
+        <a href="https://scorecard.dev/viewer/?uri=github.com/cure53/DOMPurify" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/498fd41ea4841575faef925a9f9a8110384b7a210223cff73753f2d1598f5405/68747470733a2f2f6170692e73636f7265636172642e6465762f70726f6a656374732f6769746875622e636f6d2f6375726535332f444f4d5075726966792f6261646765" alt="OpenSSF Scorecard"/>
+        </a>
+        &nbsp;
+        <a href="https://badge.socket.dev/npm/package/dompurify/latest" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/d1dac0378bd9b9a80f3136d27524c5e9c5a1e9b8e1fb0e79987341c951d50fac/68747470733a2f2f62616467652e736f636b65742e6465762f6e706d2f7061636b6167652f646f6d7075726966792f6c6174657374" alt="Socket Badge"/>
+        </a>
+        &nbsp;
+        <a href="https://github.com/cure53/DOMPurify/network/dependents">
+            <img src="https://camo.githubusercontent.com/081db981f41101fb449086d133151b1a1ab05c2bc8cbf8cf0315bf7799bf37d0/68747470733a2f2f62616467656e2e6e65742f6769746875622f646570656e64656e74732d7265706f2f6375726535332f646f6d7075726966793f636f6c6f723d677265656e266c6162656c3d646570656e64656e7473" alt="dependents"/>
+        </a>
+    </p>
+    <p dir="auto">DOMPurify is a DOM-only, super-fast, uber-tolerant XSS sanitizer for HTML, MathML and SVG.</p>
+`;
+
 function makeBody(html: string): HTMLElement {
     return new DOMParser().parseFromString(html, 'text/html').body;
 }
@@ -66,6 +97,28 @@ describe('badge removal', () => {
         expect(result.body.querySelectorAll('img')).toHaveLength(0);
         expect(result.body.querySelectorAll('a')).toHaveLength(0);
         expect(result.body.textContent).toContain('is-badge');
+    });
+
+    test('removes camo-proxied badges served from extensionless endpoints', async () => {
+        const result = await processHtml(GITHUB_CAMO_ENDPOINT_BADGES, pasteOptions({ removeBadges: true }));
+
+        expect(result.body.querySelectorAll('img')).toHaveLength(0);
+        expect(result.body.querySelectorAll('a')).toHaveLength(0);
+        expect(result.body.textContent).toContain('DOMPurify is a DOM-only');
+    });
+
+    test.each([
+        'https://app.cloudback.it/badge/owner/repo',
+        'https://www.bestpractices.dev/projects/12162/badge',
+        'https://api.scorecard.dev/projects/github.com/owner/repo/badge',
+        'https://badge.socket.dev/npm/package/example/latest',
+        'https://badges.example.com/build/status',
+    ])('recognizes the extensionless badge endpoint %s', (src) => {
+        const body = makeBody(`<p><img src="${src}" alt="Project information"></p>`);
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).toBeNull();
     });
 
     test('removes the supplied Joplin donation badge block and its empty links', async () => {

@@ -28,7 +28,9 @@ const ASSUMED_URL_SCHEME = 'https:';
  */
 const BADGE_IMAGE_URL_PATTERNS: readonly RegExp[] = [
     /^https?:\/\/img\.shields\.io(?:\/|$)/i,
-    /^https?:\/\/(?:badgen\.net|badge\.fury\.io|badges\.gitter\.im)(?:\/|$)/i,
+    /^https?:\/\/badgen\.net(?:\/|$)/i,
+    // Hosts that exist to serve badges: badge.fury.io, badges.gitter.im, badge.socket.dev, ...
+    /^https?:\/\/badges?\.[^/?#]+(?:\/|$)/i,
     /^https?:\/\/(?:www\.)?travis-ci\.(?:com|org)\/.*\.(?:svg|png)(?:[?#]|$)/i,
     /^https?:\/\/(?:www\.)?nodei\.co(?:\/[^/?#]+){2}\.(?:svg|png)(?:[?#]|$)/i,
     /^https?:\/\/inch-ci\.org(?:\/[^/?#]+){3}\.(?:svg|png)(?:[?#]|$)/i,
@@ -41,10 +43,14 @@ const BADGE_IMAGE_URL_PATTERNS: readonly RegExp[] = [
     /^https?:\/\/(?:www\.)?opencollective\.com\/[^/?#]+\/(?:sponsors|backers)\/badge\.svg(?:[?#]|$)/i,
     /^https?:\/\/issuestats\.com\/github(?:\/[^/?#]+){2}\/badge\/(?:pr|issue)\/?(?:[?#]|$)/i,
     /^https?:\/\/(?:www\.)?circleci\.com\/(?:gh|bb)(?:\/[^/?#]+){2}\.(?:svg|png)(?:[?#]|$)/i,
-    // Deploy-status badges carry no file extension, so the generic /badges/ rule cannot see them.
-    /^https?:\/\/api\.netlify\.com\/api\/v1\/badges(?:\/[^/?#]+)+\/deploy-status(?:[?#]|$)/i,
     new RegExp(`^https?:\\/\\/[^/?#]+\\/(?:[^?#]*\\/)?badges?\\/[^?#]+\\.${BADGE_ASSET_EXTENSION}(?:[?#]|$)`, 'i'),
 ];
+
+/** Path segment that marks a badge endpoint, as in `/projects/12162/badge` or `/badge/owner/repo`. */
+const BADGE_PATH_SEGMENT_PATTERN = /^badges?$/i;
+/** A final segment carrying a file extension is a stored asset, covered by the patterns above. */
+const FILE_EXTENSION_PATTERN = /\.[a-z0-9]{2,5}$/i;
+const URL_ORIGIN_PATTERN = /^https?:\/\/[^/?#]+/i;
 
 /**
  * Donation destinations identify custom-hosted buttons whose image URL alone is generic.
@@ -124,14 +130,34 @@ function decodeGithubCamoUrl(value: string | null): string | null {
     return decodedUrl;
 }
 
-function isKnownBadgeImageUrl(value: string | null): boolean {
-    if (matchesAnyUrl(value, BADGE_IMAGE_URL_PATTERNS)) return true;
-    return matchesAnyUrl(decodeGithubCamoUrl(value), BADGE_IMAGE_URL_PATTERNS);
-}
-
 /** The path of a URL, with any query string and fragment removed. */
 function getUrlPath(url: string): string {
     return url.split(/[?#]/)[0];
+}
+
+/**
+ * Whether a URL addresses a badge endpoint rather than a stored image, as in
+ * `https://www.bestpractices.dev/projects/12162/badge` or `https://app.cloudback.it/badge/owner/repo`.
+ *
+ * These services generate an image on request, so the URL carries no file extension. The extension
+ * check is what keeps a stored image such as `/photos/badges/police-badge.png` out: an extensionless
+ * path with a `badge` segment is an endpoint, never a photograph.
+ */
+function isBadgeEndpointUrl(url: string): boolean {
+    const segments = getUrlPath(url)
+        .replace(URL_ORIGIN_PATTERN, '')
+        .split('/')
+        .filter((segment) => segment.length > 0);
+    if (segments.length === 0 || FILE_EXTENSION_PATTERN.test(segments[segments.length - 1])) return false;
+    return segments.some((segment) => BADGE_PATH_SEGMENT_PATTERN.test(segment));
+}
+
+function isKnownBadgeImageUrl(value: string | null): boolean {
+    const candidates = [normalizeUrl(value), decodeGithubCamoUrl(value)];
+    return candidates.some(
+        (candidate) =>
+            candidate !== null && (matchesAny(candidate, BADGE_IMAGE_URL_PATTERNS) || isBadgeEndpointUrl(candidate))
+    );
 }
 
 function hasBadgeSizedHeight(image: HTMLImageElement): boolean {
