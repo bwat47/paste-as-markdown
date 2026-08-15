@@ -3,7 +3,8 @@ import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
 const MEDIA_TAGS = new Set(['img', 'picture', 'source']);
-const BLOCK_LEVEL_TAGS = new Set([
+/** Tags that force a line break in Markdown output and therefore cannot survive inside a link. */
+const BLOCK_LEVEL_TAGS = [
     'p',
     'div',
     'blockquote',
@@ -36,7 +37,8 @@ const BLOCK_LEVEL_TAGS = new Set([
     'figcaption',
     'details',
     'summary',
-]);
+] as const;
+const BLOCK_LEVEL_SELECTOR = BLOCK_LEVEL_TAGS.join(', ');
 
 /**
  * Analyze an anchor element to determine permalink / heading context.
@@ -126,32 +128,15 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
 }
 
 /**
- * Check if anchor contains only block-level elements (ignoring whitespace text nodes).
+ * Unwrap every block-level descendant of an anchor to prevent newlines in link syntax.
+ * Markdown inline links cannot span blank lines, so any block inside an anchor breaks the
+ * link regardless of whether it sits next to inline siblings:
+ * `<a href="url"><div></div><span>text</span></a>` becomes `<a href="url">text</a>`.
  */
-function containsOnlyBlockElements(anchor: HTMLElement): boolean {
-    const children = Array.from(anchor.childNodes).filter(
-        (node) =>
-            !(isTextNode(node) && (!node.textContent || !node.textContent.trim())) &&
-            node.nodeType !== Node.COMMENT_NODE
-    );
-
-    if (children.length === 0) return false;
-
-    return children.every((child) => {
-        if (!isElement(child)) return false;
-        return BLOCK_LEVEL_TAGS.has(child.tagName.toLowerCase());
-    });
-}
-
-/**
- * Unwrap block-level elements from inside anchors to prevent newlines in link syntax.
- * Transforms <a href="url"><p>text</p></a> into <a href="url">text</a>
- */
-function unwrapBlockElementsInAnchor(anchor: HTMLElement): void {
-    const blockElements = Array.from(anchor.children).filter((child) =>
-        BLOCK_LEVEL_TAGS.has(child.tagName.toLowerCase())
-    );
-
+function flattenBlockElementsInAnchor(anchor: HTMLElement): void {
+    // Static list in document order: unwrapping an outer block leaves its descendants in the
+    // tree (re-parented to the anchor), so nested blocks are still unwrapped by later entries.
+    const blockElements = anchor.querySelectorAll(BLOCK_LEVEL_SELECTOR);
     blockElements.forEach((blockEl) => {
         unwrapElement(blockEl as HTMLElement);
     });
@@ -181,9 +166,8 @@ export function normalizeAnchors(body: HTMLElement): void {
             } else {
                 unwrapElement(anchor as HTMLElement);
             }
-        } else if (containsOnlyBlockElements(anchor as HTMLElement)) {
-            // Unwrap block-level elements to prevent newlines inside link syntax
-            unwrapBlockElementsInAnchor(anchor as HTMLElement);
+        } else {
+            flattenBlockElementsInAnchor(anchor as HTMLElement);
         }
     });
 }
