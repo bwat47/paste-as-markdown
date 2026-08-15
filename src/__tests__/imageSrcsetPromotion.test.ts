@@ -64,6 +64,24 @@ const SELECTION_CASES: readonly SelectionCase[] = [
         srcset: 'javascript:alert(1) 2x',
         expected: null,
     },
+    // The next three cases pin the spec's in-parens descriptor state, where a comma between
+    // parentheses does not end a candidate. Parentheses inside a URL are consumed before
+    // descriptors are read, so only parentheses in the descriptor region reach that state.
+    {
+        name: 'keeps parentheses that belong to a candidate URL',
+        srcset: 'image(1).jpg 2x, other.jpg 3x',
+        expected: 'other.jpg',
+    },
+    {
+        name: 'resumes splitting candidates after a balanced parenthesized descriptor',
+        srcset: 'a.jpg 1x, b.jpg (2,3)x, c.jpg 3x',
+        expected: 'c.jpg',
+    },
+    {
+        name: 'treats an unclosed parenthesis as swallowing the remaining candidates',
+        srcset: 'a.jpg 320w, b.jpg (x, c.jpg 640w',
+        expected: 'a.jpg',
+    },
 ];
 
 describe('image srcset fallback promotion', () => {
