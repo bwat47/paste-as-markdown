@@ -23,19 +23,21 @@ describe('List indentation option', () => {
         expect(await toMarkdown(html, LIST_INDENTATION.SPACES)).toBe('- Parent\n    - Child');
     });
 
-    test('uses one tab per unordered nesting level', async () => {
+    test('indents one level per unordered nesting level', async () => {
         const html = '<ul><li>Parent<ul><li>Child<ul><li>Grandchild</li></ul></li></ul></li></ul>';
 
         expect(await toMarkdown(html, LIST_INDENTATION.TABS)).toBe('- Parent\n\t- Child\n\t\t- Grandchild');
+        expect(await toMarkdown(html, LIST_INDENTATION.SPACES)).toBe('- Parent\n    - Child\n        - Grandchild');
     });
 
-    test('uses tabs for continuation blocks within list items', async () => {
+    test('indents continuation blocks within list items', async () => {
         const html = '<ul><li><p>First paragraph</p><p>Second paragraph</p></li></ul>';
 
         expect(await toMarkdown(html, LIST_INDENTATION.TABS)).toBe('- First paragraph\n\n\tSecond paragraph');
+        expect(await toMarkdown(html, LIST_INDENTATION.SPACES)).toBe('- First paragraph\n\n    Second paragraph');
     });
 
-    test('uses tabs for nested task lists', async () => {
+    test('indents nested task lists', async () => {
         const html = `<ul class="contains-task-list"><li class="task-list-item">
 <input class="task-list-item-checkbox" type="checkbox"> Parent
 <ul class="contains-task-list"><li class="task-list-item">
@@ -43,21 +45,30 @@ describe('List indentation option', () => {
 </li></ul></li></ul>`;
 
         expect(await toMarkdown(html, LIST_INDENTATION.TABS)).toBe('- [ ] Parent\n\t- [x] Child');
+        expect(await toMarkdown(html, LIST_INDENTATION.SPACES)).toBe('- [ ] Parent\n    - [x] Child');
     });
 
-    test('uses enough tabs to preserve nesting after a wide ordered marker', async () => {
+    test('indents enough to preserve nesting after a wide ordered marker', async () => {
         const html = '<ol start="100"><li>Parent<ul><li>Child</li></ul></li></ol>';
-        const markdown = await toMarkdown(html, LIST_INDENTATION.TABS);
+        const nestedStructure = 'OrderedList(ListItem(ListMark,Paragraph,BulletList(ListItem(ListMark,Paragraph))))';
 
-        expect(markdown).toBe('100. Parent\n\t\t- Child');
-        expect(parser.parse(markdown).toString()).toContain(
-            'OrderedList(ListItem(ListMark,Paragraph,BulletList(ListItem(ListMark,Paragraph))))'
-        );
+        // Tabs advance to four-column stops, so the five-column `100. ` marker rounds up to two tabs.
+        const tabbed = await toMarkdown(html, LIST_INDENTATION.TABS);
+        expect(tabbed).toBe('100. Parent\n\t\t- Child');
+        expect(parser.parse(tabbed).toString()).toContain(nestedStructure);
+
+        // Spaces match the marker width exactly rather than rounding.
+        const spaced = await toMarkdown(html, LIST_INDENTATION.SPACES);
+        expect(spaced).toBe('100. Parent\n     - Child');
+        expect(parser.parse(spaced).toString()).toContain(nestedStructure);
     });
 
-    test('preserves tab indentation inside fenced code in a list item', async () => {
+    test('preserves indentation inside fenced code in a list item', async () => {
         const html = '<ul><li><p>Parent</p><pre><code>a\n\nb</code></pre></li></ul>';
 
         expect(await toMarkdown(html, LIST_INDENTATION.TABS)).toBe('- Parent\n\n\t```\n\ta\n\t\n\tb\n\t```');
+        expect(await toMarkdown(html, LIST_INDENTATION.SPACES)).toBe(
+            '- Parent\n\n    ```\n    a\n    \n    b\n    ```'
+        );
     });
 });
