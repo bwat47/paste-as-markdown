@@ -28,6 +28,29 @@ const JOPLIN_DONATION_BADGES = `
     <p>This tutorial will guide you through the steps to create a table of contents plugin for Joplin.</p>
 `;
 
+const GITHUB_CAMO_BADGES = `
+    <div dir="auto">
+        <h1 tabindex="-1" dir="auto">is-badge</h1>
+    </div>
+    <p dir="auto">
+        <a href="https://github.com/wooorm/is-badge/actions">
+            <img src="https://github.com/wooorm/is-badge/workflows/main/badge.svg" alt="Build"/>
+        </a>
+        &nbsp;
+        <a href="https://codecov.io/github/wooorm/is-badge" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/fd62176a5c7543366f5cfb552afa818a644ca3ca2f6174c1885d8fd51b212044/68747470733a2f2f696d672e736869656c64732e696f2f636f6465636f762f632f6769746875622f776f6f6f726d2f69732d62616467652e737667" alt="Coverage"/>
+        </a>
+        &nbsp;
+        <a href="https://www.npmjs.com/package/is-badge" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/34da7e66efb2c470b777e9f6787b4643d3541cdbf4a91bde1e4e0a939b1581c5/68747470733a2f2f696d672e736869656c64732e696f2f6e706d2f646d2f69732d62616467652e737667" alt="Downloads"/>
+        </a>
+        &nbsp;
+        <a href="https://bundlephobia.com/result?p=is-badge" rel="nofollow">
+            <img src="https://camo.githubusercontent.com/a3b0d924952bcbf7397779e95276aa3998298b7092bc7b67f0c3de2703691ad0/68747470733a2f2f696d672e736869656c64732e696f2f62756e646c6570686f6269612f6d696e7a69702f69732d62616467652e737667" alt="Size"/>
+        </a>
+    </p>
+`;
+
 function makeBody(html: string): HTMLElement {
     return new DOMParser().parseFromString(html, 'text/html').body;
 }
@@ -37,6 +60,14 @@ afterEach(() => {
 });
 
 describe('badge removal', () => {
+    test('removes GitHub workflow and camo-proxied badge images', async () => {
+        const result = await processHtml(GITHUB_CAMO_BADGES, pasteOptions({ removeBadges: true }));
+
+        expect(result.body.querySelectorAll('img')).toHaveLength(0);
+        expect(result.body.querySelectorAll('a')).toHaveLength(0);
+        expect(result.body.textContent).toContain('is-badge');
+    });
+
     test('removes the supplied Joplin donation badge block and its empty links', async () => {
         const result = await processHtml(JOPLIN_DONATION_BADGES, pasteOptions({ removeBadges: true }));
 
@@ -113,6 +144,19 @@ describe('badge removal', () => {
             'https://example.com/photos/badge-shaped-sign.png'
         );
         expect(result.body.querySelector('a')?.textContent?.trim()).toBe('Donation options');
+    });
+
+    test('preserves an ordinary image proxied through GitHub Camo', () => {
+        const body = makeBody(`
+            <img
+                src="https://camo.githubusercontent.com/fd62176a5c7543366f5cfb552afa818a644ca3ca2f6174c1885d8fd51b212044/68747470733a2f2f6578616d706c652e636f6d2f70686f746f2e706e67"
+                alt="Project screenshot"
+            >
+        `);
+
+        removeBadgeImages(body);
+
+        expect(body.querySelector('img')).not.toBeNull();
     });
 
     test('removes a badge picture with its source alternatives', () => {

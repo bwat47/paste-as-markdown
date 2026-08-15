@@ -1,6 +1,9 @@
 import { isInCode } from '../shared/dom';
 
 const BADGE_IMAGE_EXTENSIONS = '(?:svg|png|gif|webp)';
+const MAX_CAMO_ENCODED_URL_LENGTH = 16 * 1024;
+const HEX_PAIR_LENGTH = 2;
+const GITHUB_CAMO_URL_PATTERN = /^https?:\/\/camo\.githubusercontent\.com\/[0-9a-f]+\/([0-9a-f]+)(?:[?#]|$)/i;
 
 /**
  * Known badge service and badge-asset URL shapes.
@@ -51,8 +54,34 @@ function matchesAny(value: string | null, patterns: readonly RegExp[]): boolean 
     return normalized.length > 0 && patterns.some((pattern) => pattern.test(normalized));
 }
 
+/**
+ * Recover the canonical image URL embedded as hexadecimal bytes in a GitHub Camo URL.
+ *
+ * Example: `/hash/68747470733a2f2f696d672e736869656c64732e696f...` decodes to an
+ * `https://img.shields.io/...` URL. Decoding is bounded because clipboard HTML is untrusted.
+ */
+function decodeGithubCamoUrl(value: string | null): string | null {
+    if (!value) return null;
+    const match = value.trim().match(GITHUB_CAMO_URL_PATTERN);
+    const encodedUrl = match?.[1];
+    if (!encodedUrl || encodedUrl.length % HEX_PAIR_LENGTH !== 0 || encodedUrl.length > MAX_CAMO_ENCODED_URL_LENGTH) {
+        return null;
+    }
+
+    let decodedUrl = '';
+    for (let index = 0; index < encodedUrl.length; index += HEX_PAIR_LENGTH) {
+        decodedUrl += String.fromCharCode(Number.parseInt(encodedUrl.slice(index, index + HEX_PAIR_LENGTH), 16));
+    }
+    return decodedUrl;
+}
+
+function isKnownBadgeImageUrl(value: string | null): boolean {
+    if (matchesAny(value, BADGE_IMAGE_URL_PATTERNS)) return true;
+    return matchesAny(decodeGithubCamoUrl(value), BADGE_IMAGE_URL_PATTERNS);
+}
+
 function isBadgeImage(image: HTMLImageElement): boolean {
-    if (matchesAny(image.getAttribute('src'), BADGE_IMAGE_URL_PATTERNS)) return true;
+    if (isKnownBadgeImageUrl(image.getAttribute('src'))) return true;
     if (DONATION_ALT_PATTERN.test(image.getAttribute('alt')?.trim() || '')) return true;
 
     const anchor = image.closest('a[href]');
