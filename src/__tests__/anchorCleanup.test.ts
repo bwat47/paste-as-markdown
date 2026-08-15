@@ -1,6 +1,16 @@
 import { describe, expect, test } from 'vitest';
 import { processHtml } from '../html/processHtml';
+import { normalizeAnchors } from '../html/post/anchors';
 import { pasteOptions } from './helpers/pasteOptions';
+
+function normalizeAnchorHtml(html: string): HTMLAnchorElement {
+    const document = new DOMParser().parseFromString(html, 'text/html');
+    normalizeAnchors(document.body);
+
+    const anchor = document.body.querySelector<HTMLAnchorElement>('a');
+    expect(anchor).not.toBeNull();
+    return anchor!;
+}
 
 describe('empty anchor cleanup', () => {
     const options = pasteOptions({ normalizeQuotes: false });
@@ -53,5 +63,35 @@ describe('empty anchor cleanup', () => {
         expect(heading).not.toBeNull();
         expect(heading!.textContent).toContain('Quota Limits');
         expect(body!.querySelector('a.headerlink')).toBeNull();
+    });
+});
+
+describe('anchor line-breaking element normalization', () => {
+    test('does not duplicate whitespace from a whitespace-only block', () => {
+        const anchor = normalizeAnchorHtml(
+            '<a href="https://example.com"><span>Before</span><div> </div><span>After</span></a>'
+        );
+
+        expect(anchor.innerHTML).toBe('<span>Before</span> <span>After</span>');
+        expect(anchor.textContent).toBe('Before After');
+    });
+
+    test('adds boundaries around a block whose children have no text', () => {
+        const anchor = normalizeAnchorHtml(
+            '<a href="https://example.com"><span>Before</span><div><img src="test.png" alt="Example"></div><span>After</span></a>'
+        );
+
+        expect(anchor.innerHTML).toBe(
+            '<span>Before</span> <img src="test.png" alt="Example"> <span>After</span>'
+        );
+    });
+
+    test('does not add trailing whitespace when a block is the last child', () => {
+        const anchor = normalizeAnchorHtml(
+            '<a href="https://example.com"><span>Before</span><div>After</div></a>'
+        );
+
+        expect(anchor.innerHTML).toBe('<span>Before</span> After');
+        expect(anchor.textContent).toBe('Before After');
     });
 });
