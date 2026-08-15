@@ -6,6 +6,7 @@ import { HtmlProcessingError } from '../html/processHtml';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../settings';
+import { LIST_INDENTATION } from '../types';
 
 // Mock dependencies
 vi.mock('api');
@@ -88,6 +89,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -121,6 +123,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'google-docs' }
             );
@@ -177,6 +180,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -216,6 +220,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: true,
                     normalizeQuotes: true,
                     forceTightLists: false,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -365,6 +370,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -611,6 +617,8 @@ describe('pasteHandler', () => {
                         return Promise.resolve(false);
                     case SETTINGS.CONVERT_IMAGES_TO_RESOURCES:
                         return Promise.resolve(true);
+                    case SETTINGS.LIST_INDENTATION:
+                        return Promise.resolve(LIST_INDENTATION.TABS);
                     default:
                         return Promise.resolve(undefined);
                 }
@@ -626,6 +634,7 @@ describe('pasteHandler', () => {
 
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.INCLUDE_IMAGES);
             expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.CONVERT_IMAGES_TO_RESOURCES);
+            expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.LIST_INDENTATION);
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
                 {
@@ -633,6 +642,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: true,
                     normalizeQuotes: true,
                     forceTightLists: false,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );

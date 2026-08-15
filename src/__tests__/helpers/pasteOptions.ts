@@ -1,4 +1,5 @@
 import { DEFAULT_PASTE_OPTIONS } from '../../settings';
+import { LIST_INDENTATION } from '../../types';
 import type { PasteOptions } from '../../types';
 
 /**
@@ -16,6 +17,7 @@ const INERT_PASTE_OPTIONS: PasteOptions = {
     convertImagesToResources: false,
     normalizeQuotes: false,
     forceTightLists: false,
+    listIndentation: LIST_INDENTATION.SPACES,
 };
 
 /**

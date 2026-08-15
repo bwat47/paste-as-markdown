@@ -62,8 +62,8 @@ describe('integration: convertHtmlToMarkdown', () => {
         const { markdown } = await convertHtmlToMarkdown(html);
         const lines = markdown.trim().split(/\r?\n/);
         expect(lines[0]).toMatch(/^1\.\s+Primary step/);
-        expect(lines[1]).toMatch(/^\s{4}-\s+Sub step A/);
-        expect(lines[2]).toMatch(/^\s{4}-\s+Sub step B/);
+        expect(lines[1]).toMatch(/^\t-\s+Sub step A/);
+        expect(lines[2]).toMatch(/^\t-\s+Sub step B/);
         expect(lines[3]).toMatch(/^2\.\s+Next step/);
     });
 

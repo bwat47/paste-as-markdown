@@ -1,13 +1,15 @@
 import joplin from 'api';
 import { SettingItemType } from 'api/types';
 import logger from './logger';
-import type { PasteOptions } from './types';
+import { LIST_INDENTATION } from './types';
+import type { ListIndentation, PasteOptions } from './types';
 
 export const SETTINGS = {
     INCLUDE_IMAGES: 'includeImages',
     CONVERT_IMAGES_TO_RESOURCES: 'convertImagesToResources',
     NORMALIZE_QUOTES: 'normalizeQuotes',
     FORCE_TIGHT_LISTS: 'forceTightLists',
+    LIST_INDENTATION: 'listIndentation',
 } as const;
 
 type SettingKey = (typeof SETTINGS)[keyof typeof SETTINGS];
@@ -17,6 +19,7 @@ export const DEFAULT_PASTE_OPTIONS = {
     convertImagesToResources: false,
     normalizeQuotes: true,
     forceTightLists: false,
+    listIndentation: LIST_INDENTATION.TABS,
 } as const satisfies PasteOptions;
 
 const SETTINGS_SECTION = 'pasteAsMarkdown';
@@ -63,6 +66,19 @@ export async function registerPluginSettings(): Promise<void> {
             description:
                 'Prevent blank lines between list items in output Markdown, except for list items with multi-block content.',
         },
+        [SETTINGS.LIST_INDENTATION]: {
+            value: DEFAULT_PASTE_OPTIONS.listIndentation,
+            type: SettingItemType.String,
+            section: SETTINGS_SECTION,
+            public: true,
+            label: 'List indentation',
+            description: 'Choose whether nested list items and continuation lines are indented with spaces or tabs.',
+            isEnum: true,
+            options: {
+                [LIST_INDENTATION.SPACES]: 'Spaces',
+                [LIST_INDENTATION.TABS]: 'Tabs',
+            },
+        },
     });
 }
 
@@ -70,6 +86,18 @@ function resolveBooleanSetting(setting: SettingKey, value: unknown, defaultValue
     if (typeof value === 'boolean') return value;
     if (value !== undefined) {
         logger.warn('Invalid boolean setting; using default', { setting, value, defaultValue });
+    }
+    return defaultValue;
+}
+
+function resolveListIndentationSetting(
+    setting: SettingKey,
+    value: unknown,
+    defaultValue: ListIndentation
+): ListIndentation {
+    if (value === LIST_INDENTATION.SPACES || value === LIST_INDENTATION.TABS) return value;
+    if (value !== undefined) {
+        logger.warn('Invalid list indentation setting; using default', { setting, value, defaultValue });
     }
     return defaultValue;
 }
@@ -95,6 +123,11 @@ export async function loadPasteOptions(): Promise<PasteOptions> {
             SETTINGS.FORCE_TIGHT_LISTS,
             await joplin.settings.value(SETTINGS.FORCE_TIGHT_LISTS),
             DEFAULT_PASTE_OPTIONS.forceTightLists
+        ),
+        listIndentation: resolveListIndentationSetting(
+            SETTINGS.LIST_INDENTATION,
+            await joplin.settings.value(SETTINGS.LIST_INDENTATION),
+            DEFAULT_PASTE_OPTIONS.listIndentation
         ),
     };
 }

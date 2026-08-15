@@ -50,6 +50,17 @@
             "label": "Force tight lists",
             "description": "Remove blank lines between list items in output Markdown.",
             "value": false
+        },
+        "listIndentation": {
+            "type": "string",
+            "label": "List indentation",
+            "description": "Choose whether nested list items and continuation lines are indented with spaces or tabs.",
+            "value": "tabs",
+            "isEnum": true,
+            "options": {
+                "spaces": "Spaces",
+                "tabs": "Tabs"
+            }
         }
     }
 }
