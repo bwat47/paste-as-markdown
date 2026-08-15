@@ -114,7 +114,7 @@ describe('settings', () => {
         expect(warnSpy).toHaveBeenNthCalledWith(3, 'Invalid list indentation setting; using default', {
             setting: SETTINGS.LIST_INDENTATION,
             value: 'two-spaces',
-            defaultValue: LIST_INDENTATION.SPACES,
+            defaultValue: LIST_INDENTATION.TABS,
         });
         expect(warnSpy).toHaveBeenCalledTimes(3);
 

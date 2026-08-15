@@ -4,16 +4,23 @@ import { LIST_INDENTATION } from '../types';
 import type { ListIndentation } from '../types';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
-async function toMarkdown(html: string, listIndentation: ListIndentation = LIST_INDENTATION.SPACES): Promise<string> {
-    const { markdown } = await convertHtmlToMarkdown(html, { listIndentation });
+async function toMarkdown(html: string, listIndentation?: ListIndentation): Promise<string> {
+    const options = listIndentation === undefined ? {} : { listIndentation };
+    const { markdown } = await convertHtmlToMarkdown(html, options);
     return markdown.trim();
 }
 
 describe('List indentation option', () => {
-    test('uses four spaces by default', async () => {
+    test('uses tabs by default', async () => {
         const html = '<ul><li>Parent<ul><li>Child</li></ul></li></ul>';
 
-        expect(await toMarkdown(html)).toBe('- Parent\n    - Child');
+        expect(await toMarkdown(html)).toBe('- Parent\n\t- Child');
+    });
+
+    test('uses four spaces when selected', async () => {
+        const html = '<ul><li>Parent<ul><li>Child</li></ul></li></ul>';
+
+        expect(await toMarkdown(html, LIST_INDENTATION.SPACES)).toBe('- Parent\n    - Child');
     });
 
     test('uses one tab per unordered nesting level', async () => {

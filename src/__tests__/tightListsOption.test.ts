@@ -49,21 +49,21 @@ describe('Force tight lists (DOM preprocessing)', () => {
         test('sub-list is tight against its parent item when enabled', async () => {
             const html = '<ul><li><p>One</p><ul><li><p>Nested</p></li></ul></li><li><p>Two</p></li></ul>';
 
-            expect(await toMarkdown(html, true)).toBe('- One\n    - Nested\n- Two');
-            expect(await toMarkdown(html, false)).toBe('- One\n\n    - Nested\n\n- Two');
+            expect(await toMarkdown(html, true)).toBe('- One\n\t- Nested\n- Two');
+            expect(await toMarkdown(html, false)).toBe('- One\n\n\t- Nested\n\n- Two');
         });
 
         test('deeply nested unordered lists stay tight at every level', async () => {
             const html =
                 '<ul><li><p>One</p><ul><li><p>N1</p><ul><li><p>N2</p></li></ul></li><li><p>N3</p></li></ul></li><li><p>Two</p></li></ul>';
 
-            expect(await toMarkdown(html, true)).toBe('- One\n    - N1\n        - N2\n    - N3\n- Two');
+            expect(await toMarkdown(html, true)).toBe('- One\n\t- N1\n\t\t- N2\n\t- N3\n- Two');
         });
 
-        test('nested ordered lists keep four-space indentation and numbering', async () => {
+        test('nested ordered lists keep tab indentation and numbering', async () => {
             const html = '<ol><li><p>First</p><ol><li><p>Sub</p></li></ol></li><li><p>Second</p></li></ol>';
 
-            expect(await toMarkdown(html, true)).toBe('1. First\n    1. Sub\n2. Second');
+            expect(await toMarkdown(html, true)).toBe('1. First\n\t1. Sub\n2. Second');
         });
     });
 
@@ -109,13 +109,13 @@ describe('Force tight lists (DOM preprocessing)', () => {
         test('multi-paragraph items keep their internal blank line', async () => {
             const html = '<ul><li><p>One a</p><p>One b</p></li><li><p>Two</p></li></ul>';
 
-            expect(await toMarkdown(html, true)).toBe('- One a\n\n    One b\n\n- Two');
+            expect(await toMarkdown(html, true)).toBe('- One a\n\n\tOne b\n\n- Two');
         });
 
         test('a paragraph sharing the item with loose text is not unwrapped', async () => {
             const html = '<ul><li><p>Para</p> tail</li><li><p>Two</p></li></ul>';
 
-            expect(await toMarkdown(html, true)).toBe('- Para\n\n    tail\n- Two');
+            expect(await toMarkdown(html, true)).toBe('- Para\n\n\ttail\n- Two');
         });
 
         test('fenced code inside an item is preserved', async () => {
@@ -123,7 +123,7 @@ describe('Force tight lists (DOM preprocessing)', () => {
 
             // The blank line inside the fence keeps its indentation: fenced regions are exempt
             // from the whitespace-only line cleanup so the code survives verbatim.
-            expect(await toMarkdown(html, true)).toBe('- One\n\n    ```\n    a\n    \n    b\n    ```\n\n- Two');
+            expect(await toMarkdown(html, true)).toBe('- One\n\n\t```\n\ta\n\t\n\tb\n\t```\n\n- Two');
         });
     });
 });

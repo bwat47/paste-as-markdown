@@ -55,7 +55,7 @@
             "type": "string",
             "label": "List indentation",
             "description": "Choose whether nested list items and continuation lines are indented with spaces or tabs.",
-            "value": "spaces",
+            "value": "tabs",
             "isEnum": true,
             "options": {
                 "spaces": "Spaces",

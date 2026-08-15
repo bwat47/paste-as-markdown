@@ -19,7 +19,7 @@ export const DEFAULT_PASTE_OPTIONS = {
     convertImagesToResources: false,
     normalizeQuotes: true,
     forceTightLists: false,
-    listIndentation: LIST_INDENTATION.SPACES,
+    listIndentation: LIST_INDENTATION.TABS,
 } as const satisfies PasteOptions;
 
 const SETTINGS_SECTION = 'pasteAsMarkdown';

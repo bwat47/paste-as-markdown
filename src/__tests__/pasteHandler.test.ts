@@ -89,7 +89,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
-                    listIndentation: LIST_INDENTATION.SPACES,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -123,7 +123,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
-                    listIndentation: LIST_INDENTATION.SPACES,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'google-docs' }
             );
@@ -180,7 +180,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
-                    listIndentation: LIST_INDENTATION.SPACES,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -220,7 +220,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: true,
                     normalizeQuotes: true,
                     forceTightLists: false,
-                    listIndentation: LIST_INDENTATION.SPACES,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
@@ -370,7 +370,7 @@ describe('pasteHandler', () => {
                     convertImagesToResources: false,
                     normalizeQuotes: true,
                     forceTightLists: false,
-                    listIndentation: LIST_INDENTATION.SPACES,
+                    listIndentation: LIST_INDENTATION.TABS,
                 },
                 { source: 'generic' }
             );
