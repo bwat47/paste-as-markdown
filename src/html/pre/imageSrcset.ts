@@ -8,10 +8,13 @@
 // HTML ASCII whitespace: tab, newline, form feed, carriage return, or space.
 const ASCII_WHITESPACE = /[\t\n\f\r ]/;
 const ASCII_WHITESPACE_RUN = /[\t\n\f\r ]+/;
-// Positive integer width descriptors, for example "320w".
+// Positive integer width descriptors, for example "320w". The unit is lowercase-only per spec,
+// so "320W" is not a width descriptor.
 const WIDTH_DESCRIPTOR = /^(\d+)w$/;
-// Positive floating-point density descriptors, for example "1x", "1.5x", or ".5x".
-const DENSITY_DESCRIPTOR = /^((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)x$/i;
+// Positive floating-point density descriptors, for example "1x", "1.5x", ".5x", or "1e2x".
+// The unit is lowercase-only per spec ("2X" is not a density descriptor), but the exponent
+// marker of a valid floating-point number accepts either case.
+const DENSITY_DESCRIPTOR = /^((?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)x$/;
 const DEFAULT_DENSITY = 1;
 
 type CandidateKind = 'width' | 'density';

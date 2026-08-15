@@ -8,6 +8,64 @@ const IMAGE_OPTIONS = pasteOptions({
     convertImagesToResources: false,
 });
 
+const DATA_URL = 'data:image/png;base64,AAAA';
+
+/** Candidate selection cases: the srcset of a src-less image, and the src it should promote. */
+interface SelectionCase {
+    readonly name: string;
+    readonly srcset: string;
+    /** Null when no candidate is promotable and the image must be left without a src. */
+    readonly expected: string | null;
+}
+
+const SELECTION_CASES: readonly SelectionCase[] = [
+    {
+        name: 'ignores malformed candidates while selecting from valid comparable candidates',
+        srcset: 'broken.jpg nope, medium.jpg 800w, large.jpg 1200w',
+        expected: 'large.jpg',
+    },
+    {
+        name: 'rejects uppercase descriptor units',
+        srcset: 'retina.jpg 2X, wide.jpg 320W',
+        expected: null,
+    },
+    {
+        name: 'accepts either case for the density exponent marker',
+        srcset: 'small.jpg 1x, big.jpg 1E1x',
+        expected: 'big.jpg',
+    },
+    {
+        name: 'prefers width candidates over density candidates when descriptor families are mixed',
+        srcset: 'wide.jpg 1200w, retina.jpg 2x',
+        expected: 'wide.jpg',
+    },
+    {
+        name: 'ignores a descriptorless fallback when width candidates are present',
+        srcset: 'fallback.jpg, small.jpg 320w, large.jpg 1600w',
+        expected: 'large.jpg',
+    },
+    {
+        name: 'falls back to density candidates when no width candidates exist',
+        srcset: 'fallback.jpg, retina.jpg 2x',
+        expected: 'retina.jpg',
+    },
+    {
+        name: 'promotes nothing when every candidate is malformed',
+        srcset: 'broken.jpg nope, worse.jpg -5w',
+        expected: null,
+    },
+    {
+        name: 'does not split data URLs at their internal comma',
+        srcset: `standard.jpg 1x, ${DATA_URL} 2x`,
+        expected: DATA_URL,
+    },
+    {
+        name: 'leaves promoted URL sanitization to DOMPurify',
+        srcset: 'javascript:alert(1) 2x',
+        expected: null,
+    },
+];
+
 describe('image srcset fallback promotion', () => {
     test('uses the largest width candidate when src is missing', async () => {
         const { markdown } = await convertHtmlToMarkdown(
@@ -35,53 +93,10 @@ describe('image srcset fallback promotion', () => {
         expect(result.body.querySelector('img')?.getAttribute('src')).toBe('fallback.jpg');
     });
 
-    test('ignores malformed candidates while selecting from valid comparable candidates', async () => {
-        const result = await processHtml(
-            '<img alt="Hero" srcset="broken.jpg nope, medium.jpg 800w, large.jpg 1200w">',
-            IMAGE_OPTIONS
-        );
+    test.each(SELECTION_CASES)('$name', async ({ srcset, expected }) => {
+        const result = await processHtml(`<img alt="Hero" srcset="${srcset}">`, IMAGE_OPTIONS);
 
-        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('large.jpg');
-    });
-
-    test('prefers width candidates over density candidates when descriptor families are mixed', async () => {
-        const result = await processHtml('<img alt="Hero" srcset="wide.jpg 1200w, retina.jpg 2x">', IMAGE_OPTIONS);
-
-        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('wide.jpg');
-    });
-
-    test('ignores a descriptorless fallback when width candidates are present', async () => {
-        const result = await processHtml(
-            '<img alt="Hero" srcset="fallback.jpg, small.jpg 320w, large.jpg 1600w">',
-            IMAGE_OPTIONS
-        );
-
-        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('large.jpg');
-    });
-
-    test('falls back to density candidates when no width candidates exist', async () => {
-        const result = await processHtml('<img alt="Hero" srcset="fallback.jpg, retina.jpg 2x">', IMAGE_OPTIONS);
-
-        expect(result.body.querySelector('img')?.getAttribute('src')).toBe('retina.jpg');
-    });
-
-    test('promotes nothing when every candidate is malformed', async () => {
-        const result = await processHtml('<img alt="Hero" srcset="broken.jpg nope, worse.jpg -5w">', IMAGE_OPTIONS);
-
-        expect(result.body.querySelector('img')?.hasAttribute('src')).toBe(false);
-    });
-
-    test('does not split data URLs at their internal comma', async () => {
-        const dataUrl = 'data:image/png;base64,AAAA';
-        const result = await processHtml(`<img alt="Hero" srcset="standard.jpg 1x, ${dataUrl} 2x">`, IMAGE_OPTIONS);
-
-        expect(result.body.querySelector('img')?.getAttribute('src')).toBe(dataUrl);
-    });
-
-    test('leaves promoted URL sanitization to DOMPurify', async () => {
-        const result = await processHtml('<img alt="Hero" srcset="javascript:alert(1) 2x">', IMAGE_OPTIONS);
-
-        expect(result.body.querySelector('img')?.hasAttribute('src')).toBe(false);
+        expect(result.body.querySelector('img')?.getAttribute('src')).toBe(expected);
     });
 
     test('does not retain images when image inclusion is disabled', async () => {
