@@ -1,5 +1,6 @@
 import { normalizeTextCharacters } from '../pre/normalizeText';
 import { removeNonContentUi } from '../pre/uiCleanup';
+import { promoteLargestSrcsetCandidateToSrc } from '../pre/imageSrcset';
 import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
 import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
@@ -36,6 +37,12 @@ export const PROCESSING_PASSES: PassCollections = {
         {
             name: 'Pre-sanitize non-content UI removal',
             execute: (body) => removeNonContentUi(body),
+        },
+        {
+            name: 'Image srcset fallback promotion',
+            // Runs before sanitization because DOMPurify intentionally removes srcset.
+            condition: (options) => options.includeImages,
+            execute: (body) => promoteLargestSrcsetCandidateToSrc(body),
         },
         {
             name: 'Image sizing promotion',
