@@ -10,7 +10,7 @@ describe('Google Docs wrapper cleanup', () => {
 </body>
 </html>`;
 
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true }, { source: 'google-docs' });
+        const { markdown } = await convertHtmlToMarkdown(html, {}, { source: 'google-docs' });
         const md = markdown.trim();
         // Should not emit stray global bold markers
         expect(md).not.toMatch(/\*\*/);
@@ -20,13 +20,13 @@ describe('Google Docs wrapper cleanup', () => {
 
     test('unwraps nested wrappers when Google Docs is detected', async () => {
         const html = '<b><span id="docs-internal-guid-abc">Hello</span></b>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true }, { source: 'google-docs' });
+        const { markdown } = await convertHtmlToMarkdown(html, {}, { source: 'google-docs' });
         expect(markdown.trim()).toBe('Hello');
     });
 
     test('does not unwrap when not Google Docs (preserves bold)', async () => {
         const html = '<b><span id="docs-internal-guid-abc">Hello</span></b>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true }, { source: 'generic' });
+        const { markdown } = await convertHtmlToMarkdown(html, {}, { source: 'generic' });
         expect(markdown.trim()).toBe('**Hello**');
     });
 });

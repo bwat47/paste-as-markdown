@@ -3,6 +3,7 @@ import { processHtml } from '../html/processHtml';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 import { pasteOptions } from './helpers/pasteOptions';
 
+/** Resource conversion stays off so the assertions below see the promoted `src` values. */
 const IMAGE_OPTIONS = pasteOptions({
     includeImages: true,
     convertImagesToResources: false,

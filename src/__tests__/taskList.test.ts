@@ -13,7 +13,7 @@ describe('task list conversion (GFM)', () => {
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> Task</li>
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> List</li>
 </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
         // Expect two list items with unchecked boxes
         // Turndown may emit two spaces after the checkbox marker; allow one or two.
@@ -28,7 +28,7 @@ describe('task list conversion (GFM)', () => {
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox" checked> Done</li>
 <li class="task-list-item enabled"><input class="task-list-item-checkbox" type="checkbox"> Todo</li>
 </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
         expect(md).toMatch(/^-\s+\[x\]\s+Done\n-\s+\[ \]\s+Todo$/m);
     });
@@ -43,7 +43,7 @@ describe('task list conversion (GFM)', () => {
         </ul>
     </li>
     </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const lines = markdown.trim().split(/\n/);
         // Expect 4 lines: two top-level and two nested
         expect(lines).toHaveLength(4);
@@ -76,7 +76,7 @@ describe('task list conversion (GFM)', () => {
 </ul>
 </body>
 </html><!--EndFragment-->`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         expect(markdown).toContain('### List Views/Field Chooser');
         const matches = markdown.match(/- \[ \]/g) ?? [];
         expect(matches).toHaveLength(3);

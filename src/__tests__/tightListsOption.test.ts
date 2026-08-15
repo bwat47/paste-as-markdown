@@ -2,12 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 async function toMarkdown(html: string, forceTightLists: boolean): Promise<string> {
-    const { markdown } = await convertHtmlToMarkdown(html, {
-        includeImages: true,
-        convertImagesToResources: false,
-        normalizeQuotes: true,
-        forceTightLists,
-    });
+    const { markdown } = await convertHtmlToMarkdown(html, { forceTightLists });
     return markdown.trim();
 }
 

@@ -6,7 +6,7 @@ describe('literal HTML tag mentions in prose', () => {
         const html = `
             <p>Combine lists and tables (using HTML &lt;table&gt;, &lt;tr&gt;, &lt;th&gt;, and &lt;td&gt;) to create side-by-side comparisons. Use list items (&lt;li&gt;) within table cells (&lt;td&gt;).</p>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // Ensure tokens are protected as inline code so Joplin does not interpret as HTML
         expect(md).toMatch(/`<table>`/);
         expect(md).toMatch(/`<tr>`/);
@@ -20,7 +20,7 @@ describe('literal HTML tag mentions in prose', () => {
             <p>Line break tags like &lt;br&gt; or &lt;br/&gt; are not paragraphs.</p>
             <p>Images like &lt;img src=\"test\"/&gt; or &lt;img src=\"test\" &gt; should be shown as text.</p>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         expect(md).toContain('`<br>`');
         expect(md).toContain('`<br/>`');
         expect(md).toContain('`<img src="test"/>`');
@@ -29,7 +29,7 @@ describe('literal HTML tag mentions in prose', () => {
 
     test('wraps arbitrary tag-like token in inline code', async () => {
         const html = '<p>This uses a placeholder tag like &lt;foo&gt; in text.</p>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         expect(md).toMatch(/`<foo>`/);
     });
 });

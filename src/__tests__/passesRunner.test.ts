@@ -5,7 +5,7 @@ import { pasteOptions } from './helpers/pasteOptions';
 import type { PassContext } from '../types';
 
 describe('runPasses', () => {
-    const options = pasteOptions({ normalizeQuotes: false });
+    const options = pasteOptions();
     const context: PassContext = { source: 'generic' };
 
     test('skips passes whose condition is false and runs the rest', () => {

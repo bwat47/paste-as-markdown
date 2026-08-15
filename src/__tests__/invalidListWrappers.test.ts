@@ -17,7 +17,7 @@ describe('invalid list wrapper unwrapping', () => {
             <li>If that is set to PO Close, we will update the Recent Cost of the Item at Receipt and at the Close of the PO Detail.</li>
             <li>If that is set to Both, we will update the Recent Cost of the Item at Open, Receipt, and Close of the PO Detail.</li>
         `;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         expect(md).toMatch(
@@ -46,7 +46,7 @@ describe('invalid list wrapper unwrapping', () => {
       </ul>
    </body>
 </html>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         // Should NOT have "- 1." (both UL and OL markers)
@@ -70,7 +70,7 @@ describe('invalid list wrapper unwrapping', () => {
                 <li>Second item</li>
             </ol>
         </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         // Should be unwrapped to ordered list
@@ -90,7 +90,7 @@ describe('invalid list wrapper unwrapping', () => {
                 <li>Step two</li>
             </ol>
         </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         // Paragraphs should be preserved
@@ -112,7 +112,7 @@ describe('invalid list wrapper unwrapping', () => {
             </li>
             <li>Second item</li>
         </ul>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         // Should preserve proper nesting
@@ -129,7 +129,7 @@ describe('invalid list wrapper unwrapping', () => {
                 <li>Bullet two</li>
             </ul>
         </ol>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         // Should unwrap to unordered list
@@ -154,7 +154,7 @@ describe('invalid list wrapper unwrapping', () => {
                 </ul>
             </ol>
         </div>`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
 
         // Both lists should be unwrapped correctly

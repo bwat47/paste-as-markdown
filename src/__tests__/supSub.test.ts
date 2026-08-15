@@ -3,7 +3,7 @@ import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 
 describe('sup/sub preservation', () => {
     async function run(input: string) {
-        const { markdown } = await convertHtmlToMarkdown(input, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(input);
         return markdown.trim();
     }
 

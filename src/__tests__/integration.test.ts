@@ -10,7 +10,7 @@ describe('integration: convertHtmlToMarkdown', () => {
             <h2>Title<a class="anchor" href="#title"></a></h2>
             <p>See <a href="https://example.com">example</a>.</p>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // No leading blank lines
         expect(md.startsWith('## Title')).toBe(true);
         // Anchor removed
@@ -25,7 +25,7 @@ describe('integration: convertHtmlToMarkdown', () => {
                 <h2>Exported members</h2>
             </a>
         `;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
         expect(md).toContain('## Exported members');
         expect(md).not.toMatch(/\[[^\S\n]*\n+##/);
@@ -43,7 +43,7 @@ describe('integration: convertHtmlToMarkdown', () => {
                 </h4>
             </div>
         `;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         expect(markdown).toMatch(/### October 2025/);
         expect(markdown).toMatch(/^#### IIS websites might fail to load$/m);
     });
@@ -59,7 +59,7 @@ describe('integration: convertHtmlToMarkdown', () => {
                 <li>Next step</li>
             </ol>
         `;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const lines = markdown.trim().split(/\r?\n/);
         expect(lines[0]).toMatch(/^1\.\s+Primary step/);
         expect(lines[1]).toMatch(/^\s{4}-\s+Sub step A/);
@@ -84,7 +84,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('leading blank line trimming keeps internal paragraph spacing', async () => {
         const html = '<p>First para</p><p>Second para</p>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // No leading newline
         expect(md[0]).not.toBe('\n');
         // Two paragraphs separated by exactly one blank line when normalized
@@ -103,7 +103,7 @@ describe('integration: convertHtmlToMarkdown', () => {
     <li class="font-size-sm">\u200BServer: Windows Server 2025</li>
 </ul>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         for (const zeroWidthCharacter of ['\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF']) {
             expect(md).not.toContain(zeroWidthCharacter);
         }
@@ -139,7 +139,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = `
 <span>A1</span><br><span>A2</span><br><br><span>B1</span><br><br><br><span>C1</span>
 `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // Expect sequence: A1 (hard break) A2 then paragraph breaks before B1 and C1.
         // Hard-break spaces remain before paragraph-separating newlines.
         expect(md).toContain('A1  \nA2  \n\nB1  \n\nC1');
@@ -156,7 +156,7 @@ describe('integration: convertHtmlToMarkdown', () => {
     </tbody>
 </table>
 `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         expect(md).toContain('GSM 850 / 900 / 1800 / 1900<br>CDMA 800');
         // Every table line must remain a complete row (no line break splitting a cell)
         const tableLines = md.split('\n').filter((line) => line.includes('|'));
@@ -170,7 +170,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 <tr><th scope="row">Prerequisites:</th><td>Basic HTML familiarity.</td></tr>
 <tr><th scope="row">Learning outcomes:</th><td><ul><li>What tables are for.</li><li>Basic table syntax — <code>&lt;table&gt;</code>, <code>&lt;tr&gt;</code>, and <code>&lt;td&gt;</code>.</li><li>Defining table headers with <code>&lt;th&gt;</code>.</li></ul></td></tr>
 </tbody></table>`;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         expect(md).toContain('`<td>`.<br>- Defining table headers');
         for (const line of md.split('\n').filter((l) => l.includes('|'))) {
             expect(line).toMatch(/^\|.*\|$/);
@@ -181,7 +181,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         // Rows are prefixed with '> ', so they are not recognizable by a leading pipe alone
         const html =
             '<blockquote><table><thead><tr><th>Col1</th></tr></thead><tbody><tr><td>A<br>B</td></tr></tbody></table></blockquote>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         expect(md).toContain('A<br>B');
         for (const line of md.split('\n').filter((l) => l.includes('|'))) {
             expect(line).toMatch(/^> \|.*\|$/);
@@ -192,7 +192,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         // Rows are indented by the list marker, so they are not recognizable by a leading pipe alone
         const html =
             '<ul><li><table><thead><tr><th>Col1</th></tr></thead><tbody><tr><td>A<br>B</td></tr></tbody></table></li></ul>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         expect(md).toContain('A<br>B');
         for (const line of md.split('\n').filter((l) => l.includes('|'))) {
             expect(line).toMatch(/^(?:- |\s+)\|.*\|$/);
@@ -201,7 +201,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('single <br> becomes hard line break (two spaces + newline)', async () => {
         const html = '<span>First line</span><br><span>Second line</span>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // Hard line break should be represented as two spaces before newline
         expect(md).toMatch(/First line {2}\nSecond line/);
         expect(md).not.toMatch(/<br\/?/i);
@@ -211,7 +211,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = `
 <div>Para 1 line</div><div><br></div><div><b>Para 2 start</b> rest of para</div>
 `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // Should have exactly one blank line between paragraphs (two newlines)
         expect(md).toMatch(/Para 1 line\n\n\*\*Para 2 start\*\* rest of para/);
         // No triple newline sequences remain
@@ -220,14 +220,14 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('preserves <br> literal inside inline code', async () => {
         const html = '<p>Example: <code>&lt;br&gt;</code> tag</p>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // The code span should still contain &lt;br&gt; (not converted to hard break or removed)
         expect(md).toMatch(/`<br>` tag/);
     });
 
     test('does not treat <br> inside fenced code block as hard/paragraph break outside code', async () => {
         const html = '<pre><code>Line 1<br>Line 2</code></pre>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // Turndown converts <br> to a real newline inside code fences; ensure we have a fenced block with two lines, no double blank line inside.
         expect(md).toMatch(/```\nLine 1\nLine 2\n```/);
     });
@@ -235,7 +235,7 @@ describe('integration: convertHtmlToMarkdown', () => {
     test('handles table cell content with consistent formatting', async () => {
         const html =
             '<table><thead><tr><th>Col1</th><th>Col2</th></tr></thead><tbody><tr><td>A<br>B</td><td>C</td></tr></tbody></table>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // The GFM plugin handles all table cell processing, maintaining table structure
         expect(md).toMatch(/\|\s*Col1\s*\|\s*Col2\s*\|/); // Header row
         expect(md).toMatch(/\|\s*---\s*\|\s*---\s*\|/); // Separator row
@@ -255,7 +255,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 <p class=MsoNormal><span style='font-size:11.0pt;color:black'><o:p>&nbsp;</o:p></span></p>
 <p class=MsoNormal><span style='font-size:11.0pt;color:black'>Test paragraph 2<o:p></o:p></span></p>
 <!--EndFragment-->`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
         expect(md).not.toMatch(/^&nbsp;$/m);
         expect(md).toMatch(/Test paragraph 1,\n\nTest paragraph 2/);
@@ -263,7 +263,7 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('newline collapsing skips inside fenced code blocks', async () => {
         const html = '<pre><code>Line1\n\n\nLine2\n\n\n\nLine3</code></pre><p>After</p><p>More</p>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
         // Inside fence keep 3+ newlines (at least one triple) intact
         const fenceMatch = md.match(/```[\s\S]*```/);
         expect(fenceMatch).toBeTruthy();
@@ -280,14 +280,14 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('preserves blank lines when Turndown grows a backtick fence', async () => {
         const html = '<pre><code>```\nfoo\n\n\n\nbar\n```</code></pre>';
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
 
         expect(markdown).toBe('````\n```\nfoo\n\n\n\nbar\n```\n````');
     });
 
     test('GitHub highlighted html code block preserved (language fence optional)', async () => {
         const html = `<!--StartFragment--><p>Browser:</p><div class="highlight highlight-text-html-basic"><pre><span>&lt;script src=\"https://unpkg.com/turndown/dist/turndown.js\"&gt;&lt;/script&gt;</span></pre></div><!--EndFragment-->`;
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
         // Expect a fenced code block with unescaped script tag content; html language tag may be absent after heuristic removal.
         expect(md).toMatch(/Browser:/);
@@ -307,7 +307,7 @@ describe('integration: convertHtmlToMarkdown', () => {
                 </a>
             </div>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         // Links should be on single lines without dangling brackets
         expect(md).toContain('[security](https://about.gitlab.com/blog/tags/security/)');
@@ -328,7 +328,7 @@ describe('integration: convertHtmlToMarkdown', () => {
                 </a>
             </div>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toContain('[Open on Scrimba](https://scrimba.com/frontend-path-c0j/~03s?via=mdn&embed=)');
         expect(md).not.toMatch(/\[\s*\n/);
@@ -341,7 +341,7 @@ describe('integration: convertHtmlToMarkdown', () => {
                 <div class="card"><p>Card title</p></div>
             </a>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toContain('[Card title](https://example.com/card)');
         expect(md).not.toMatch(/\[\s*\n/);
@@ -351,14 +351,14 @@ describe('integration: convertHtmlToMarkdown', () => {
         ['a single break', '<a href="https://example.com"><span>Open on</span><br><span>Scrimba</span></a>'],
         ['consecutive breaks', '<a href="https://example.com"><span>Open on</span><br><br><span>Scrimba</span></a>'],
     ])('replaces %s inside an anchor with a space instead of a hard break', async (_caseName, html) => {
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toBe('[Open on Scrimba](https://example.com)');
     });
 
     test('keeps <br> hard breaks outside anchors', async () => {
         const html = '<p>First line<br>Second line</p>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         // Turndown emits either a backslash or two trailing spaces for a hard break.
         expect(md).toMatch(/First line(\\| {2})\nSecond line/);
@@ -369,7 +369,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         // which emit pipe rows and a leading newline inside the link text.
         const html =
             '<a href="https://example.com"><table><thead><tr><th>Head</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table></a>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toBe('[Head Cell](https://example.com)');
     });
@@ -379,14 +379,14 @@ describe('integration: convertHtmlToMarkdown', () => {
         ['list items', '<ul><li>First</li><li>Second</li></ul>'],
     ])('preserves text boundaries between compact %s in anchors', async (_caseName, content) => {
         const html = `<a href="https://example.com"><span>Before</span>${content}<span>After</span></a>`;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toBe('[Before First Second After](https://example.com)');
     });
 
     test('does not add leading whitespace for a compact empty block in an anchor', async () => {
         const html = '<a href="https://example.com"><div></div><span>Open</span></a>';
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toBe('[Open](https://example.com)');
     });
@@ -395,7 +395,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         ['a missing href', '<a><p>First</p><p>Second</p></a>', 'First\n\nSecond'],
         ['an empty href', '<a href=""><ul><li>First</li><li>Second</li></ul></a>', '- First\n- Second'],
     ])('preserves block structure for anchors with %s', async (_caseName, html, expected) => {
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toBe(expected);
     });
@@ -437,7 +437,7 @@ describe('integration: convertHtmlToMarkdown', () => {
             <h2>Post-deployment tasks</h2>
             <p>After deployment completes, update the changelog and notify the team.</p>
         `;
-        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown: md } = await convertHtmlToMarkdown(html);
 
         // The code block should appear exactly once
         const codeBlockMatches = md.match(/```[\s\S]*?```/g);

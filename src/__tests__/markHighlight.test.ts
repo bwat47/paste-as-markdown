@@ -19,7 +19,7 @@ describe('<mark> highlight conversion', () => {
             expected: '`x`',
         },
     ])('$name', async ({ html, expected }) => {
-        const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true });
+        const { markdown } = await convertHtmlToMarkdown(html);
         expect(markdown.trim()).toBe(expected);
     });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { normalizeAnchors } from '../html/post/anchors';
-import { pasteOptions } from './helpers/pasteOptions';
+import { inertPasteOptions } from './helpers/pasteOptions';
 
 function normalizeAnchorHtml(html: string): HTMLAnchorElement {
     const document = new DOMParser().parseFromString(html, 'text/html');
@@ -13,7 +13,8 @@ function normalizeAnchorHtml(html: string): HTMLAnchorElement {
 }
 
 describe('empty anchor cleanup', () => {
-    const options = pasteOptions({ normalizeQuotes: false });
+    // The suite asserts image anchors survive cleanup, so images are the one pass it opts into.
+    const options = inertPasteOptions({ includeImages: true });
 
     test('removes anchors that only contain decorative svg content', async () => {
         const input = `

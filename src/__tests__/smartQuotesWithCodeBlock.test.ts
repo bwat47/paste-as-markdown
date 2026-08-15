@@ -2,16 +2,12 @@ import { describe, test, expect } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { inertPasteOptions } from './helpers/pasteOptions';
 
 describe('smart quotes normalization with large code block present', () => {
     test('normalizes curly quotes in top paragraph even when selection includes a big code block', async () => {
         const input = readFileSync(join(__dirname, 'clipboard_export.html'), 'utf8');
-        const { body } = await processHtml(input, {
-            includeImages: false,
-            convertImagesToResources: false,
-            normalizeQuotes: true,
-            forceTightLists: false,
-        });
+        const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
         expect(body).not.toBeNull();
         const html = body!.innerHTML;
 

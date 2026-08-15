@@ -5,10 +5,9 @@ import { PROCESSING_PASSES } from '../html/passes/registry';
 import * as resourceConverter from '../resourceConverter';
 import logger from '../logger';
 import type { ProcessingPass } from '../html/passes/types';
-import { pasteOptions } from './helpers/pasteOptions';
+import { inertPasteOptions } from './helpers/pasteOptions';
 
-/** Everything off, so each test opts into only the flags whose passes it asserts on. */
-const inertOptions = pasteOptions({ includeImages: false, normalizeQuotes: false });
+const inertOptions = inertPasteOptions();
 
 afterEach(() => {
     vi.restoreAllMocks();

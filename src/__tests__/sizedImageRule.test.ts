@@ -1,5 +1,9 @@
 import { test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import type { PasteOptions } from '../types';
+
+/** Resource conversion stays off so the assertions below see the original `src` values. */
+const IMAGE_OPTIONS: Partial<PasteOptions> = { includeImages: true, convertImagesToResources: false };
 
 test.each([
     {
@@ -23,19 +27,19 @@ test.each([
         expected: '<img src="h.png" alt="H" height="90">',
     },
 ])('$name', async ({ html, expected }) => {
-    const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
+    const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
     expect(markdown).toContain(expected);
 });
 
 test('sized <img> preserves title attribute and order', async () => {
     const html = '<p><img src="t.png" width="10" alt="A" title="T"></p>';
-    const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
+    const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
     expect(markdown).toContain('<img src="t.png" alt="A" title="T" width="10">');
 });
 
 test('sized <img> escapes attributes when preserving raw HTML', async () => {
     const html = '<p><img src="x.png" width="10" alt="&quot; onerror=&quot;alert(1)"></p>';
-    const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
+    const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
 
     expect(markdown).toContain('alt="&quot; onerror=&quot;alert(1)"');
 
@@ -49,7 +53,7 @@ test('sized <img> escapes attributes when preserving raw HTML', async () => {
 test('sized <img> collapses attribute newlines before preserving raw HTML', async () => {
     const html =
         '<p><img src="x.png&#10;&#10;next.png" width="10" alt="a" title="x&#10;&#10;[evil](http://evil.example)"></p>';
-    const { markdown } = await convertHtmlToMarkdown(html, { includeImages: true, convertImagesToResources: false });
+    const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
 
     expect(markdown).toContain('<img src="x.png next.png" alt="a" title="x [evil](http://evil.example)" width="10">');
     expect(markdown).not.toContain('\n\n[evil](http://evil.example)');
