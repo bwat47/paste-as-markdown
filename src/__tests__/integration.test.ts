@@ -370,6 +370,16 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).not.toMatch(/\[\s*\n/);
     });
 
+    test('flattens table internals in anchors so no table rows leak into link text', async () => {
+        // Unwrapping only <table> would leave rows behind for Turndown's GFM table rules,
+        // which emit pipe rows and a leading newline inside the link text.
+        const html =
+            '<a href="https://example.com"><table><thead><tr><th>Head</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table></a>';
+        const { markdown: md } = await convertHtmlToMarkdown(html, { includeImages: true });
+
+        expect(md).toBe('[Head Cell](https://example.com)');
+    });
+
     test.each([
         ['nested paragraphs', '<div><p>First</p><p>Second</p></div>'],
         ['list items', '<ul><li>First</li><li>Second</li></ul>'],

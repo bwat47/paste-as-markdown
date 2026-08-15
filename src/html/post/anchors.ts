@@ -3,7 +3,12 @@ import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
 const MEDIA_TAGS = new Set(['img', 'picture', 'source']);
-/** Tags that force a line break in Markdown output and therefore cannot survive inside a link. */
+/**
+ * Tags that force a line break in Markdown output and therefore cannot survive inside a link.
+ * Restricted to tags the sanitizer allows through (see SANITIZER_ALLOWED_TAGS_BASE): anything
+ * else is already unwrapped by DOMPurify before this post-sanitize pass runs. Table internals
+ * are listed too, since unwrapping only <table> would leave rows for Turndown's GFM table rules.
+ */
 const BLOCK_LEVEL_TAGS = [
     'p',
     'div',
@@ -20,23 +25,11 @@ const BLOCK_LEVEL_TAGS = [
     'h6',
     'hr',
     'table',
-    'form',
-    'fieldset',
-    'address',
-    'section',
-    'article',
-    'aside',
-    'header',
-    'footer',
-    'nav',
-    'main',
-    'dl',
-    'dt',
-    'dd',
-    'figure',
-    'figcaption',
-    'details',
-    'summary',
+    'thead',
+    'tbody',
+    'tr',
+    'th',
+    'td',
 ] as const;
 const BLOCK_LEVEL_SELECTOR = BLOCK_LEVEL_TAGS.join(', ');
 const BLOCK_BOUNDARY_SEPARATOR = ' ';
