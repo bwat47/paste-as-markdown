@@ -354,6 +354,35 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(markdown).not.toMatch(/\[\s*\n/);
     });
 
+    test.each([
+        {
+            name: 'adjacent blocks',
+            content: '<h3>Title</h3><p>Description here</p>',
+            label: 'Title Description here',
+        },
+        {
+            name: 'mixed inline and block content',
+            content: '<span>Category</span><div>Card title</div><span>Details</span>',
+            label: 'Category Card title Details',
+        },
+        {
+            name: 'existing boundary whitespace',
+            content: '<span>Category </span><div>Card title</div><span> Details</span>',
+            label: 'Category Card title Details',
+        },
+        {
+            name: 'nested blocks',
+            content: '<div><h3>Title</h3><p>Description here</p></div><span>Details</span>',
+            label: 'Title Description here Details',
+        },
+    ])('preserves word boundaries when unwrapping $name in anchors', async ({ content, label }) => {
+        const { markdown } = await convertHtmlToMarkdown(`<a href="https://example.com">${content}</a>`, {
+            includeImages: true,
+        });
+
+        expect(markdown).toBe(`[${label}](https://example.com)`);
+    });
+
     test('preserves images inside divs with role=button', async () => {
         // This is the actual clipboard HTML after browser auto-correction
         const html = `<p>So without any more delay, here are the results of my not-very-scientific at all benchmark using the experimentation platform inside of Skald.</p><p></p><div class="cursor-pointer rounded-lg overflow-hidden transition-opacity hover:opacity-90" role="button" tabindex="0"><img alt="skald experiments" class="rounded-lg" src="https://blog.yakkomajuri.com/images/voyage-claude.png"></div><p></p><h3 id="voyage-claude"><a class="anchor" href="https://blog.yakkomajuri.com/blog/local-rag#voyage-claude"></a>Voyage + Claude</h3><p>This is our default Cloud setup.</p>`;

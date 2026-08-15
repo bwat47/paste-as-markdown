@@ -38,6 +38,9 @@ const BLOCK_LEVEL_TAGS = new Set([
     'summary',
 ]);
 const BLOCK_LEVEL_SELECTOR = Array.from(BLOCK_LEVEL_TAGS).join(',');
+const HAS_NON_WHITESPACE = /\S/;
+const STARTS_WITH_WHITESPACE = /^\s/;
+const ENDS_WITH_WHITESPACE = /\s$/;
 
 /**
  * Analyze an anchor element to determine permalink / heading context.
@@ -126,16 +129,56 @@ export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): vo
     });
 }
 
+function findSiblingText(node: ChildNode | null, direction: 'previousSibling' | 'nextSibling'): string | null {
+    let sibling = node;
+    while (sibling) {
+        const text = sibling.textContent || '';
+        if (text.length > 0) return text;
+        sibling = sibling[direction];
+    }
+    return null;
+}
+
+function needsBoundarySpace(left: string | null, right: string | null): boolean {
+    if (left === null || right === null) return false;
+    return (
+        HAS_NON_WHITESPACE.test(left) &&
+        HAS_NON_WHITESPACE.test(right) &&
+        !ENDS_WITH_WHITESPACE.test(left) &&
+        !STARTS_WITH_WHITESPACE.test(right)
+    );
+}
+
+/** Preserve word boundaries that block rendering supplied before its wrapper is removed. */
+function insertBlockBoundarySpaces(block: HTMLElement): void {
+    const text = block.textContent || '';
+    if (!HAS_NON_WHITESPACE.test(text)) return;
+
+    const parent = block.parentNode;
+    const doc = block.ownerDocument;
+    if (!parent || !doc) return;
+
+    const needsLeadingSpace = needsBoundarySpace(findSiblingText(block.previousSibling, 'previousSibling'), text);
+    const needsTrailingSpace = needsBoundarySpace(text, findSiblingText(block.nextSibling, 'nextSibling'));
+
+    if (needsLeadingSpace) parent.insertBefore(doc.createTextNode(' '), block);
+    if (needsTrailingSpace) parent.insertBefore(doc.createTextNode(' '), block.nextSibling);
+}
+
 /**
  * Unwrap block-level elements from inside anchors to prevent newlines in link syntax.
  * Transforms <a href="url"><div></div><span>text</span></a> into
  * <a href="url"><span>text</span></a>. All descendant wrappers are inspected because a
- * block nested inside inline content can also make Turndown emit a multiline link label.
+ * block nested inside inline content can also make Turndown emit a multiline link label. Spaces
+ * are inserted at touching text boundaries so flattening does not concatenate words.
  */
 function unwrapBlockElementsInAnchor(anchor: HTMLElement): void {
     const blockElements = Array.from(anchor.querySelectorAll<HTMLElement>(BLOCK_LEVEL_SELECTOR));
 
-    blockElements.forEach(unwrapElement);
+    blockElements.forEach((block) => {
+        insertBlockBoundarySpaces(block);
+        unwrapElement(block);
+    });
 }
 
 /**
