@@ -4,13 +4,9 @@ Paste content from websites, email, Office, Google Docs, and spreadsheets into J
 
 This is useful when the Web Clipper is not available, such as when copying from an email client, or when you want to paste formatted content without opening Joplin's rich text editor and risking changes to the rest of the note.
 
-![Paste HTML as Markdown demonstration](https://github.com/bwat47/paste-as-markdown/blob/main/images/paste-html-as-md-examples.gif)
+![Comparison showing image handling and code-block language detection](https://github.com/bwat47/paste-as-markdown/blob/main/images/paste-html-as-md-examples.gif)
 
-_Example comparison with image handling and codeblock language detection_
-
-![Paste HTML as Markdown demonstration](https://github.com/bwat47/paste-as-markdown/blob/main/images/table-conversion-examples.gif)
-
-_Example comparison showing table conversion behavior_
+![Comparison showing table conversion](https://github.com/bwat47/paste-as-markdown/blob/main/images/table-conversion-examples.gif)
 
 ## Why use this instead of Joplin's built-in command?
 
@@ -18,56 +14,16 @@ This plugin was originally created when Joplin's markdown editor lacked a Paste 
 
 Joplin 3.6 introduced a built-in Paste as Markdown command. This plugin remains useful when the clipboard HTML needs more cleanup than the built-in conversion provides (e.g. pasting complex content from browsers, email, Office, Google Docs, spreadsheets and/or if you just want cleaner/more predictable Markdown output).
 
-In addition to converting HTML to markdown with Turndown and a customized turndown-gfm plugin, it applies an opinionated cleanup pipeline designed for pasted fragments: sanitizes HTML down to a limited set of tags/attributes relevant to markdown conversion, repairs malformed structures, removes copied interface elements, handles images in several ways to ensure cleaner/more reliable conversion, and avoids messy output such as stray `<br>` tags, `&nbsp` characters, or tables being retained as raw HTML.
+## Highlights
 
-## Features
-
-### Clean, safe Markdown
-
-- Sanitizes clipboard HTML with DOMPurify before converting it.
-- Removes copied interface elements such as buttons, toolbars, menus, form controls, and permalink anchors while preserving meaningful content.
-- Removes zero-width characters, replaces thin spaces, and optionally converts smart quotes to plain quotes.
-- Normalizes excessive whitespace without changing the contents of fenced code blocks.
-- Protects literal HTML tag mentions in prose so text such as `<table>` remains cleanly visible (as markdown inline code) instead of being interpreted as markup or displaying unsightly html entity codes.
-- Falls back to pasting plain text when HTML is unavailable or cannot be processed safely.
-
-### Better structure from messy sources
-
-- Repairs malformed and orphaned lists commonly copied from Outlook, Google Docs, OneNote, and other rich text editors.
-- Preserves ordered-list numbering and nested-list indentation.
-- Converts HTML checkboxes to GFM task lists.
-- Optionally produces tight lists while preserving spacing inside genuinely multi-block list items.
-- Normalizes heading text and prevents heading levels from jumping more than one level deeper at a time.
-- Cleans up links that wrap headings or block content and removes decorative permalink links.
-- Removes Google Docs wrapper markup that can otherwise place stray asterisks above/below the pasted content.
-
-### Tables and spreadsheets
-
-- Consistently converts HTML tables to Markdown tables instead of leaving certain tables as raw HTML.
-- Repairs orphaned table elements, allowing copied cells from Excel and Google Sheets to paste as tables without an empty header row.
-- Preserves line breaks inside table cells without splitting Markdown rows.
-
-### Code blocks
-
-- Converts common code containers from GitHub, GitLab, Bitbucket, CodeMirror, and other sites into fenced code blocks.
-- Removes copy buttons, toolbars, line-number artifacts, and syntax-highlighting spans from copied code.
-- Detects code language names from common class patterns and normalizes aliases such as `js` to `javascript`, `py` to `python`, and `sh` to `bash`.
-- Preserves literal HTML examples inside code blocks while unsafe live HTML is sanitized.
-
-### Flexible image handling
-
-- Keep remote and base64-encoded images, convert them to Joplin resources, or remove them entirely.
-- Preserves image dimensions by promoting supported inline width and height styles to HTML attributes.
-- Recovers images that rely on `srcset` or `<picture>` sources when no ordinary `src` is present.
-- Normalizes image alternative text and generates a readable fallback when it is missing.
-- Removes external link wrappers from images converted to Joplin resources, ensuring that converted images always render properly in the markdown editor.
-
-### Joplin-friendly output
-
-- Uses ATX headings, fenced code blocks, inline links, and consistent list marker spacing and indentation.
-- Supports GFM tables and task lists.
-- Converts `<mark>` to Joplin highlight syntax (`==highlight==`).
-- Preserves superscript, subscript, inserted text, and explicitly sized images as inline HTML where the markdown syntax is more obscure/less portable than inline HTML.
+- Sanitizes clipboard HTML with DOMPurify and removes copied buttons, toolbars, form controls, permalink anchors, and other interface clutter.
+- Repairs malformed lists, preserves numbering and nesting, and converts HTML checkboxes to GFM task lists.
+- Normalizes headings, links, whitespace, and document-editor markup without altering fenced code blocks.
+- Converts HTML tables and partial spreadsheet selections to Markdown tables while preserving line breaks inside cells.
+- Produces clean fenced code blocks from common code hosts and editors, removing line numbers and detecting common language aliases.
+- Recovers images from `srcset` and `<picture>` elements, preserves supported dimensions, and supplies readable alternative text when needed.
+- Uses Joplin-friendly Markdown conventions, including ATX headings, GFM tables and task lists, and `==highlight==` syntax.
+- Protects literal HTML examples in prose and code while removing unsafe live HTML.
 
 ## How to use
 
@@ -83,9 +39,9 @@ If the clipboard contains HTML, the plugin cleans it, converts it to Markdown, a
 - **Force tight lists** — Remove blank lines between ordinary list items while retaining the spacing required by multi-block items.
 - **List indentation** — Indent nested list items and continuation lines with tabs or spaces. Tabs are used by default to match the default behavior of Joplin's Markdown editor.
 
-## Output philosophy
+## Output format
 
-The plugin favors portable Markdown over inline HTML when practical. Raw HTML is retained only when Markdown cannot represent the same result cleanly or when the markdown syntax is obscure: explicitly sized images, superscript (`<sup>`), subscript (`<sub>`), and inserted text (`<ins>`). Intentional `<br>` elements are also retained inside table cells and inline code where replacing them with newlines would break the structure.
+The plugin favors portable Markdown. It retains inline HTML only when needed for explicitly sized images, superscript (`<sup>`), subscript (`<sub>`), inserted text (`<ins>`), or intentional `<br>` elements whose replacement would break a table cell or inline-code structure.
 
 ## Development note
 
