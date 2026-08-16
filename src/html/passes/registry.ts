@@ -11,7 +11,7 @@ import { protectLiteralHtmlTagMentions } from '../post/literals';
 import {
     fixOrphanNestedLists,
     mergeAdjacentLists,
-    unwrapCheckboxParagraphs,
+    unwrapCheckboxContainers,
     unwrapInvalidListWrappers,
     unwrapTightListItemParagraphs,
 } from '../post/lists';
@@ -82,10 +82,10 @@ export const PROCESSING_PASSES: PassCollections = {
             execute: (body) => stripHeadingFormatting(body),
         },
         {
-            name: 'Post-sanitize checkbox paragraph unwrap',
-            execute: (body) => unwrapCheckboxParagraphs(body),
+            name: 'Post-sanitize checkbox container unwrap',
+            execute: (body) => unwrapCheckboxContainers(body),
         },
-        // Invalid list wrappers must be removed after checkbox paragraphs are unwrapped and before
+        // Invalid list wrappers must be removed after checkbox containers are unwrapped and before
         // orphaned sub-lists are repaired, so the latter pass sees the corrected list structure.
         {
             name: 'Post-sanitize invalid list wrapper unwrap',

@@ -84,4 +84,19 @@ describe('task list conversion (GFM)', () => {
         expect(markdown).toMatch(/- \[ \]\s+Both Azure and on-prem/);
         expect(markdown).toMatch(/- \[ \]\s+Verify Field Chooser has access to all fields/);
     });
+
+    test('Joplin checkbox wrappers are promoted before conversion', async () => {
+        const html = `<ul data-is-checklist="1">
+<li class="md-checkbox joplin-checkbox"><div class="checkbox-wrapper"><input type="checkbox" id="md-checkbox-0" disabled="disabled">ABC</div></li>
+<li class="md-checkbox joplin-checkbox"><div class="checkbox-wrapper"><input type="checkbox" id="md-checkbox-1" checked="checked" disabled="disabled">Test</div>
+<ul data-is-checklist="1">
+<li class="md-checkbox joplin-checkbox"><div class="checkbox-wrapper"><input type="checkbox" id="md-checkbox-2" disabled="disabled">AAA</div></li>
+</ul>
+</li>
+</ul>`;
+
+        const { markdown } = await convertHtmlToMarkdown(html);
+
+        expect(markdown.trim()).toBe('- [ ] ABC\n- [x] Test\n\t- [ ] AAA');
+    });
 });
