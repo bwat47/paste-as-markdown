@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { unwrapCheckboxContainers } from '../html/post/lists';
 import { LIST_INDENTATION } from '../types';
 
 /**
@@ -116,12 +117,15 @@ describe('task list conversion (GFM)', () => {
     });
 
     // Unwrapping lifts children one level only, so a deeper checkbox is left alone rather than
-    // having its wrapper stripped for no gain.
-    test('wrapper is left intact when the checkbox is not a direct child', async () => {
-        const html = `<ul><li><div class="checkbox-wrapper"><span><input type="checkbox">ABC</span></div></li></ul>`;
+    // having its wrapper stripped for no gain. Asserted on the DOM rather than through the
+    // converter: an intact wrapper and an unwrapped one both render as `- ABC`, so the markdown
+    // cannot tell whether the pass respected the guard.
+    test('wrapper is left intact when the checkbox is not a direct child', () => {
+        const body = window.document.createElement('div');
+        body.innerHTML = `<ul><li><div class="checkbox-wrapper"><span><input type="checkbox">ABC</span></div></li></ul>`;
 
-        const { markdown } = await convertHtmlToMarkdown(html);
+        unwrapCheckboxContainers(body);
 
-        expect(markdown.trim()).toMatch(/^-\s+ABC$/);
+        expect(body.querySelector('li > div.checkbox-wrapper')).not.toBeNull();
     });
 });
