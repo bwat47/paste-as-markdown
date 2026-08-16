@@ -5,7 +5,7 @@ const LIST_TAGS = new Set(['UL', 'OL']);
 const LI_TAG = 'LI';
 const P_TAG = 'P';
 const CHECKBOX_SELECTOR = 'input[type="checkbox"]';
-const CHECKBOX_CONTAINER_SELECTOR = 'li > p, li > div.checkbox-wrapper';
+const CHECKBOX_CONTAINER_SELECTOR = 'li > p, li > div';
 const DEFAULT_ORPHAN_LIST_TAG = 'ul';
 const ORDERED_LIST_START_ATTRIBUTE = 'start';
 
@@ -55,23 +55,27 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
     });
 }
 
+function hasDirectChildCheckbox(container: HTMLElement): boolean {
+    return Array.from(container.children).some((child) => child.matches(CHECKBOX_SELECTOR));
+}
+
 /**
- * Some editors wrap task list checkboxes in a paragraph or a dedicated div inside the list item:
+ * Some editors wrap task list checkboxes in a block container inside the list item:
  * <li><p><input type="checkbox"> Text</p></li>
- * <li><div class="checkbox-wrapper"><input type="checkbox"> Text</div></li>
+ * <li><div class="checkbox-wrapper"><input type="checkbox"> Text</div></li> (Joplin's renderMarkup)
  * Turndown's GFM task list rule expects the checkbox to be a direct child of the <li>.
  * This helper unwraps those containers so the checkbox sits directly under the list item.
+ *
+ * Matching is on shape rather than on any editor's wrapper class, but the checkbox must be a
+ * direct child of the container: unwrapping lifts its children exactly one level, so a deeper
+ * checkbox would still not end up under the <li> and the container would have been removed for
+ * nothing. That requirement also keeps a nested list item's checkbox from matching containers
+ * further up the tree.
  */
 export function unwrapCheckboxContainers(body: HTMLElement): void {
     const containers = body.querySelectorAll<HTMLElement>(CHECKBOX_CONTAINER_SELECTOR);
     containers.forEach((container) => {
-        const listItem = container.parentElement;
-        if (!listItem || listItem.tagName !== LI_TAG) return;
-
-        const checkbox = container.querySelector<HTMLInputElement>(CHECKBOX_SELECTOR);
-        if (!checkbox) return;
-        if (checkbox.closest('li') !== listItem) return;
-
+        if (!hasDirectChildCheckbox(container)) return;
         unwrapElement(container);
     });
 }

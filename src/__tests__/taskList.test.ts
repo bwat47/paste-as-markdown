@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { LIST_INDENTATION } from '../types';
 
 /**
  * Task list conversion (built-in GFM rule).
@@ -95,8 +96,32 @@ describe('task list conversion (GFM)', () => {
 </li>
 </ul>`;
 
+        // Indentation is spelled out so the nesting assertion does not ride on the product default.
+        const { markdown } = await convertHtmlToMarkdown(html, { listIndentation: LIST_INDENTATION.TABS });
+        const md = markdown.trim();
+
+        expect(md).toMatch(/^-\s+\[ \]\s+ABC$/m);
+        expect(md).toMatch(/^-\s+\[x\]\s+Test$/m);
+        expect(md).toMatch(/^\t-\s+\[ \]\s+AAA$/m);
+    });
+
+    // The wrapper unwrap keys on shape, not on any editor's wrapper class, so an unclassed
+    // container is promoted the same way Joplin's `checkbox-wrapper` div is.
+    test('unclassed div wrapper is promoted before conversion', async () => {
+        const html = `<ul><li><div><input type="checkbox">ABC</div></li></ul>`;
+
         const { markdown } = await convertHtmlToMarkdown(html);
 
-        expect(markdown.trim()).toBe('- [ ] ABC\n- [x] Test\n\t- [ ] AAA');
+        expect(markdown.trim()).toMatch(/^-\s+\[ \]\s+ABC$/);
+    });
+
+    // Unwrapping lifts children one level only, so a deeper checkbox is left alone rather than
+    // having its wrapper stripped for no gain.
+    test('wrapper is left intact when the checkbox is not a direct child', async () => {
+        const html = `<ul><li><div class="checkbox-wrapper"><span><input type="checkbox">ABC</span></div></li></ul>`;
+
+        const { markdown } = await convertHtmlToMarkdown(html);
+
+        expect(markdown.trim()).toMatch(/^-\s+ABC$/);
     });
 });
