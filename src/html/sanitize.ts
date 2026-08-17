@@ -1,5 +1,5 @@
 import createDOMPurify from 'dompurify';
-import { buildSanitizerConfig } from '../sanitizerConfig';
+import { buildSanitizerConfig } from './sanitizerConfig';
 
 const INPUT_TAG_NAME = 'INPUT';
 const CHECKBOX_INPUT_TYPE = 'checkbox';
