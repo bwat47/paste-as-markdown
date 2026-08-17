@@ -382,6 +382,15 @@ describe('integration: convertHtmlToMarkdown', () => {
     });
 
     test.each([
+        ['semantic containers', '<header>Head</header><nav>Nav</nav>', 'Head Nav'],
+        ['a definition list', '<dl><dt>Term</dt><dd>Definition</dd></dl>', 'Term Definition'],
+    ])('flattens %s inside an anchor', async (_caseName, content, expectedLabel) => {
+        const { markdown } = await convertHtmlToMarkdown(`<a href="https://example.com">${content}</a>`);
+
+        expect(markdown).toBe(`[${expectedLabel}](https://example.com)`);
+    });
+
+    test.each([
         ['a single break', '<a href="https://example.com"><span>Open on</span><br><span>Scrimba</span></a>'],
         ['consecutive breaks', '<a href="https://example.com"><span>Open on</span><br><br><span>Scrimba</span></a>'],
     ])('replaces %s inside an anchor with a space instead of a hard break', async (_caseName, html) => {
