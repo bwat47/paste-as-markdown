@@ -7,10 +7,9 @@
 import type { PassContext, PasteOptions, ResourceConversionMeta } from '../types';
 import { DEFAULT_PASS_CONTEXT } from './passContext';
 import { convertImagesToResources } from '../resourceConverter';
-import createDOMPurify from 'dompurify';
-import { buildSanitizerConfig } from '../sanitizerConfig';
 import { PROCESSING_PASSES } from './passes/registry';
 import { PassExecutionError, runPasses } from './passes/runner';
+import { sanitizeHtml } from './sanitize';
 import logger from '../logger';
 
 export interface ProcessHtmlResult {
@@ -69,15 +68,6 @@ function parseHtmlToBody(html: string, context: string): HTMLElement | null {
     }
 }
 
-/** Run DOMPurify sanitization. Throws if window is unavailable. */
-function performSanitization(html: string, includeImages: boolean): string {
-    if (typeof window === 'undefined') {
-        throw new Error('Window is undefined');
-    }
-    const purifier = createDOMPurify(window as unknown as typeof window);
-    return purifier.sanitize(html, buildSanitizerConfig({ includeImages })) as string;
-}
-
 /** Convert images to Joplin resources if enabled. Returns empty metadata if disabled. */
 async function handleImageConversion(body: HTMLElement, options: PasteOptions): Promise<ResourceConversionMeta> {
     if (!options.includeImages || !options.convertImagesToResources) {
@@ -118,7 +108,7 @@ export async function processHtml(
         // 3. Sanitize (security boundary)
         let sanitizedHtml: string;
         try {
-            sanitizedHtml = performSanitization(rawBody.innerHTML, options.includeImages);
+            sanitizedHtml = sanitizeHtml(rawBody.innerHTML, options.includeImages);
         } catch (cause) {
             throw new HtmlProcessingError('sanitize-failed', cause);
         }

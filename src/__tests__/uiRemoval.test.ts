@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { inertPasteOptions } from './helpers/pasteOptions';
 
-describe('removeNonContentUi pre-sanitize cleanup', () => {
+describe('non-content UI cleanup', () => {
     test('removes noisy UI controls but preserves inline button text', async () => {
         const input = `
             <p>Task: <input type="checkbox" checked></p>
@@ -23,7 +23,7 @@ describe('removeNonContentUi pre-sanitize cleanup', () => {
         // Checkbox preserved
         expect(/<input[^>]*type="checkbox"/i.test(html)).toBe(true);
 
-        // Non-checkbox input and select are removed; textarea tag removed but its text remains
+        // The sanitizer removes non-checkbox inputs; UI cleanup removes select; DOMPurify unwraps textarea
         expect(/<input[^>]*type="text"/i.test(html)).toBe(false);
         expect(/<select/i.test(html)).toBe(false);
         expect(/<textarea/i.test(html)).toBe(false);
