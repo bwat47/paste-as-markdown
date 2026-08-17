@@ -30,6 +30,7 @@ describe('HTML sanitizer', () => {
         ['text input', '<input type="text">'],
         ['input with no type', '<input>'],
         ['radio input', '<input type="radio" checked>'],
+        ['hidden input carrying a value', '<input type="hidden" value="secret">'],
     ])('removes %s', (_, html) => {
         expect(sanitize(`<p>Before${html}After</p>`)).toBe('<p>BeforeAfter</p>');
     });
