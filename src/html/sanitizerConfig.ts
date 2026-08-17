@@ -26,7 +26,8 @@ const SANITIZER_ALLOWED_TAGS_BASE = [
     'del',
     'mark',
     'ins',
-    // Keep <input type="checkbox"> so Turndown GFM task list rule can detect task list items.
+    // Allow <input> so the sanitizer hook can retain checkboxes for Turndown's GFM task list rule.
+    // The hook removes every input whose sanitized type is not "checkbox".
     'input',
     'code',
     'pre',

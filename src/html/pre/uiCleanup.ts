@@ -26,7 +26,7 @@ function hasMeaningfulContent(element: HTMLElement): boolean {
 export function removeNonContentUi(body: HTMLElement): void {
     // Early exit: check if any UI elements exist before doing work
     const uiSelector =
-        'button, [role="button"], [role="toolbar"], [role="tablist"], [role="tab"], [role="menu"], [role="menubar"], [role="combobox"], [role="switch"], input, select';
+        'button, [role="button"], [role="toolbar"], [role="tablist"], [role="tab"], [role="menu"], [role="menubar"], [role="combobox"], [role="switch"], select';
     if (!body.querySelector(uiSelector)) return;
 
     const doc = body.ownerDocument;
@@ -60,14 +60,7 @@ export function removeNonContentUi(body: HTMLElement): void {
         if (!isInCode(el)) (el as HTMLElement).remove();
     });
 
-    // 3) Remove non-checkbox inputs (preserve checkboxes for GFM task lists)
-    Array.from(body.querySelectorAll('input')).forEach((el) => {
-        if (isInCode(el)) return;
-        const type = (el.getAttribute('type') || '').toLowerCase();
-        if (type !== 'checkbox') (el as HTMLElement).remove();
-    });
-
-    // 4) Remove <select>; keep <textarea> so its text content survives
+    // 3) Remove <select>; keep <textarea> so its text content survives
     Array.from(body.querySelectorAll('select')).forEach((el) => {
         if (!isInCode(el)) (el as HTMLElement).remove();
     });
