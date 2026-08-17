@@ -82,6 +82,40 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toMatch(/After/);
     });
 
+    test('preserves block separation between a sized image in a header and following navigation text', async () => {
+        const html =
+            '<header><img src="hero.webp" alt="Hero" width="600" height="381"></header>' +
+            '<nav><strong>Table of contents</strong></nav>';
+        const { markdown } = await convertHtmlToMarkdown(html, {
+            includeImages: true,
+            convertImagesToResources: false,
+        });
+
+        expect(markdown).toBe('<img src="hero.webp" alt="Hero" width="600" height="381">\n\n**Table of contents**');
+    });
+
+    test('keeps table caption text even though the GFM plugin drops caption elements', async () => {
+        const html =
+            '<table><caption>Sales for 2025</caption>' +
+            '<thead><tr><th>A</th><th>B</th></tr></thead>' +
+            '<tbody><tr><td>1</td><td>2</td></tr></tbody>' +
+            '<tfoot><tr><td>sum</td><td>3</td></tr></tfoot></table>';
+        const { markdown } = await convertHtmlToMarkdown(html);
+
+        // The caption tag is stripped by the sanitizer so KEEP_CONTENT retains its text; allowing
+        // the tag through would hand it to the plugin's tableCaption rule, which discards it.
+        expect(markdown).toContain('Sales for 2025');
+        // tfoot rows stay part of the table body.
+        expect(markdown).toContain('| sum | 3   |');
+    });
+
+    test('keeps caption text out of a single-cell table collapse', async () => {
+        const html = '<table><caption>Cap</caption><tr><td>Only</td></tr></table>';
+        const { markdown } = await convertHtmlToMarkdown(html);
+
+        expect(markdown).toBe('Only\n\nCap');
+    });
+
     test('leading blank line trimming keeps internal paragraph spacing', async () => {
         const html = '<p>First para</p><p>Second para</p>';
         const { markdown: md } = await convertHtmlToMarkdown(html);
