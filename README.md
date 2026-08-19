@@ -4,15 +4,17 @@ Paste content from websites, email, Office, Google Docs, and spreadsheets into J
 
 This is useful when the Web Clipper is not available, such as when copying from an email client, or when you want to paste formatted content without opening Joplin's rich text editor and risking changes to the rest of the note.
 
-![Comparison showing image handling and code-block language detection](https://github.com/bwat47/paste-as-markdown/blob/main/images/paste-html-as-md-examples.gif)
-
-![Comparison showing table conversion](https://github.com/bwat47/paste-as-markdown/blob/main/images/table-conversion-examples.gif)
-
 ## Why use this instead of Joplin's built-in command?
 
 This plugin was originally created when Joplin's markdown editor lacked a Paste as Markdown command (and the only options were using the web clipper or rich text editor).
 
 Joplin 3.6 introduced a built-in Paste as Markdown command. This plugin remains useful when the clipboard HTML needs more cleanup than the built-in conversion provides (e.g. pasting complex content from browsers, email, Office, Google Docs, spreadsheets and/or if you just want cleaner/more predictable Markdown output).
+
+_examples comparing built-in paste as markdown feature with the plugin_
+
+![Comparison showing image handling and code-block language detection](https://github.com/bwat47/paste-as-markdown/blob/main/images/paste-html-as-md-examples.gif)
+
+![Comparison showing table conversion](https://github.com/bwat47/paste-as-markdown/blob/main/images/table-conversion-examples.gif)
 
 ## Highlights
 
