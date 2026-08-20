@@ -10,7 +10,7 @@ import { walkTextNodes } from '../shared/dom';
  * - Other problematic encoded characters
  * Skips code elements to preserve literal character examples.
  */
-export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes: boolean = true): void {
+export function normalizeTextCharacters(body: HTMLElement, normalizeQuotes = true): void {
     const nbspPattern = /\u00A0|&nbsp;/;
     const thinSpacePattern = /[\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u202F]/;
     // \u200B-\u200D expressed as a range so ZWNJ/ZWJ are not read as a joined character sequence

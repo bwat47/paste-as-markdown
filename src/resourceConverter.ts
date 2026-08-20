@@ -263,7 +263,7 @@ function concatChunks(chunks: Uint8Array[], totalBytes: number): ArrayBuffer {
  * Truncate very long strings for log output to avoid flooding the console (e.g., giant data URLs).
  * Shows beginning and end with a count of omitted characters.
  */
-function truncateForLog(input: string, keep: number = 80): string {
+function truncateForLog(input: string, keep = 80): string {
     if (input.length <= keep * 2 + 20) return input; // small enough
     const omitted = input.length - keep * 2;
     return `${input.slice(0, keep)}...[${omitted} chars omitted]...${input.slice(-keep)}`;
