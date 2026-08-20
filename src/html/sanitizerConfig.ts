@@ -1,3 +1,5 @@
+import type { Config } from 'dompurify';
+
 // Centralized DOMPurify configuration so adjustments (e.g., adding 'sup','sub','del','mark')
 // can be made in one place.
 const SANITIZER_ALLOWED_TAGS_BASE = [
@@ -89,7 +91,7 @@ export interface SanitizerConfigOptions {
     includeImages: boolean;
 }
 
-export function buildSanitizerConfig(opts: SanitizerConfigOptions) {
+export function buildSanitizerConfig(opts: SanitizerConfigOptions): Config {
     return {
         ALLOWED_TAGS: opts.includeImages
             ? [...SANITIZER_ALLOWED_TAGS_BASE, ...SANITIZER_IMAGE_TAGS]

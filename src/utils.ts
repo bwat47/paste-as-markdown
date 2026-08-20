@@ -4,7 +4,11 @@ import logger from './logger';
 
 const TOAST_DURATION = 4000;
 
-export async function showToast(message: string, type: ToastType = ToastType.Info, duration = TOAST_DURATION) {
+export async function showToast(
+    message: string,
+    type: ToastType = ToastType.Info,
+    duration = TOAST_DURATION
+): Promise<void> {
     try {
         await joplin.views.dialogs.showToast({ message, type, duration });
     } catch (err) {

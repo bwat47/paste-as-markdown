@@ -49,7 +49,7 @@ export function isHtmlElement(node: Element): node is HTMLElement {
  * Walk all text nodes in a subtree, optionally skipping code blocks.
  * Useful for bulk text transformations that should preserve code literals.
  */
-export function walkTextNodes(root: HTMLElement, callback: (node: Text) => void, skipCode: boolean = true): void {
+export function walkTextNodes(root: HTMLElement, callback: (node: Text) => void, skipCode = true): void {
     const doc = root.ownerDocument;
     if (!doc) return;
 
