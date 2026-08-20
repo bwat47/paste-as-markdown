@@ -26,7 +26,7 @@ ARCHITECTURE.md
 ## Coding Style & Naming Conventions
 
 - Language: TypeScript; 4-space indentation; semicolons enforced.
-- Prefer explicit types and narrow public exports; avoid `any`.
+- **Module boundaries**: Add explicit return types to exported functions and public methods of exported classes. Prefer named exported types for non-trivial object shapes. Let TypeScript infer local implementation details, and avoid redundant primitive annotations.
 - Filenames: `camelCase.ts` for modules; tests in `__tests__/<name>.test.ts`.
 - Documentation: Use JSDoc for complex functions; document regex patterns with examples.
 - Constants and configuration: No magic literals — extract to constants, enums, config objects, or dedicated types.
