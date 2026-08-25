@@ -103,30 +103,32 @@ function resolveListIndentationSetting(
 }
 
 export async function loadPasteOptions(): Promise<PasteOptions> {
+    // One `values()` round-trip is much faster than a `value()` call per setting, and this runs on every paste.
+    const values: Record<string, unknown> = (await joplin.settings.values(Object.values(SETTINGS))) ?? {};
     return {
         includeImages: resolveBooleanSetting(
             SETTINGS.INCLUDE_IMAGES,
-            await joplin.settings.value(SETTINGS.INCLUDE_IMAGES),
+            values[SETTINGS.INCLUDE_IMAGES],
             DEFAULT_PASTE_OPTIONS.includeImages
         ),
         convertImagesToResources: resolveBooleanSetting(
             SETTINGS.CONVERT_IMAGES_TO_RESOURCES,
-            await joplin.settings.value(SETTINGS.CONVERT_IMAGES_TO_RESOURCES),
+            values[SETTINGS.CONVERT_IMAGES_TO_RESOURCES],
             DEFAULT_PASTE_OPTIONS.convertImagesToResources
         ),
         normalizeQuotes: resolveBooleanSetting(
             SETTINGS.NORMALIZE_QUOTES,
-            await joplin.settings.value(SETTINGS.NORMALIZE_QUOTES),
+            values[SETTINGS.NORMALIZE_QUOTES],
             DEFAULT_PASTE_OPTIONS.normalizeQuotes
         ),
         forceTightLists: resolveBooleanSetting(
             SETTINGS.FORCE_TIGHT_LISTS,
-            await joplin.settings.value(SETTINGS.FORCE_TIGHT_LISTS),
+            values[SETTINGS.FORCE_TIGHT_LISTS],
             DEFAULT_PASTE_OPTIONS.forceTightLists
         ),
         listIndentation: resolveListIndentationSetting(
             SETTINGS.LIST_INDENTATION,
-            await joplin.settings.value(SETTINGS.LIST_INDENTATION),
+            values[SETTINGS.LIST_INDENTATION],
             DEFAULT_PASTE_OPTIONS.listIndentation
         ),
     };

@@ -21,7 +21,7 @@ describe('pasteHandler', () => {
             availableFormats: Mock<() => Promise<string[]>>;
         };
         settings: {
-            value: Mock<(setting: string) => Promise<unknown>>;
+            values: Mock<(keys: string[]) => Promise<Record<string, unknown>>>;
         };
         commands: {
             execute: Mock<(command: string, args: unknown) => Promise<void>>;
@@ -43,7 +43,7 @@ describe('pasteHandler', () => {
                 availableFormats: vi.fn<() => Promise<string[]>>().mockResolvedValue([]),
             },
             settings: {
-                value: vi.fn<(setting: string) => Promise<unknown>>(),
+                values: vi.fn<(keys: string[]) => Promise<Record<string, unknown>>>(),
             },
             commands: {
                 execute: vi.fn<(command: string, args: unknown) => Promise<void>>(),
@@ -56,15 +56,9 @@ describe('pasteHandler', () => {
         mockShowToast = showToast as MockedFunction<typeof showToast>;
 
         // Default mock implementations
-        mockJoplin.settings.value.mockImplementation((setting: string) => {
-            switch (setting) {
-                case SETTINGS.INCLUDE_IMAGES:
-                    return Promise.resolve(true);
-                case SETTINGS.CONVERT_IMAGES_TO_RESOURCES:
-                    return Promise.resolve(false);
-                default:
-                    return Promise.resolve(undefined);
-            }
+        mockJoplin.settings.values.mockResolvedValue({
+            [SETTINGS.INCLUDE_IMAGES]: true,
+            [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: false,
         });
     });
 
@@ -161,9 +155,7 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="test.png" alt="Test">';
             const expectedMarkdown = 'Text';
 
-            mockJoplin.settings.value.mockImplementation((setting: string) => {
-                return Promise.resolve(setting === SETTINGS.INCLUDE_IMAGES ? false : undefined);
-            });
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.INCLUDE_IMAGES]: false });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
@@ -196,9 +188,7 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="data:image/png;base64,iVBORw0..." alt="Image">';
             const expectedMarkdown = 'Text\n\n![Image](:resource-id)';
 
-            mockJoplin.settings.value.mockImplementation((setting: string) => {
-                return Promise.resolve(setting === SETTINGS.CONVERT_IMAGES_TO_RESOURCES ? true : undefined);
-            });
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
@@ -239,9 +229,7 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="image1.png"><img src="image2.png">';
             const expectedMarkdown = 'Text\n\n![](image1.png)\n![](image2.png)';
 
-            mockJoplin.settings.value.mockImplementation((setting: string) => {
-                return Promise.resolve(setting === SETTINGS.CONVERT_IMAGES_TO_RESOURCES ? true : undefined);
-            });
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
@@ -271,9 +259,7 @@ describe('pasteHandler', () => {
             const html = '<p>Text</p><img src="image1.png"><img src="image2.png">';
             const expectedMarkdown = 'Text\n\n![](image1.png)\n![](image2.png)';
 
-            mockJoplin.settings.value.mockImplementation((setting: string) => {
-                return Promise.resolve(setting === SETTINGS.CONVERT_IMAGES_TO_RESOURCES ? true : undefined);
-            });
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
             mockConvertHtmlToMarkdown.mockResolvedValue({
@@ -611,17 +597,10 @@ describe('pasteHandler', () => {
         test('uses user settings for conversion', async () => {
             const html = '<p>Test</p><img src="test.png">';
 
-            mockJoplin.settings.value.mockImplementation((setting: string) => {
-                switch (setting) {
-                    case SETTINGS.INCLUDE_IMAGES:
-                        return Promise.resolve(false);
-                    case SETTINGS.CONVERT_IMAGES_TO_RESOURCES:
-                        return Promise.resolve(true);
-                    case SETTINGS.LIST_INDENTATION:
-                        return Promise.resolve(LIST_INDENTATION.TABS);
-                    default:
-                        return Promise.resolve(undefined);
-                }
+            mockJoplin.settings.values.mockResolvedValue({
+                [SETTINGS.INCLUDE_IMAGES]: false,
+                [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true,
+                [SETTINGS.LIST_INDENTATION]: LIST_INDENTATION.TABS,
             });
 
             mockJoplin.clipboard.readHtml.mockResolvedValue(html);
@@ -632,9 +611,8 @@ describe('pasteHandler', () => {
 
             await handlePasteAsMarkdown();
 
-            expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.INCLUDE_IMAGES);
-            expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.CONVERT_IMAGES_TO_RESOURCES);
-            expect(mockJoplin.settings.value).toHaveBeenCalledWith(SETTINGS.LIST_INDENTATION);
+            expect(mockJoplin.settings.values).toHaveBeenCalledOnce();
+            expect(mockJoplin.settings.values).toHaveBeenCalledWith(Object.values(SETTINGS));
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
                 {

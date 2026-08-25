@@ -10,17 +10,17 @@ vi.mock('api');
 describe('settings', () => {
     let registerSection: Mock;
     let registerSettings: Mock;
-    let value: Mock<(setting: string) => Promise<unknown>>;
+    let values: Mock<(keys: string[]) => Promise<Record<string, unknown>>>;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         registerSection = vi.fn<() => Promise<void>>().mockResolvedValue();
         registerSettings = vi.fn<() => Promise<void>>().mockResolvedValue();
-        value = vi.fn<(setting: string) => Promise<unknown>>();
+        values = vi.fn<(keys: string[]) => Promise<Record<string, unknown>>>();
 
         const joplinModule = await import('api');
         (joplinModule.default as unknown) = {
-            settings: { registerSection, registerSettings, value },
+            settings: { registerSection, registerSettings, values },
         };
     });
 
@@ -70,17 +70,13 @@ describe('settings', () => {
     });
 
     test('loads setting values into complete paste options', async () => {
-        value.mockImplementation((setting: string) =>
-            Promise.resolve(
-                {
-                    [SETTINGS.INCLUDE_IMAGES]: false,
-                    [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true,
-                    [SETTINGS.NORMALIZE_QUOTES]: false,
-                    [SETTINGS.FORCE_TIGHT_LISTS]: true,
-                    [SETTINGS.LIST_INDENTATION]: LIST_INDENTATION.TABS,
-                }[setting]
-            )
-        );
+        values.mockResolvedValue({
+            [SETTINGS.INCLUDE_IMAGES]: false,
+            [SETTINGS.CONVERT_IMAGES_TO_RESOURCES]: true,
+            [SETTINGS.NORMALIZE_QUOTES]: false,
+            [SETTINGS.FORCE_TIGHT_LISTS]: true,
+            [SETTINGS.LIST_INDENTATION]: LIST_INDENTATION.TABS,
+        });
 
         await expect(loadPasteOptions()).resolves.toEqual({
             includeImages: false,
@@ -89,15 +85,16 @@ describe('settings', () => {
             forceTightLists: true,
             listIndentation: LIST_INDENTATION.TABS,
         });
+        expect(values).toHaveBeenCalledOnce();
+        expect(values).toHaveBeenCalledWith(Object.values(SETTINGS));
     });
 
     test('uses defaults for missing or malformed values and logs malformed values', async () => {
         const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-        value.mockImplementation((setting: string) => {
-            if (setting === SETTINGS.INCLUDE_IMAGES) return Promise.resolve('false');
-            if (setting === SETTINGS.NORMALIZE_QUOTES) return Promise.resolve(null);
-            if (setting === SETTINGS.LIST_INDENTATION) return Promise.resolve('two-spaces');
-            return Promise.resolve(undefined);
+        values.mockResolvedValue({
+            [SETTINGS.INCLUDE_IMAGES]: 'false',
+            [SETTINGS.NORMALIZE_QUOTES]: null,
+            [SETTINGS.LIST_INDENTATION]: 'two-spaces',
         });
 
         await expect(loadPasteOptions()).resolves.toEqual(DEFAULT_PASTE_OPTIONS);
