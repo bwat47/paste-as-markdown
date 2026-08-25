@@ -25,42 +25,5 @@
     "promo_tile": {
         "src": "images/pasteasmarkdown_promo_tile.png",
         "label": "Paste as Markdown Promo Tile"
-    },
-    "settings": {
-        "includeImages": {
-            "type": "bool",
-            "label": "Include images",
-            "description": "If enabled, images will be included in the pasted markdown. If disabled, images will be removed entirely.",
-            "value": true
-        },
-        "convertImagesToResources": {
-            "type": "bool",
-            "label": "Include images",
-            "description": "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
-            "value": false
-        },
-        "normalizeQuotes": {
-            "type": "bool",
-            "label": "Include images",
-            "description": "Convert Word/Office smart quotes to regular quotes for better markdown compatibility.",
-            "value": true
-        },
-        "forceTightLists": {
-            "type": "bool",
-            "label": "Force tight lists",
-            "description": "Remove blank lines between list items in output Markdown.",
-            "value": false
-        },
-        "listIndentation": {
-            "type": "string",
-            "label": "List indentation",
-            "description": "Choose whether nested list items and continuation lines are indented with spaces or tabs.",
-            "value": "tabs",
-            "isEnum": true,
-            "options": {
-                "spaces": "Spaces",
-                "tabs": "Tabs"
-            }
-        }
     }
 }
