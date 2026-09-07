@@ -4,7 +4,7 @@ import { handlePasteAsMarkdown } from './pasteHandler';
 import logger from './logger';
 import { showToast } from './utils';
 
-const RICH_TEXT_UNSUPPORTED_MESSAGE = 'Paste as Markdown is not supported in the rich text editor';
+const RICH_TEXT_UNSUPPORTED_MESSAGE = 'Paste HTML as Markdown is not supported in the rich text editor';
 
 /** Executes Paste as Markdown only when Joplin's Markdown editor is active. */
 export async function executePasteAsMarkdownCommand(): Promise<void> {

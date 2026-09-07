@@ -36,7 +36,7 @@ describe('paste command', () => {
         await executePasteAsMarkdownCommand();
 
         expect(mockShowToast).toHaveBeenCalledWith(
-            'Paste as Markdown is not supported in the rich text editor',
+            'Paste HTML as Markdown is not supported in the rich text editor',
             ToastType.Info
         );
         expect(mockHandlePasteAsMarkdown).not.toHaveBeenCalled();
