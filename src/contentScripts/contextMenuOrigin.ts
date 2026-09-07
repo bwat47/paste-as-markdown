@@ -1,4 +1,4 @@
-export const EDITOR_CONTEXT_MENU_EVENT_GRACE_MS = 400;
+export const EDITOR_CONTEXT_MENU_EVENT_GRACE_MS = 1000;
 
 export interface ContextMenuOriginTracker {
     mark(): void;
@@ -22,4 +22,3 @@ export function createContextMenuOriginTracker(now: () => number = Date.now): Co
         },
     };
 }
-
