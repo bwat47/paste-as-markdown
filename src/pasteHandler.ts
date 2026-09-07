@@ -14,6 +14,7 @@ import type {
 import { DEFAULT_PASS_CONTEXT } from './html/passContext';
 import { loadPasteOptions } from './settings';
 import logger from './logger';
+import { insertMarkdownAtCursor } from './editorIntegration';
 
 async function readClipboardHtml(): Promise<string | null> {
     try {
@@ -52,26 +53,6 @@ async function readClipboardText(): Promise<string> {
         const error = Object.assign(new Error('Unable to access clipboard text'), { cause: err });
         throw error;
     }
-}
-
-async function insertMarkdownAtCursor(markdown: string): Promise<void> {
-    // First, try 'insertText'. If that fails, fall back to 'replaceSelection'.
-    // This provides compatibility with different editor implementations in Joplin.
-    // Use Joplin's high-level commands directly rather than editor.execCommand to ensure
-    // compatibility with both CodeMirror 5 (legacy) and CodeMirror 6 editors.
-    const attempts = ['insertText', 'replaceSelection'];
-    let lastError: unknown;
-    for (const cmd of attempts) {
-        try {
-            await joplin.commands.execute(cmd, markdown);
-            return;
-        } catch (err) {
-            lastError = err;
-        }
-    }
-
-    logger.error('Failed to insert markdown', lastError);
-    throw new Error('Unable to insert markdown into editor');
 }
 
 /**
