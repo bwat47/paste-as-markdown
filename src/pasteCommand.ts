@@ -24,4 +24,3 @@ export async function executePasteAsMarkdownCommand(): Promise<void> {
         await showToast('Paste HTML as Markdown failed: ' + message, ToastType.Error);
     }
 }
-

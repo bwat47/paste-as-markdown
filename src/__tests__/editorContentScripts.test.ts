@@ -2,7 +2,10 @@ import { describe, expect, test, vi } from 'vitest';
 import type { CodeMirrorControl } from 'api/types';
 import codeMirror5ContentScript from '../contentScripts/codeMirror5';
 import codeMirror6ContentScript from '../contentScripts/codeMirror6';
-import { createContextMenuOriginTracker, EDITOR_CONTEXT_MENU_EVENT_GRACE_MS } from '../contentScripts/contextMenuOrigin';
+import {
+    createContextMenuOriginTracker,
+    EDITOR_CONTEXT_MENU_EVENT_GRACE_MS,
+} from '../contentScripts/contextMenuOrigin';
 import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editorCommands';
 
 type EditorCommand = (...args: unknown[]) => unknown;
@@ -103,4 +106,3 @@ describe('editor content scripts', () => {
         expect(tracker.consume()).toBe(false);
     });
 });
-
