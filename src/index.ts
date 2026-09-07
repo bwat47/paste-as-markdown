@@ -1,35 +1,40 @@
 import joplin from 'api';
-import { handlePasteAsMarkdown } from './pasteHandler';
 import { registerPluginSettings } from './settings';
-import { showToast } from './utils';
-import { MenuItemLocation, ToastType } from 'api/types';
+import { ContentScriptType, MenuItemLocation } from 'api/types';
 import logger from './logger';
+import { isMarkdownEditorContextMenuOrigin } from './editorIntegration';
+import { executePasteAsMarkdownCommand } from './pasteCommand';
 
 const PASTE_AS_MARKDOWN_COMMAND = 'pasteHtmlAsMarkdown';
 const PASTE_AS_MARKDOWN_SHORTCUT = 'Ctrl+Alt+V';
 const PASTE_AS_MARKDOWN_MENU = 'pasteAsMarkdownMenu';
+const CODE_MIRROR_6_CONTENT_SCRIPT_ID = 'pasteAsMarkdownCodeMirror6';
+const CODE_MIRROR_5_CONTENT_SCRIPT_ID = 'pasteAsMarkdownCodeMirror5';
 
 joplin.plugins.register({
     onStart: async () => {
+        // A failed registration only costs the content script's features, so keep starting up.
+        try {
+            await joplin.contentScripts.register(
+                ContentScriptType.CodeMirrorPlugin,
+                CODE_MIRROR_6_CONTENT_SCRIPT_ID,
+                './contentScripts/codeMirror6.js'
+            );
+            await joplin.contentScripts.register(
+                ContentScriptType.CodeMirrorPlugin,
+                CODE_MIRROR_5_CONTENT_SCRIPT_ID,
+                './contentScripts/codeMirror5.js'
+            );
+        } catch (err) {
+            logger.error('Failed to register editor content scripts', err);
+        }
+
         // Register command
         await joplin.commands.register({
             name: PASTE_AS_MARKDOWN_COMMAND,
             label: 'Paste HTML as Markdown',
             iconName: 'fas fa-paste',
-            execute: async () => {
-                try {
-                    const res = await handlePasteAsMarkdown();
-                    if (res.success) {
-                        // Success path already shows success toasts inside handler.
-                    } else if (res.warnings.length) {
-                        logger.warn('Paste reported warnings:', res.warnings);
-                    }
-                } catch (err: unknown) {
-                    const message = err instanceof Error ? err.message : String(err);
-                    logger.error('Error handling paste command', err);
-                    await showToast('Paste HTML as Markdown failed: ' + message, ToastType.Error);
-                }
-            },
+            execute: executePasteAsMarkdownCommand,
         });
 
         await registerPluginSettings();
@@ -48,13 +53,11 @@ joplin.plugins.register({
             logger.warn('Failed to create menu item', err);
         }
 
-        // Context menu filtering - only add in markdown editor
+        // Joplin invokes this filter for editor and viewer context menus. The content scripts
+        // provide a single-use marker that identifies right-clicks from either Markdown editor,
+        // while editor.codeView excludes the rich text editor.
         joplin.workspace.filterEditorContextMenu(async (menu) => {
-            // We only show the context menu item if the user is in the Markdown editor (Code View).
-            // 'editor.codeView' is true for Code View, false for Rich Text.
-            const isMarkdown = await joplin.settings.globalValue('editor.codeView');
-            logger.debug('Context menu filter: isMarkdown (Code View)=', isMarkdown);
-            if (!isMarkdown) return menu;
+            if (!(await isMarkdownEditorContextMenuOrigin())) return menu;
             const exists = menu.items.some((i) => i.commandName === PASTE_AS_MARKDOWN_COMMAND);
             if (!exists) {
                 menu.items.push({

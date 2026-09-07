@@ -1,3 +1,6 @@
 {
-	"extraScripts": []
+	"extraScripts": [
+		"contentScripts/codeMirror6.ts",
+		"contentScripts/codeMirror5.ts"
+	]
 }

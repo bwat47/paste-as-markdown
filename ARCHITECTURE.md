@@ -20,7 +20,14 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Entry Point
 
-- `src/index.ts` registers the Joplin command and menus, and delegates settings setup to `src/settings.ts`.
+- `src/index.ts` registers the Joplin command, menus, and separate CodeMirror 5 and CodeMirror 6 content scripts, and delegates settings setup to `src/settings.ts`.
+- `src/pasteCommand.ts` is the command boundary. It stops before reading or converting clipboard data when `editor.codeView` indicates the unsupported rich text editor.
+
+### Editor Integration
+
+- `src/editorCommands.ts` holds the command names shared between the plugin and its content scripts.
+- `src/contentScripts/codeMirror6.ts` and `src/contentScripts/codeMirror5.ts` register those commands in the CodeMirror 6 and legacy editors respectively; each ignores the other's editor. They expose a shared insertion command and track recent editor `contextmenu` events via `src/contentScripts/contextMenuOrigin.ts`, a single-use marker with a short grace period.
+- `src/editorIntegration.ts` is the plugin-side wrapper for those commands. Insertion falls back to Joplin's `insertText` when the content script is unavailable. The context-menu filter first checks Joplin's `editor.codeView` setting to exclude rich text mode, then consumes the marker to distinguish the Markdown editor from its viewer.
 
 ### Settings
 
@@ -30,7 +37,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Paste Orchestration
 
 - `src/pasteHandler.ts` coordinates the end-to-end paste flow.
-- It reads clipboard content, loads resolved options from `src/settings.ts`, detects a clipboard source discriminant such as `google-docs`, builds the shared pass context, calls the converter, inserts the result into the editor, and manages user-facing fallback behavior.
+- It reads clipboard content, loads resolved options from `src/settings.ts`, detects a clipboard source discriminant such as `google-docs`, builds the shared pass context, calls the converter, inserts the result through the active Markdown editor's content-script command, and manages user-facing fallback behavior.
 
 ### HTML Processing
 
