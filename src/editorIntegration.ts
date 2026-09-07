@@ -3,6 +3,7 @@ import logger from './logger';
 import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from './editorCommands';
 
 const EDITOR_CODE_VIEW_SETTING = 'editor.codeView';
+const INSERTION_FAILURE_MESSAGE = 'Unable to insert markdown into editor';
 
 /** Returns whether the pending context menu was opened from a Markdown editor. */
 async function isEditorContextMenuOrigin(): Promise<boolean> {
@@ -36,6 +37,7 @@ export async function isMarkdownEditorContextMenuOrigin(): Promise<boolean> {
 
 /** Inserts text through the command supplied by the active Markdown editor content script. */
 export async function insertMarkdownAtCursor(markdown: string): Promise<void> {
+    let insertionError: unknown;
     try {
         const inserted = await joplin.commands.execute('editor.execCommand', {
             name: INSERT_MARKDOWN_COMMAND,
@@ -44,7 +46,8 @@ export async function insertMarkdownAtCursor(markdown: string): Promise<void> {
         if (inserted === true) return;
     } catch (err) {
         logger.error('Markdown editor insertion command failed', err);
+        insertionError = err;
     }
 
-    throw new Error('Unable to insert markdown into editor');
+    throw new Error(INSERTION_FAILURE_MESSAGE, { cause: insertionError });
 }
