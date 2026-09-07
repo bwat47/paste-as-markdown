@@ -2,7 +2,7 @@
     "manifest_version": 1,
     "id": "com.bwat47.paste-as-markdown",
     "app_min_version": "3.3",
-    "version": "1.4.3",
+    "version": "1.4.4",
     "name": "Paste HTML as Markdown",
     "description": "Paste clipboard HTML as clean markdown",
     "author": "bwat47",
