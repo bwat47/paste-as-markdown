@@ -13,16 +13,21 @@ const CODE_MIRROR_5_CONTENT_SCRIPT_ID = 'pasteAsMarkdownCodeMirror5';
 
 joplin.plugins.register({
     onStart: async () => {
-        await joplin.contentScripts.register(
-            ContentScriptType.CodeMirrorPlugin,
-            CODE_MIRROR_6_CONTENT_SCRIPT_ID,
-            './contentScripts/codeMirror6.js'
-        );
-        await joplin.contentScripts.register(
-            ContentScriptType.CodeMirrorPlugin,
-            CODE_MIRROR_5_CONTENT_SCRIPT_ID,
-            './contentScripts/codeMirror5.js'
-        );
+        // A failed registration only costs the content script's features, so keep starting up.
+        try {
+            await joplin.contentScripts.register(
+                ContentScriptType.CodeMirrorPlugin,
+                CODE_MIRROR_6_CONTENT_SCRIPT_ID,
+                './contentScripts/codeMirror6.js'
+            );
+            await joplin.contentScripts.register(
+                ContentScriptType.CodeMirrorPlugin,
+                CODE_MIRROR_5_CONTENT_SCRIPT_ID,
+                './contentScripts/codeMirror5.js'
+            );
+        } catch (err) {
+            logger.error('Failed to register editor content scripts', err);
+        }
 
         // Register command
         await joplin.commands.register({
