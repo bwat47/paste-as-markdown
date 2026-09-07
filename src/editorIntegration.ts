@@ -3,6 +3,7 @@ import logger from './logger';
 import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from './editorCommands';
 
 const EDITOR_CODE_VIEW_SETTING = 'editor.codeView';
+const INSERT_TEXT_FALLBACK_COMMAND = 'insertText';
 const INSERTION_FAILURE_MESSAGE = 'Unable to insert markdown into editor';
 
 /** Returns whether the pending context menu was opened from a Markdown editor. */
@@ -35,19 +36,26 @@ export async function isMarkdownEditorContextMenuOrigin(): Promise<boolean> {
     return isEditorContextMenuOrigin();
 }
 
-/** Inserts text through the command supplied by the active Markdown editor content script. */
+/**
+ * Inserts text through the command supplied by the active Markdown editor content script,
+ * falling back to Joplin's built-in `insertText`.
+ */
 export async function insertMarkdownAtCursor(markdown: string): Promise<void> {
-    let insertionError: unknown;
     try {
         const inserted = await joplin.commands.execute('editor.execCommand', {
             name: INSERT_MARKDOWN_COMMAND,
             args: [markdown],
         });
         if (inserted === true) return;
+        logger.warn('Markdown editor insertion command unavailable, falling back to insertText');
     } catch (err) {
         logger.error('Markdown editor insertion command failed', err);
-        insertionError = err;
     }
 
-    throw new Error(INSERTION_FAILURE_MESSAGE, { cause: insertionError });
+    try {
+        await joplin.commands.execute(INSERT_TEXT_FALLBACK_COMMAND, markdown);
+    } catch (err) {
+        logger.error('insertText fallback failed', err);
+        throw new Error(INSERTION_FAILURE_MESSAGE, { cause: err });
+    }
 }
