@@ -1,10 +1,9 @@
 import joplin from 'api';
-import { handlePasteAsMarkdown } from './pasteHandler';
 import { registerPluginSettings } from './settings';
-import { showToast } from './utils';
-import { ContentScriptType, MenuItemLocation, ToastType } from 'api/types';
+import { ContentScriptType, MenuItemLocation } from 'api/types';
 import logger from './logger';
 import { isMarkdownEditorContextMenuOrigin } from './editorIntegration';
+import { executePasteAsMarkdownCommand } from './pasteCommand';
 
 const PASTE_AS_MARKDOWN_COMMAND = 'pasteHtmlAsMarkdown';
 const PASTE_AS_MARKDOWN_SHORTCUT = 'Ctrl+Alt+V';
@@ -30,20 +29,7 @@ joplin.plugins.register({
             name: PASTE_AS_MARKDOWN_COMMAND,
             label: 'Paste HTML as Markdown',
             iconName: 'fas fa-paste',
-            execute: async () => {
-                try {
-                    const res = await handlePasteAsMarkdown();
-                    if (res.success) {
-                        // Success path already shows success toasts inside handler.
-                    } else if (res.warnings.length) {
-                        logger.warn('Paste reported warnings:', res.warnings);
-                    }
-                } catch (err: unknown) {
-                    const message = err instanceof Error ? err.message : String(err);
-                    logger.error('Error handling paste command', err);
-                    await showToast('Paste HTML as Markdown failed: ' + message, ToastType.Error);
-                }
-            },
+            execute: executePasteAsMarkdownCommand,
         });
 
         await registerPluginSettings();

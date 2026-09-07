@@ -17,16 +17,20 @@ async function isEditorContextMenuOrigin(): Promise<boolean> {
     }
 }
 
-/** Excludes rich text mode, then distinguishes the Markdown editor from its viewer. */
-export async function isMarkdownEditorContextMenuOrigin(): Promise<boolean> {
+/** Returns whether Joplin is using its Markdown editor rather than the rich text editor. */
+export async function isMarkdownEditorMode(): Promise<boolean> {
     try {
         const isMarkdownEditor = await joplin.settings.globalValue(EDITOR_CODE_VIEW_SETTING);
-        if (isMarkdownEditor !== true) return false;
+        return isMarkdownEditor === true;
     } catch (err) {
         logger.debug('Markdown editor mode check failed', err);
         return false;
     }
+}
 
+/** Excludes rich text mode, then distinguishes the Markdown editor from its viewer. */
+export async function isMarkdownEditorContextMenuOrigin(): Promise<boolean> {
+    if (!(await isMarkdownEditorMode())) return false;
     return isEditorContextMenuOrigin();
 }
 

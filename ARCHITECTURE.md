@@ -21,6 +21,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Entry Point
 
 - `src/index.ts` registers the Joplin command, menus, and separate CodeMirror 5 and CodeMirror 6 content scripts, and delegates settings setup to `src/settings.ts`.
+- `src/pasteCommand.ts` is the command boundary. It stops before reading or converting clipboard data when `editor.codeView` indicates the unsupported rich text editor.
 - The editor content scripts expose a shared insertion command and track recent editor `contextmenu` events. The context-menu filter first checks Joplin's `editor.codeView` setting to exclude rich text mode, then consumes the marker to distinguish the Markdown editor from its viewer.
 
 ### Settings
