@@ -4,10 +4,10 @@ import path from 'path';
 export default defineConfig({
     resolve: {
         alias: [
-            { find: /^api$/, replacement: path.resolve(__dirname, 'src/__tests__/__mocks__/api.ts') },
+            { find: /^api$/, replacement: path.resolve(import.meta.dirname, 'src/__tests__/__mocks__/api.ts') },
             {
                 find: /^api\/(.*)$/,
-                replacement: path.resolve(__dirname, 'src/__tests__/__mocks__/api/$1.ts'),
+                replacement: path.resolve(import.meta.dirname, 'src/__tests__/__mocks__/api/$1.ts'),
             },
         ],
     },
