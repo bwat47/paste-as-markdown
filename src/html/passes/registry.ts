@@ -6,6 +6,7 @@ import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
 import { liftTableCaptions } from '../pre/tableCaptions';
+import { normalizeWordLists } from '../pre/wordLists';
 import { removeEmptyAnchors, normalizeAnchors } from '../post/anchors';
 import { stripHeadingFormatting, normalizeHeadingLevels } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
@@ -63,6 +64,11 @@ export const PROCESSING_PASSES: PassCollections = {
             name: 'Code block neutralization',
             // Runs before sanitization so literal HTML examples such as <script> are preserved as code.
             execute: (body) => neutralizeCodeBlocksPreSanitize(body),
+        },
+        {
+            name: 'Desktop Word list reconstruction',
+            // Word's list levels and marker spans must be read before DOMPurify strips styles.
+            execute: (body) => normalizeWordLists(body),
         },
         {
             name: 'Table caption lift',
