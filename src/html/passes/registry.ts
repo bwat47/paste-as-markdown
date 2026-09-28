@@ -5,6 +5,7 @@ import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
 import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
 import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
+import { liftTableCaptions } from '../pre/tableCaptions';
 import { removeEmptyAnchors, normalizeAnchors } from '../post/anchors';
 import { stripHeadingFormatting, normalizeHeadingLevels } from '../post/headings';
 import { protectLiteralHtmlTagMentions } from '../post/literals';
@@ -62,6 +63,11 @@ export const PROCESSING_PASSES: PassCollections = {
             name: 'Code block neutralization',
             // Runs before sanitization so literal HTML examples such as <script> are preserved as code.
             execute: (body) => neutralizeCodeBlocksPreSanitize(body),
+        },
+        {
+            name: 'Table caption lift',
+            // Runs before sanitization, which strips <caption> and would strand its text inside <table>.
+            execute: (body) => liftTableCaptions(body),
         },
     ],
     postSanitize: [

@@ -34,7 +34,7 @@ export function isTextNode(node: Node): node is Text {
 /**
  * Type guard to check if a node is an HTMLElement.
  */
-export function isHtmlElement(node: Element): node is HTMLElement {
+export function isHtmlElement(node: Node): node is HTMLElement {
     const view = node.ownerDocument?.defaultView;
     if (view && view.HTMLElement) {
         return node instanceof view.HTMLElement;

@@ -2,7 +2,8 @@ import { describe, test, expect } from 'vitest';
 import { sanitizeHtml } from '../html/sanitize';
 
 function sanitize(html: string): string {
-    return sanitizeHtml(html, true);
+    const content = document.createRange().createContextualFragment(html);
+    return sanitizeHtml(content, true).innerHTML;
 }
 
 describe('HTML sanitizer', () => {

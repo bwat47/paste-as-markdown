@@ -3,6 +3,9 @@ import type { Config } from 'dompurify';
 // Centralized DOMPurify configuration so adjustments (e.g., adding 'sup','sub','del','mark')
 // can be made in one place.
 const SANITIZER_ALLOWED_TAGS_BASE = [
+    // DOMPurify's own root, not pasted content (the parser never nests <body> in content). Allowing it
+    // keeps DOMPurify from "removing" the root, which deep-clones every child to keep the content.
+    'body',
     'a',
     'p',
     'div',
@@ -51,8 +54,8 @@ const SANITIZER_ALLOWED_TAGS_BASE = [
     'h5',
     'h6',
     // Table structure only. 'caption', 'colgroup' and 'col' are deliberately absent: the GFM
-    // plugin discards all three (GFM has no caption syntax), so allowing 'caption' would drop
-    // its text entirely, whereas stripping the tag lets KEEP_CONTENT keep the text near the table.
+    // plugin discards all three (GFM has no caption syntax). Caption text is lifted out of the
+    // table before sanitization (see pre/tableCaptions.ts) so it survives as its own block.
     'table',
     'thead',
     'tbody',

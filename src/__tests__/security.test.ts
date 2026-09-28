@@ -98,3 +98,17 @@ describe('security: script injection prevention', () => {
         expect(links.every((link) => !link.hasAttribute('href'))).toBe(true);
     });
 });
+
+describe('security: sanitizer root handling', () => {
+    test('sanitizes element-free clipboard text wrapped in fragment comments', async () => {
+        // DOMPurify's mXSS probe flags a root with no child elements whose text and markup both
+        // contain tag-like "<" sequences. If the parsed <body> itself were handed to DOMPurify, that
+        // parentless root could not be removed and sanitization would throw; the content must be
+        // passed as a fragment so DOMPurify's own attached <body> is the root.
+        const html = '<!--StartFragment-->if a &lt;b then c<!--EndFragment-->';
+
+        const { body } = await processHtml(html, TEST_OPTIONS);
+
+        expect(body.innerHTML).toBe('if a &lt;b then c');
+    });
+});
