@@ -4,8 +4,8 @@ import { processHtml } from '../html/processHtml';
 import { convertHtmlToMarkdown } from './helpers/markdownConverter';
 import { pasteOptions } from './helpers/pasteOptions';
 
-function wordItem(content: string, level = 1, marker = '·', instance = 'lfo1'): string {
-    return `<p class="MsoNoSpacing" style="margin-left:.5in;mso-list:\n l0 level${level} ${instance}">
+function wordItem(content: string, level = 1, marker = '·', instance = 'lfo1', list = 'l0'): string {
+    return `<p class="MsoNoSpacing" style="margin-left:.5in;mso-list:\n ${list} level${level} ${instance}">
         <![if !supportLists]><span style="font-family:Symbol"><span style="mso-list:\n Ignore">${marker}<span>&nbsp;&nbsp; </span></span></span><![endif]>
         ${content}<o:p></o:p></p>`;
 }
@@ -63,7 +63,52 @@ describe('Desktop Word lists', () => {
             await markdown(
                 wordItem('Selected child', 3, 'o') + wordItem('Next parent', 1) + wordItem('Deep child', 4, '')
             )
-        ).toBe('- Selected child\n\n- Next parent\n\t- Deep child');
+        ).toBe('- Selected child\n- Next parent\n\t- Deep child');
+    });
+
+    test('nests later children under a shallower parent reached from a partial selection', async () => {
+        expect(
+            await markdown(wordItem('Selected child', 2, 'o') + wordItem('Parent') + wordItem('Child', 2, 'o'))
+        ).toBe('- Selected child\n- Parent\n\t- Child');
+    });
+
+    // `§` and U+F0FC are Wingdings glyphs; an empty marker is a picture bullet.
+    test.each(['-', '§', '\u{f0fc}', ''])('treats the non-numbered marker "%s" as a bullet', async (marker) => {
+        expect(await markdown(wordItem('First', 1, marker) + wordItem('Second', 1, marker))).toBe('- First\n- Second');
+    });
+
+    test('nests a list with a different Word list ID by its level', async () => {
+        expect(
+            await markdown(
+                wordItem('Bullet') +
+                    wordItem('Numbered child', 2, '1.', 'lfo2', 'l1') +
+                    wordItem('Next numbered child', 2, '2.', 'lfo2', 'l1') +
+                    wordItem('Next bullet')
+            )
+        ).toBe('- Bullet\n\t1. Numbered child\n\t2. Next numbered child\n- Next bullet');
+    });
+
+    test('keeps same-level items from different Word lists in separate lists', async () => {
+        const { body } = await processHtml(
+            wordItem('First list') + wordItem('Second list', 1, '·', 'lfo2', 'l1'),
+            pasteOptions({ forceTightLists: false })
+        );
+        expect(Array.from(body.querySelectorAll('ul')).map((list) => list.textContent?.trim())).toEqual([
+            'First list',
+            'Second list',
+        ]);
+    });
+
+    test('nests legal numbering by its last segment', async () => {
+        expect(
+            await markdown(
+                wordItem('One', 1, '1.') +
+                    wordItem('One point one', 2, '1.1.') +
+                    wordItem('One point two', 2, '1.2') +
+                    wordItem('Deep', 3, '1.2.1.') +
+                    wordItem('Two', 1, '2.')
+            )
+        ).toBe('1. One\n\t1. One point one\n\t2. One point two\n\t\t1. Deep\n2. Two');
     });
 
     test('preserves decimal starts and nested mixed list types', async () => {
@@ -107,11 +152,10 @@ describe('Desktop Word lists', () => {
         expect(body.textContent).toContain('Visible text');
     });
 
-    test('leaves flattened paragraphs, unsupported markers and incomplete metadata unchanged', async () => {
+    test('leaves flattened paragraphs and incomplete metadata unchanged', async () => {
         const body = new DOMParser().parseFromString(
             '<p>· Flattened</p><p>o Ordinary text</p>' +
                 '<p style="mso-list:l0 level1 lfo1">· Missing span</p>' +
-                wordItem('Unknown', 1, '?') +
                 wordItem('Invalid level', 10),
             'text/html'
         ).body;

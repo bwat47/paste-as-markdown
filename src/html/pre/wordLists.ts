@@ -3,9 +3,10 @@ import { isInCode } from '../shared/dom';
 // Desktop Word: `mso-list:l0 level2 lfo1`; lfo identifies a particular list instance.
 const LIST_METADATA = /(?:^|;)\s*mso-list\s*:\s*(l\d+)\s+level([1-9])\s+(lfo\d+)\s*(?:;|$)/i;
 const IGNORE_MARKER = /(?:^|;)\s*mso-list\s*:\s*ignore\s*(?:;|$)/i;
-const BULLET_MARKERS = new Set(['·', '•', 'o', '', '', '▪', '◦', '●', '○', '■']);
-// Word numbered markers: `1.`, `3)`, `(4)`, `a.`, `ii.`.
+// Word numbered markers: `1.`, `3)`, `(4)`, `a.`, `ii.`. Any other ignored marker is a bullet glyph.
 const NUMBERED_MARKER = /^(?:\((\d+|[a-z]+)\)|(\d+|[a-z]+)[.)])$/i;
+// Legal numbering such as `1.1.` or `2.3.1`; the last segment numbers the item within its level.
+const LEGAL_MARKER = /^(?:\d+\.)+(\d+)\.?$/;
 const ROMAN_VALUES: Record<string, number> = { i: 1, v: 5, x: 10, l: 50, c: 100, d: 500, m: 1000 };
 const ALPHABET_SIZE = 26;
 const FIRST_LETTER_CODE = 'a'.charCodeAt(0);
@@ -19,29 +20,36 @@ interface WordListItem {
 }
 
 interface ListFrame {
+    listId: string;
     level: number;
     list: HTMLElement;
     ordered: boolean;
     nextNumber?: number;
 }
 
+/** Returns the marker's numbering text, or null when the marker is a bullet. */
+function readNumberText(marker: string): string | null {
+    const legal = LEGAL_MARKER.exec(marker);
+    if (legal) return legal[1];
+    const numbered = NUMBERED_MARKER.exec(marker);
+    return numbered ? (numbered[1] ?? numbered[2]).toLowerCase() : null;
+}
+
 function readListItem(paragraph: HTMLParagraphElement): WordListItem | null {
     if (isInCode(paragraph) || paragraph.closest('li')) return null;
     const metadata = LIST_METADATA.exec(paragraph.getAttribute('style') ?? '');
     if (!metadata) return null;
+    // Word flags the literal marker as presentation; without it this is not a pasted list item.
     const marker = Array.from(paragraph.querySelectorAll<HTMLSpanElement>('span[style]')).find((span) =>
         IGNORE_MARKER.test(span.getAttribute('style') ?? '')
     );
     if (!marker) return null;
-    const text = (marker.textContent ?? '').trim();
-    const numbered = NUMBERED_MARKER.exec(text);
-    if (!numbered && !BULLET_MARKERS.has(text)) return null;
     return {
         paragraph,
         marker,
         listId: `${metadata[1]}:${metadata[3]}`.toLowerCase(),
         level: Number(metadata[2]),
-        numberText: numbered ? (numbered[1] ?? numbered[2]).toLowerCase() : null,
+        numberText: readNumberText((marker.textContent ?? '').trim()),
     };
 }
 
@@ -74,11 +82,12 @@ function startNumber(text: string, roman: boolean): number {
     );
 }
 
-/** Markdown uses decimal numbering; infer Roman vs alphabetic once per Word level. */
+/** Markdown uses decimal numbering; infer Roman vs alphabetic once per level of each Word list. */
 function readNumbers(run: WordListItem[]): Map<WordListItem, number> {
     const numbers = new Map<WordListItem, number>();
-    for (const level of new Set(run.map((item) => item.level))) {
-        const items = run.filter((item) => item.level === level && item.numberText !== null);
+    const levelKey = (item: WordListItem) => `${item.listId}/${item.level}`;
+    for (const key of new Set(run.map(levelKey))) {
+        const items = run.filter((item) => levelKey(item) === key && item.numberText !== null);
         const markers = items.map((item) => item.numberText!);
         const roman =
             markers.every((marker) => /^[ivxlcdm]+$/.test(marker)) &&
@@ -101,21 +110,29 @@ function openListFrame(item: WordListItem, number: number | undefined, stack: Li
     const parent = stack[stack.length - 1];
     if (parent) parent.list.lastElementChild!.appendChild(list);
     else item.paragraph.before(list);
-    const frame = { level: item.level, list, ordered: item.numberText !== null };
+    const frame = { listId: item.listId, level: item.level, list, ordered: item.numberText !== null };
     stack.push(frame);
     return frame;
 }
 
-/** Reconstruct a sibling run, compressing missing levels without inventing empty parent items. */
+/**
+ * Reconstruct a sibling run, compressing missing levels without inventing empty parent items.
+ * The outermost list takes the shallowest level seen so far, so a selection that starts on a
+ * nested item stays one list when it reaches a shallower item. Nesting follows levels alone;
+ * the Word list ID only decides whether items at the same level share a list.
+ */
 function rebuildRun(run: WordListItem[]): void {
     const stack: ListFrame[] = [];
     const numbers = readNumbers(run);
     for (const item of run) {
-        while (stack.length && stack[stack.length - 1].level > item.level) stack.pop();
+        while (stack.length > 1 && stack[stack.length - 1].level > item.level) stack.pop();
+        if (stack.length && stack[0].level > item.level) stack[0].level = item.level;
         const ordered = item.numberText !== null;
         const number = numbers.get(item);
         let frame = stack[stack.length - 1];
-        if (frame?.level === item.level && (frame.ordered !== ordered || (ordered && frame.nextNumber !== number))) {
+        const continuesFrame =
+            frame?.listId === item.listId && frame.ordered === ordered && (!ordered || frame.nextNumber === number);
+        if (frame?.level === item.level && !continuesFrame) {
             stack.pop();
             frame = stack[stack.length - 1];
         }
@@ -147,7 +164,7 @@ export function normalizeWordLists(body: HTMLElement): void {
         let sibling = nextContentSibling(paragraph);
         while (sibling instanceof Element && sibling.tagName === 'P') {
             const item = readListItem(sibling as HTMLParagraphElement);
-            if (!item || item.listId !== first.listId) break;
+            if (!item) break;
             run.push(item);
             sibling = nextContentSibling(sibling);
         }
