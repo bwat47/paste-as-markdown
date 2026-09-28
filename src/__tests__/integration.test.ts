@@ -102,9 +102,9 @@ describe('integration: convertHtmlToMarkdown', () => {
             '<tfoot><tr><td>sum</td><td>3</td></tr></tfoot></table>';
         const { markdown } = await convertHtmlToMarkdown(html);
 
-        // The caption tag is stripped by the sanitizer so KEEP_CONTENT retains its text; allowing
-        // the tag through would hand it to the plugin's tableCaption rule, which discards it.
-        expect(markdown).toContain('Sales for 2025');
+        // Caption text is lifted into its own block before the table; leaving the caption element
+        // in place would hand it to the plugin's tableCaption rule, which discards it.
+        expect(markdown).toMatch(/^Sales for 2025\n\n\| A/);
         // tfoot rows stay part of the table body.
         expect(markdown).toContain('| sum | 3   |');
     });
@@ -113,7 +113,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = '<table><caption>Cap</caption><tr><td>Only</td></tr></table>';
         const { markdown } = await convertHtmlToMarkdown(html);
 
-        expect(markdown).toBe('Only\n\nCap');
+        expect(markdown).toBe('Cap\n\nOnly');
     });
 
     test('leading blank line trimming keeps internal paragraph spacing', async () => {

@@ -1,5 +1,6 @@
 import createDOMPurify from 'dompurify';
 import { buildSanitizerConfig } from './sanitizerConfig';
+import { isHtmlElement } from './shared/dom';
 
 const INPUT_TAG_NAME = 'INPUT';
 const CHECKBOX_INPUT_TYPE = 'checkbox';
@@ -16,13 +17,23 @@ function restrictInputsToCheckboxes(node: Node): void {
     if (inputType !== CHECKBOX_INPUT_TYPE) input.remove();
 }
 
-/** Sanitize HTML according to the plugin's complete element and attribute policy. */
-export function sanitizeHtml(html: string, includeImages: boolean): string {
+/**
+ * Sanitize parsed content according to the plugin's complete element and attribute policy.
+ * DOMPurify imports a clone of `content` into its own body and returns that body directly, so the
+ * result is never serialized and re-parsed (which also avoids the mutation-XSS window of a string
+ * round-trip). Content is passed as a fragment rather than a body element because DOMPurify cannot
+ * strip a disallowed, parentless root such as a detached `<body>`.
+ */
+export function sanitizeHtml(content: DocumentFragment, includeImages: boolean): HTMLElement {
     if (typeof window === 'undefined') {
         throw new Error('Window is undefined');
     }
 
     const purifier = createDOMPurify(window as unknown as typeof window);
     purifier.addHook('afterSanitizeAttributes', restrictInputsToCheckboxes);
-    return purifier.sanitize(html, buildSanitizerConfig({ includeImages })) as string;
+    const sanitized = purifier.sanitize(content, { ...buildSanitizerConfig({ includeImages }), RETURN_DOM: true });
+    if (!isHtmlElement(sanitized)) {
+        throw new Error('Sanitizer did not return an HTML element');
+    }
+    return sanitized;
 }

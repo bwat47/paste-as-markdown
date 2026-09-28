@@ -53,19 +53,26 @@ export class HtmlProcessingError extends Error {
 }
 
 /** Parse HTML string into a DOM body element. Returns null on failure. */
-function parseHtmlToBody(html: string, context: string): HTMLElement | null {
+function parseHtmlToBody(html: string): HTMLElement | null {
     try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         if (!doc.body) {
-            logger.warn(`${context}: Parsed document missing <body>`);
+            logger.warn('Raw HTML parse: Parsed document missing <body>');
             return null;
         }
         return doc.body;
     } catch (err) {
-        logger.warn(`${context}: Failed to parse HTML`, err);
+        logger.warn('Raw HTML parse: Failed to parse HTML', err);
         return null;
     }
+}
+
+/** Move a body's children into a fragment (leaving the body empty) without re-parsing them. */
+function extractBodyContents(body: HTMLElement): DocumentFragment {
+    const range = body.ownerDocument.createRange();
+    range.selectNodeContents(body);
+    return range.extractContents();
 }
 
 /** Convert images to Joplin resources if enabled. Returns empty metadata if disabled. */
@@ -97,7 +104,7 @@ export async function processHtml(
 
     try {
         // 1. Parse raw HTML
-        const rawBody = parseHtmlToBody(html, 'Raw HTML parse');
+        const rawBody = parseHtmlToBody(html);
         if (!rawBody) {
             throw new HtmlProcessingError('sanitize-failed');
         }
@@ -105,24 +112,18 @@ export async function processHtml(
         // 2. Pre-sanitize passes
         runPasses(preSanitize, rawBody, options, passContext);
 
-        // 3. Sanitize (security boundary)
-        let sanitizedHtml: string;
+        // 3. Sanitize (security boundary). Returns a sanitized DOM clone; no serialize/re-parse.
+        let body: HTMLElement;
         try {
-            sanitizedHtml = sanitizeHtml(rawBody.innerHTML, options.includeImages);
+            body = sanitizeHtml(extractBodyContents(rawBody), options.includeImages);
         } catch (cause) {
             throw new HtmlProcessingError('sanitize-failed', cause);
         }
 
-        // 4. Re-parse sanitized HTML
-        const body = parseHtmlToBody(sanitizedHtml, 'Sanitized HTML parse');
-        if (!body) {
-            throw new HtmlProcessingError('sanitize-failed');
-        }
-
-        // 5. Post-sanitize passes
+        // 4. Post-sanitize passes
         runPasses(postSanitize, body, options, passContext);
 
-        // 6. Image conversion. Expected per-image failures are reported in ResourceConversionMeta;
+        // 5. Image conversion. Expected per-image failures are reported in ResourceConversionMeta;
         // an exception means the stage could not complete reliably.
         let resources: ResourceConversionMeta;
         try {
@@ -131,7 +132,7 @@ export async function processHtml(
             throw new HtmlProcessingError('image-conversion-failed', cause);
         }
 
-        // 7. Post-image passes. Image resources are already committed and no pass runs after this,
+        // 6. Post-image passes. Image resources are already committed and no pass runs after this,
         // so a failure here degrades output cosmetically rather than making it incorrect: keep the
         // converted DOM instead of discarding the paste and orphaning the created resources.
         try {

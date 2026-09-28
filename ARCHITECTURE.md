@@ -43,6 +43,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 - `src/html/processHtml.ts` owns the HTML preparation stage.
 - It parses clipboard HTML, runs pre-sanitize passes, sanitizes the result, runs post-sanitize passes, optionally converts images, and then runs post-image passes before returning a safe DOM subtree for Markdown conversion.
+- HTML is parsed exactly once. The parsed body's children are handed to DOMPurify as a fragment with `RETURN_DOM`, and the sanitized body flows straight into the post-sanitize passes and Turndown. Nothing is serialized and re-parsed, so the tree DOMPurify checked is the tree that gets converted. Because the parser never re-normalizes the sanitized tree, content that stripped tags would strand in invalid positions must be relocated by a pre-sanitize pass (for example, `pre/tableCaptions.ts` lifts `<caption>` text out of `<table>`).
 - `src/html/sanitize.ts` applies the DOMPurify configuration and hook-based element restrictions that cannot be expressed by tag and attribute allowlists alone. The tag and attribute allowlists themselves live in `src/html/sanitizerConfig.ts`.
 - The pass registry under `src/html/passes/` groups passes into those three explicit phases. Passes execute in their declared array order.
 - `src/html/passContext.ts` holds the default pass context used when no clipboard source discriminant is detected.
