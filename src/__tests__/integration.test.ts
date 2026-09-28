@@ -109,11 +109,17 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(markdown).toContain('| sum | 3   |');
     });
 
-    test('keeps caption text out of a single-cell table collapse', async () => {
-        const html = '<table><caption>Cap</caption><tr><td>Only</td></tr></table>';
+    test.each([
+        ['a single-cell table collapse', '<table><caption>Cap</caption><tr><td>Only</td></tr></table>', 'Cap\n\nOnly'],
+        [
+            'a <pre>-wrapped table, which still unwraps to a table',
+            '<pre><table><caption>Cap</caption><tr><td>A</td><td>B</td></tr></table></pre>',
+            'Cap\n\n| A   | B   |\n| --- | --- |',
+        ],
+    ])('keeps caption text out of %s', async (_, html, expected) => {
         const { markdown } = await convertHtmlToMarkdown(html);
 
-        expect(markdown).toBe('Cap\n\nOnly');
+        expect(markdown).toBe(expected);
     });
 
     test('leading blank line trimming keeps internal paragraph spacing', async () => {
