@@ -82,7 +82,10 @@ function startNumber(text: string, roman: boolean): number {
     );
 }
 
-/** Markdown uses decimal numbering; infer Roman vs alphabetic once per level of each Word list. */
+/**
+ * Markdown uses decimal numbering; infer Roman vs alphabetic once per level of each Word list.
+ * A lone `i` is ambiguous: a selection starting at alphabetic item `i.` is read as Roman 1, not 9.
+ */
 function readNumbers(run: WordListItem[]): Map<WordListItem, number> {
     const numbers = new Map<WordListItem, number>();
     const levelKey = (item: WordListItem) => `${item.listId}/${item.level}`;
