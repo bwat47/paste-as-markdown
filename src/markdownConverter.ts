@@ -51,13 +51,6 @@ function createTurndownService({ includeImages, listIndentation }: MarkdownConve
     const service = new TurndownService(TURNDOWN_OPTIONS);
     service.use(gfm);
 
-    // Defensive removals, already handled during DOM pre-processing
-    if (!includeImages) {
-        service.remove('img');
-    }
-    service.remove('script');
-    service.remove('style');
-
     // --- Custom behavior overrides (public addRule API) ---
     // Overriding built-in element handling should use addRule (added rules have highest precedence, see turndown#241)
 
