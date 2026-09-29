@@ -10,6 +10,7 @@ import { convertImagesToResources } from '../resourceConverter';
 import { PROCESSING_PASSES } from './passes/registry';
 import { PassExecutionError, runPasses } from './passes/runner';
 import { sanitizeHtml } from './sanitize';
+import { wrapOrphanedTableElements } from './wrapOrphanedTableElements';
 import logger from '../logger';
 
 export interface ProcessHtmlResult {
@@ -103,8 +104,8 @@ export async function processHtml(
     const { preSanitize, postSanitize, postImage } = PROCESSING_PASSES;
 
     try {
-        // 1. Parse raw HTML
-        const rawBody = parseHtmlToBody(html);
+        // 1. Wrap orphaned table fragments before parsing can discard their structure
+        const rawBody = parseHtmlToBody(wrapOrphanedTableElements(html));
         if (!rawBody) {
             throw new HtmlProcessingError('sanitize-failed');
         }

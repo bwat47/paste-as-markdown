@@ -1,9 +1,11 @@
 import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
-import { processHtml } from './html/processHtml';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
 import { LIST_INDENTATION } from './types';
-import type { PassContext, PasteOptions, HtmlToMarkdownResult, ListIndentation } from './types';
+import type { PasteOptions, ListIndentation } from './types';
+
+/** Options used only by DOM-to-Markdown conversion. */
+export type MarkdownConversionOptions = Pick<PasteOptions, 'includeImages' | 'listIndentation'>;
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
 const MARKDOWN_TAB_WIDTH = 4;
@@ -45,10 +47,7 @@ function createListIndent(prefixWidth: number, listIndentation: ListIndentation)
     return ' '.repeat(indentWidth);
 }
 
-function createTurndownService({
-    includeImages,
-    listIndentation,
-}: Pick<PasteOptions, 'includeImages' | 'listIndentation'>): TurndownService {
+function createTurndownService({ includeImages, listIndentation }: MarkdownConversionOptions): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
     service.use(gfm);
 
@@ -149,34 +148,14 @@ function createTurndownService({
 }
 
 /**
- * Converts clipboard HTML into Markdown by running the project's end-to-end pipeline:
- * wraps orphaned tables, sanitizes and normalizes the DOM, feeds the result through Turndown,
- * and performs final Markdown cleanup.
- *
- * @param html Raw HTML fragment captured from the clipboard.
- * @param options Complete, validated paste behavior flags for preprocessing and conversion.
- * @param context Metadata used to select source-specific processing passes.
- * @returns Markdown output alongside resource metadata.
+ * Converts an already sanitized, fully processed DOM subtree into Markdown.
+ * The caller must supply the body returned by processHtml (or an equivalent trusted DOM).
+ * This function does not sanitize HTML, run processing passes, or create resources.
+ * Turndown works on a clone, leaving the supplied DOM unchanged.
  */
-export async function convertHtmlToMarkdown(
-    html: string,
-    options: PasteOptions,
-    context: PassContext
-): Promise<HtmlToMarkdownResult> {
-    // First, wrap orphaned table fragments (Excel clipboard data often lacks <table> wrapper)
-    const input = wrapOrphanedTableElements(html);
-
-    // Apply DOM preprocessing to clean and sanitize the HTML
-    const processed = await processHtml(input, options, context);
-
-    // Create a fresh service per invocation. Paste is an explicit user action so perf impact is negligible
+export function domToMarkdown(body: HTMLElement, options: MarkdownConversionOptions): string {
     const service = createTurndownService(options);
-    let markdown = service.turndown(processed.body);
-
-    // Post-process the markdown for final cleanup
-    markdown = cleanupMarkdown(markdown);
-
-    return { markdown, resources: processed.resources };
+    return cleanupMarkdown(service.turndown(body));
 }
 
 /**
@@ -202,36 +181,4 @@ function cleanupMarkdown(markdown: string): string {
     });
 
     return markdown;
-}
-
-// Tags that are only valid inside <table>, matched against raw clipboard HTML before sanitization,
-// so this list is independent of the sanitizer allowlist. 'caption' is excluded on purpose: a
-// caption never appears without rows in a real fragment, and wrapping a caption-only fragment in a
-// <table> would feed it to a table rule that drops cell-less tables, losing the text.
-const ORPHANABLE_TABLE_TAGS = ['colgroup', 'col', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td'] as const;
-
-// Matches an opening tag for any table-only element, e.g. `<tr>`, `<td class="x">`, `<col/>`.
-// The trailing character class keeps `th` from matching `<thead>` as a prefix (alternation
-// backtracks to the longer tag name instead).
-const ORPHANED_TABLE_TAG_PATTERN = new RegExp(`<(?:${ORPHANABLE_TABLE_TAGS.join('|')})[\\s>/]`, 'i');
-const TABLE_WRAPPER_PATTERN = /<table[\s>]/i;
-
-/**
- * Wraps orphaned table elements (col, tr, td, etc.) in a proper table structure.
- * This fixes Excel clipboard data that often contains table fragments without the <table> wrapper.
- *
- * @internal Exposed for unit testing.
- */
-export function wrapOrphanedTableElements(html: string): string {
-    const trimmed = html.trim();
-
-    // Check if we have table-related elements but no table wrapper
-    const hasTableElements = ORPHANED_TABLE_TAG_PATTERN.test(trimmed);
-    const hasTableWrapper = TABLE_WRAPPER_PATTERN.test(trimmed);
-
-    if (hasTableElements && !hasTableWrapper) {
-        return `<table>${trimmed}</table>`;
-    }
-
-    return html;
 }

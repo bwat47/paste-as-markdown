@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { wrapOrphanedTableElements } from '../markdownConverter';
+import { wrapOrphanedTableElements } from '../html/wrapOrphanedTableElements';
 
 describe('wrapOrphanedTableElements', () => {
     test.each([
