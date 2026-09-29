@@ -30,7 +30,7 @@ describe('empty anchor cleanup', () => {
     });
 
     test('preserves image anchors when images are included', async () => {
-        const input = '<p><a href="https://example.com"><img src="test.png" alt="Example"></a></p>';
+        const input = '<p><a href="https://example.com"><img src="https://example.com/test.png" alt="Example"></a></p>';
         const { body } = await processHtml(input, options);
         expect(body).not.toBeNull();
         const anchor = body!.querySelector('a[href="https://example.com"]');
@@ -79,10 +79,12 @@ describe('anchor line-breaking element normalization', () => {
 
     test('adds boundaries around a block whose children have no text', () => {
         const anchor = normalizeAnchorHtml(
-            '<a href="https://example.com"><span>Before</span><div><img src="test.png" alt="Example"></div><span>After</span></a>'
+            '<a href="https://example.com"><span>Before</span><div><img src="https://example.com/test.png" alt="Example"></div><span>After</span></a>'
         );
 
-        expect(anchor.innerHTML).toBe('<span>Before</span> <img src="test.png" alt="Example"> <span>After</span>');
+        expect(anchor.innerHTML).toBe(
+            '<span>Before</span> <img src="https://example.com/test.png" alt="Example"> <span>After</span>'
+        );
     });
 
     test('does not add trailing whitespace when a block is the last child', () => {

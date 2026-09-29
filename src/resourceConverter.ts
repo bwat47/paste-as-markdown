@@ -18,6 +18,8 @@ import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
+import { parseImageSource } from './html/shared/imageSource';
+import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
 export interface ResourceConversionLimits {
     readonly maxImageBytes: number;
@@ -45,23 +47,6 @@ interface FileSystem {
  *  - rejects: "QQ==QQ==" (padding mid-string), "QQ!!" (invalid characters), "a-b_" (base64url)
  */
 const STRICT_BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
-
-type ResourceImageSource = { kind: 'resource'; url: string };
-type DataImageSource = { kind: 'data'; url: string };
-type RemoteImageSource = { kind: 'remote'; url: string; protocol: 'http' | 'https' };
-type ImageSource = ResourceImageSource | DataImageSource | RemoteImageSource;
-
-function parseImageSource(raw: string | null): ImageSource | null {
-    if (!raw) return null;
-    const trimmed = raw.trim();
-    if (!trimmed) return null;
-    if (trimmed.startsWith(':/')) return { kind: 'resource', url: trimmed };
-    const lower = trimmed.toLowerCase();
-    if (lower.startsWith('data:')) return { kind: 'data', url: trimmed };
-    if (lower.startsWith('https://')) return { kind: 'remote', url: trimmed, protocol: 'https' };
-    if (lower.startsWith('http://')) return { kind: 'remote', url: trimmed, protocol: 'http' };
-    return null;
-}
 
 function isConvertibleSource(source: ImageSource): source is DataImageSource | RemoteImageSource {
     return source.kind !== 'resource';
