@@ -34,9 +34,18 @@ const DEFAULT_RESOURCE_CONVERSION_LIMITS: ResourceConversionLimits = {
 declare const joplin: Joplin;
 // Minimal interface for the fs-extra module methods we use
 interface FileSystem {
-    writeFileSync(path: string, data: Buffer): void;
+    writeFileSync(path: string, data: Uint8Array): void;
     unlink(path: string, cb: (err: NodeJS.ErrnoException | null) => void): void;
 }
+/**
+ * Standard base64 alphabet with at most two trailing `=` padding characters.
+ * Buffer's decoder silently skips invalid characters and stops at the first `=`,
+ * so input must be validated strictly before decoding. Padding length is checked separately.
+ *  - accepts: "iVBORw0KGgo=", "QUJD"
+ *  - rejects: "QQ==QQ==" (padding mid-string), "QQ!!" (invalid characters), "a-b_" (base64url)
+ */
+const STRICT_BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+
 type ResourceImageSource = { kind: 'resource'; url: string };
 type DataImageSource = { kind: 'data'; url: string };
 type RemoteImageSource = { kind: 'remote'; url: string; protocol: 'http' | 'https' };
@@ -131,19 +140,19 @@ async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise
     if (!mime.startsWith('image/')) throw new Error('Not image');
     let b64 = match[2];
     b64 = b64.replace(/\s+/g, '');
-    if (/[^A-Za-z0-9+/=]/.test(b64)) throw new Error('Invalid base64 characters');
-    if (b64.length % 4 === 1) throw new Error('Malformed base64 length');
+    if (!STRICT_BASE64_PATTERN.test(b64)) throw new Error('Invalid base64 characters');
+    // Mirror atob's rules: Buffer would silently drop a dangling data character (e.g. "QUJDA==")
+    // (STRICT_BASE64_PATTERN guarantees '=' only appears as trailing padding)
+    const paddingStart = b64.indexOf('=');
+    const dataLength = paddingStart === -1 ? b64.length : paddingStart;
+    if (dataLength % 4 === 1) throw new Error('Malformed base64 length');
+    if (dataLength !== b64.length && b64.length % 4 !== 0) throw new Error('Malformed base64 padding');
     const estimatedBytes = Math.floor((b64.length * 3) / 4);
     if (estimatedBytes > maxImageBytes) throw new Error('Image exceeds maximum size');
-    let binary: string;
-    try {
-        binary = atob(b64);
-    } catch {
-        throw new Error('Base64 decode failed');
-    }
-    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+    const bytes = Buffer.from(b64, 'base64');
+    if (bytes.byteLength === 0) throw new Error('Base64 decode failed');
     if (bytes.byteLength > maxImageBytes) throw new Error('Image exceeds maximum size');
-    return { buffer: bytes.buffer, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
+    return { bytes, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
 }
 
 /**
@@ -180,7 +189,7 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
     }
     const merged = concatChunks(chunks, received);
     const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
-    return { buffer: merged, mime: contentType, filename, size: merged.byteLength };
+    return { bytes: merged, mime: contentType, filename, size: merged.byteLength };
 }
 
 /**
@@ -247,16 +256,16 @@ function extensionForMime(mime: string): string {
 }
 
 /**
- * Concatenate streamed byte chunks into a single ArrayBuffer of known total length.
+ * Concatenate streamed byte chunks into a single byte array of known total length.
  */
-function concatChunks(chunks: Uint8Array[], totalBytes: number): ArrayBuffer {
+function concatChunks(chunks: Uint8Array[], totalBytes: number): Uint8Array {
     const out = new Uint8Array(totalBytes);
     let offset = 0;
     for (const c of chunks) {
         out.set(c, offset);
         offset += c.length;
     }
-    return out.buffer;
+    return out;
 }
 
 /**
@@ -306,8 +315,7 @@ async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promi
         throw new Error('Invalid file path: potential path traversal detected');
     }
     try {
-        const buffer = Buffer.from(img.buffer);
-        fs.writeFileSync(tmpPath, buffer);
+        fs.writeFileSync(tmpPath, img.bytes);
         const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
             { path: tmpPath },
         ]);
