@@ -2,7 +2,7 @@ import { parser } from '@lezer/markdown';
 import { describe, expect, test } from 'vitest';
 import { LIST_INDENTATION } from '../types';
 import type { ListIndentation } from '../types';
-import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 
 async function toMarkdown(html: string, listIndentation?: ListIndentation): Promise<string> {
     const options = listIndentation === undefined ? {} : { listIndentation };

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 import type { PasteOptions } from '../types';
 
 /** Resource conversion stays off so the assertions below see the original `src` values. */

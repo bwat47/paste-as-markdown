@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { convertHtmlToMarkdown } from './markdownConverter';
+import { convertHtmlToMarkdown } from './pasteConversion';
 import { HtmlProcessingError } from './html/processHtml';
 import { showToast } from './utils';
 import { ToastType } from 'api/types';

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 import { unwrapCheckboxContainers } from '../html/post/lists';
 import { LIST_INDENTATION } from '../types';
 

@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { Mock, MockedFunction } from 'vitest';
 import { handlePasteAsMarkdown } from '../pasteHandler';
-import { convertHtmlToMarkdown } from '../markdownConverter';
+import { convertHtmlToMarkdown } from '../pasteConversion';
 import { HtmlProcessingError } from '../html/processHtml';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
@@ -11,7 +11,7 @@ import { INSERT_MARKDOWN_COMMAND } from '../editorCommands';
 
 // Mock dependencies
 vi.mock('api');
-vi.mock('../markdownConverter');
+vi.mock('../pasteConversion');
 vi.mock('../utils');
 
 describe('pasteHandler', () => {

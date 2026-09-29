@@ -14,6 +14,17 @@ afterEach(() => {
 });
 
 describe('processHtml pass orchestration', () => {
+    test('preserves orphaned table cells before parsing and sanitizes their contents', async () => {
+        const { body, resources } = await processHtml(
+            '<tr><td onclick="alert(1)">Cell<script>alert(1)</script></td></tr>',
+            inertOptions
+        );
+
+        expect(body.querySelector('table td')?.textContent).toBe('Cell');
+        expect(body.querySelector('[onclick], script')).toBeNull();
+        expect(resources.resourcesCreated).toBe(0);
+    });
+
     test('runs each explicit pass phase in pipeline order', async () => {
         const calledPassLists: ReadonlyArray<ProcessingPass>[] = [];
 

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 
 test('separates a figure image from its caption', async () => {
     const html = '<figure><img src="big.webp" alt="Hero"><figcaption>Cap</figcaption></figure>';
