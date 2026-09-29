@@ -133,6 +133,18 @@ describe('Desktop Word lists', () => {
         expect(await markdown(wordItem('First', 1, first) + wordItem('Second', 1, second))).toBe(expected);
     });
 
+    test.each([
+        ['z.', 'aa.', 'bb.', '26. First\n27. Second\n28. Third'],
+        ['Z.', 'AA.', 'BB.', '26. First\n27. Second\n28. Third'],
+        ['zz.', 'aaa.', 'bbb.', '52. First\n53. Second\n54. Third'],
+        ['ZZ.', 'AAA.', 'BBB.', '52. First\n53. Second\n54. Third'],
+        ['bb.', 'cc.', 'dd.', '28. First\n29. Second\n30. Third'],
+    ])('preserves repeated-letter numbering from %s through %s and %s', async (first, second, third, expected) => {
+        expect(
+            await markdown(wordItem('First', 1, first) + wordItem('Second', 1, second) + wordItem('Third', 1, third))
+        ).toBe(expected);
+    });
+
     test('preserves distinct list instances and numbering restarts through tight-list cleanup', async () => {
         const { body } = await processHtml(
             wordItem('First', 1, '3.') + wordItem('Restart', 1, '1.') + wordItem('New instance', 1, '1.', 'lfo2'),

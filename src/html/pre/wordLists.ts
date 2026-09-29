@@ -76,10 +76,8 @@ function romanNumber(text: string): number {
 function startNumber(text: string, roman: boolean): number {
     if (/^\d+$/.test(text)) return Number(text);
     if (roman) return romanNumber(text);
-    return Array.from(text).reduce(
-        (number, letter) => number * ALPHABET_SIZE + letter.charCodeAt(0) - FIRST_LETTER_CODE + 1,
-        0
-    );
+    // Word repeats each letter per alphabet cycle: z=26, aa=27, bb=28, zz=52, aaa=53.
+    return (text.length - 1) * ALPHABET_SIZE + text.charCodeAt(0) - FIRST_LETTER_CODE + 1;
 }
 
 /**
