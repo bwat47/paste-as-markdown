@@ -55,7 +55,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Markdown Conversion
 
 - `src/markdownConverter.ts` exposes synchronous `domToMarkdown`, translating a sanitized, fully processed DOM into Markdown without modifying the supplied tree.
-- Its caller must supply the body returned by `processHtml` or an equivalent trusted DOM; the converter does not sanitize input, run HTML passes, or create resources. It accepts only the image-inclusion and list-indentation options used by conversion.
+- Its caller must supply the body returned by `processHtml` or an equivalent trusted DOM; the converter does not sanitize input, run HTML passes, or create resources. Image inclusion is resolved during sanitization; the converter accepts only the list-indentation option.
 - It builds a fresh Turndown pipeline for each paste, applies the GFM plugin, adds a small set of project-specific rules, and performs final Markdown cleanup before returning the result.
 - The custom list-item rule applies the configured spaces-or-tabs indentation while preserving the width required for valid nested Markdown.
 - `src/markdown/fencedCode.ts` uses a read-only Lezer CST to identify fenced-code ranges so cleanup never changes code contents.

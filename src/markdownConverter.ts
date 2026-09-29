@@ -5,7 +5,7 @@ import { LIST_INDENTATION } from './types';
 import type { PasteOptions, ListIndentation } from './types';
 
 /** Options used only by DOM-to-Markdown conversion. */
-export type MarkdownConversionOptions = Pick<PasteOptions, 'includeImages' | 'listIndentation'>;
+export type MarkdownConversionOptions = Pick<PasteOptions, 'listIndentation'>;
 
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
 const MARKDOWN_TAB_WIDTH = 4;
@@ -47,7 +47,7 @@ function createListIndent(prefixWidth: number, listIndentation: ListIndentation)
     return ' '.repeat(indentWidth);
 }
 
-function createTurndownService({ includeImages, listIndentation }: MarkdownConversionOptions): TurndownService {
+function createTurndownService({ listIndentation }: MarkdownConversionOptions): TurndownService {
     const service = new TurndownService(TURNDOWN_OPTIONS);
     service.use(gfm);
 
@@ -57,9 +57,7 @@ function createTurndownService({ includeImages, listIndentation }: MarkdownConve
     // 1. Preserve sized <img> tags (retain width/height) by emitting raw HTML instead of Markdown image syntax.
     service.addRule('pamSizedImage', {
         filter: (node: HTMLElement) => {
-            return (
-                includeImages && node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height'))
-            );
+            return node.nodeName === 'IMG' && (node.hasAttribute('width') || node.hasAttribute('height'));
         },
         replacement: (_content: string, node: HTMLElement) => {
             const img = node as HTMLImageElement;

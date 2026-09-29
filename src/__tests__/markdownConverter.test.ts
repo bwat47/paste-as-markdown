@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { domToMarkdown } from '../markdownConverter';
 import { LIST_INDENTATION } from '../types';
 
-const OPTIONS = { includeImages: true, listIndentation: LIST_INDENTATION.SPACES };
+const OPTIONS = { listIndentation: LIST_INDENTATION.SPACES };
 
 describe('domToMarkdown with trusted, processed DOMs', () => {
     test('converts custom rules without preprocessing and leaves the input unchanged', () => {
