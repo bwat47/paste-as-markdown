@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { normalizeWordLists } from '../html/pre/wordLists';
 import { processHtml } from '../html/processHtml';
-import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 import { pasteOptions } from './helpers/pasteOptions';
 
 function wordItem(content: string, level = 1, marker = '·', instance = 'lfo1', list = 'l0'): string {

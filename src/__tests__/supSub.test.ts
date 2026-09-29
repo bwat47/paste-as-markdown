@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from './helpers/markdownConverter';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 
 describe('sup/sub preservation', () => {
     async function run(input: string) {

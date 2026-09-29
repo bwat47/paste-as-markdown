@@ -9,5 +9,5 @@ export async function convertHtmlToMarkdown(
     context: PassContext
 ): Promise<HtmlToMarkdownResult> {
     const { body, resources } = await processHtml(html, options, context);
-    return { markdown: domToMarkdown(body, options), resources };
+    return { markdown: domToMarkdown(body, { listIndentation: options.listIndentation }), resources };
 }
