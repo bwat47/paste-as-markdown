@@ -8,23 +8,23 @@ const IMAGE_OPTIONS: Partial<PasteOptions> = { includeImages: true, convertImage
 test.each([
     {
         name: 'retains sized <img> as raw HTML',
-        html: '<p>Before <img src="x.png" width="100" height="50" alt="Alt"> After',
-        expected: '<img src="x.png" alt="Alt" width="100" height="50">',
+        html: '<p>Before <img src="https://example.com/x.png" width="100" height="50" alt="Alt"> After',
+        expected: '<img src="https://example.com/x.png" alt="Alt" width="100" height="50">',
     },
     {
         name: 'unsized <img> converts to markdown image syntax',
-        html: '<p><img src="y.png" alt="Y"></p>',
-        expected: '![Y](y.png)',
+        html: '<p><img src="https://example.com/y.png" alt="Y"></p>',
+        expected: '![Y](https://example.com/y.png)',
     },
     {
         name: 'width-only image is preserved as HTML',
-        html: '<p><img src="w.png" width="120" alt="W"></p>',
-        expected: '<img src="w.png" alt="W" width="120">',
+        html: '<p><img src="https://example.com/w.png" width="120" alt="W"></p>',
+        expected: '<img src="https://example.com/w.png" alt="W" width="120">',
     },
     {
         name: 'height-only image is preserved as HTML',
-        html: '<p><img src="h.png" height="90" alt="H"></p>',
-        expected: '<img src="h.png" alt="H" height="90">',
+        html: '<p><img src="https://example.com/h.png" height="90" alt="H"></p>',
+        expected: '<img src="https://example.com/h.png" alt="H" height="90">',
     },
 ])('$name', async ({ html, expected }) => {
     const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
@@ -32,13 +32,13 @@ test.each([
 });
 
 test('sized <img> preserves title attribute and order', async () => {
-    const html = '<p><img src="t.png" width="10" alt="A" title="T"></p>';
+    const html = '<p><img src="https://example.com/t.png" width="10" alt="A" title="T"></p>';
     const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
-    expect(markdown).toContain('<img src="t.png" alt="A" title="T" width="10">');
+    expect(markdown).toContain('<img src="https://example.com/t.png" alt="A" title="T" width="10">');
 });
 
 test('sized <img> escapes attributes when preserving raw HTML', async () => {
-    const html = '<p><img src="x.png" width="10" alt="&quot; onerror=&quot;alert(1)"></p>';
+    const html = '<p><img src="https://example.com/x.png" width="10" alt="&quot; onerror=&quot;alert(1)"></p>';
     const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
 
     expect(markdown).toContain('alt="&quot; onerror=&quot;alert(1)"');
@@ -52,9 +52,11 @@ test('sized <img> escapes attributes when preserving raw HTML', async () => {
 
 test('sized <img> collapses attribute newlines before preserving raw HTML', async () => {
     const html =
-        '<p><img src="x.png&#10;&#10;next.png" width="10" alt="a" title="x&#10;&#10;[evil](http://evil.example)"></p>';
+        '<p><img src="https://example.com/x.png&#10;&#10;https://example.com/next.png" width="10" alt="a" title="x&#10;&#10;[evil](http://evil.example)"></p>';
     const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
 
-    expect(markdown).toContain('<img src="x.png next.png" alt="a" title="x [evil](http://evil.example)" width="10">');
+    expect(markdown).toContain(
+        '<img src="https://example.com/x.png https://example.com/next.png" alt="a" title="x [evil](http://evil.example)" width="10">'
+    );
     expect(markdown).not.toContain('\n\n[evil](http://evil.example)');
 });

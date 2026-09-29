@@ -18,7 +18,7 @@ import {
     unwrapTightListItemParagraphs,
 } from '../post/lists';
 import { normalizeCodeBlocks } from '../post/codeBlocks';
-import { normalizeImageAltAttributes } from '../post/images';
+import { normalizeImageAltAttributes, removeUnrenderableImages } from '../post/images';
 import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
 
 import type { ProcessingPass } from './types';
@@ -77,6 +77,12 @@ export const PROCESSING_PASSES: PassCollections = {
         },
     ],
     postSanitize: [
+        {
+            name: 'Unrenderable image removal',
+            // Runs before empty anchor removal so links that only wrapped a removed image are dropped.
+            condition: (options) => options.includeImages,
+            execute: (body) => removeUnrenderableImages(body),
+        },
         {
             name: 'Post-sanitize empty anchor removal',
             execute: (body, options) => removeEmptyAnchors(body, options),

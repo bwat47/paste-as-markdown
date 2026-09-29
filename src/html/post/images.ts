@@ -6,9 +6,12 @@
  * - Generate fallback alt text from src URL when alt is missing or empty
  * - Apply length cap to auto-generated alt text
  *
+ * - Remove images whose src Joplin cannot render (relative paths, file:, blob:, ...)
+ *
  * Note: Attribute whitelisting is handled by DOMPurify configuration.
  */
 import { normalizeAltText } from '../../textUtils';
+import { parseImageSource } from '../shared/imageSource';
 
 const MAX_ALT_TEXT_LENGTH = 120;
 
@@ -45,6 +48,19 @@ function deriveAltFromSrc(src: string): string {
     } catch {
         return 'image';
     }
+}
+
+/**
+ * Remove images whose src cannot be rendered or converted, such as the relative
+ * `_images/diagram.png` in HTML copied from a locally opened Sphinx build.
+ * Without a page URL these cannot be resolved and would become broken embeds.
+ * Must run before empty-anchor removal so anchors left empty by this pass are dropped too.
+ */
+export function removeUnrenderableImages(body: HTMLElement): void {
+    const imgs = Array.from(body.querySelectorAll('img'));
+    imgs.forEach((img) => {
+        if (!parseImageSource(img.getAttribute('src'))) img.remove();
+    });
 }
 
 /**

@@ -84,14 +84,16 @@ describe('integration: convertHtmlToMarkdown', () => {
 
     test('preserves block separation between a sized image in a header and following navigation text', async () => {
         const html =
-            '<header><img src="hero.webp" alt="Hero" width="600" height="381"></header>' +
+            '<header><img src="https://example.com/hero.webp" alt="Hero" width="600" height="381"></header>' +
             '<nav><strong>Table of contents</strong></nav>';
         const { markdown } = await convertHtmlToMarkdown(html, {
             includeImages: true,
             convertImagesToResources: false,
         });
 
-        expect(markdown).toBe('<img src="hero.webp" alt="Hero" width="600" height="381">\n\n**Table of contents**');
+        expect(markdown).toBe(
+            '<img src="https://example.com/hero.webp" alt="Hero" width="600" height="381">\n\n**Table of contents**'
+        );
     });
 
     test('keeps table caption text even though the GFM plugin drops caption elements', async () => {
