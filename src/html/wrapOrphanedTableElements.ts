@@ -13,8 +13,6 @@ const TABLE_WRAPPER_PATTERN = /<table[\s>]/i;
 /**
  * Wraps orphaned table elements (col, tr, td, etc.) in a proper table structure.
  * This fixes Excel clipboard data that often contains table fragments without the <table> wrapper.
- *
- * @internal Exposed for unit testing.
  */
 export function wrapOrphanedTableElements(html: string): string {
     const trimmed = html.trim();
