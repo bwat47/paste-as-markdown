@@ -121,6 +121,8 @@ export const PROCESSING_PASSES: PassCollections = {
         },
         {
             name: 'Post-sanitize text normalization',
+            // Run again because caption lifting, anchor flattening, and heading cleanup can expose
+            // text that the first pass skipped inside <pre> or <code> elements.
             execute: (body, options) => normalizeTextCharacters(body, options.normalizeQuotes),
         },
         {
