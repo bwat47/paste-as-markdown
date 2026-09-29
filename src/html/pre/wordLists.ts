@@ -116,17 +116,31 @@ function openListFrame(item: WordListItem, number: number | undefined, stack: Li
 }
 
 /**
+ * Close lists deeper than `level`. A list whose parent is shallower than `level` is kept and takes
+ * that level instead, so a selection that starts on a nested item, or an item that skips a level,
+ * stays one list when it reaches a shallower item.
+ */
+function unwindToLevel(stack: ListFrame[], level: number): void {
+    while (stack.length && stack[stack.length - 1].level > level) {
+        const parentLevel = stack[stack.length - 2]?.level ?? 0;
+        if (parentLevel < level) {
+            stack[stack.length - 1].level = level;
+            return;
+        }
+        stack.pop();
+    }
+}
+
+/**
  * Reconstruct a sibling run, compressing missing levels without inventing empty parent items.
- * The outermost list takes the shallowest level seen so far, so a selection that starts on a
- * nested item stays one list when it reaches a shallower item. Nesting follows levels alone;
- * the Word list ID only decides whether items at the same level share a list.
+ * Nesting follows levels alone; the Word list ID only decides whether items at the same level
+ * share a list.
  */
 function rebuildRun(run: WordListItem[]): void {
     const stack: ListFrame[] = [];
     const numbers = readNumbers(run);
     for (const item of run) {
-        while (stack.length > 1 && stack[stack.length - 1].level > item.level) stack.pop();
-        if (stack.length && stack[0].level > item.level) stack[0].level = item.level;
+        unwindToLevel(stack, item.level);
         const ordered = item.numberText !== null;
         const number = numbers.get(item);
         let frame = stack[stack.length - 1];

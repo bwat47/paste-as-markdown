@@ -72,6 +72,14 @@ describe('Desktop Word lists', () => {
         ).toBe('- Selected child\n- Parent\n\t- Child');
     });
 
+    test('nests a skipped level and a later intermediate level under the same parent', async () => {
+        expect(
+            await markdown(
+                wordItem('Parent') + wordItem('Skipped', 3, '') + wordItem('Child', 2, 'o') + wordItem('Next parent')
+            )
+        ).toBe('- Parent\n\t- Skipped\n\t- Child\n- Next parent');
+    });
+
     // `§` and U+F0FC are Wingdings glyphs; an empty marker is a picture bullet.
     test.each(['-', '§', '\u{f0fc}', ''])('treats the non-numbered marker "%s" as a bullet', async (marker) => {
         expect(await markdown(wordItem('First', 1, marker) + wordItem('Second', 1, marker))).toBe('- First\n- Second');
