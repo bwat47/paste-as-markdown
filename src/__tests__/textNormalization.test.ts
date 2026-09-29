@@ -30,6 +30,13 @@ describe('text normalization toggle', () => {
         expect(html).toContain("'quotes'");
         expect(/[\u201C\u201D\u2018\u2019]/.test(html)).toBe(false);
     });
+
+    test('preserves literal entity text alongside real NBSP and smart quotes', async () => {
+        const input = '<p>Use&nbsp;&amp;nbsp; or &amp;#8220; entities &#8220;here&#8221;</p>';
+        const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
+        expect(body).not.toBeNull();
+        expect(body!.textContent).toBe('Use &nbsp; or &#8220; entities "here"');
+    });
 });
 
 describe('character normalization', () => {
