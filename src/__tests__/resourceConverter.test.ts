@@ -118,6 +118,44 @@ describe('resourceConverter edge cases', () => {
         expect(result.failed).toBe(1);
     });
 
+    test('padding in the middle of base64 causes failure', async () => {
+        // Buffer's decoder would silently stop at the first '=' and yield a truncated image
+        const body = makeBody('<img src="data:image/png;base64,QQ==QQ==">');
+        const result = await convertImagesToResources(body);
+        expect(result.failed).toBe(1);
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    test.each([
+        { label: 'padding on a non-multiple-of-4 length', b64: 'QQ=' },
+        { label: 'excess padding', b64: 'QUJD==' },
+        { label: 'padding after a dangling data character', b64: 'QUJDA==' },
+    ])('malformed base64 ($label) causes failure', async ({ b64 }) => {
+        const body = makeBody(`<img src="data:image/png;base64,${b64}">`);
+        const result = await convertImagesToResources(body);
+        expect(result.failed).toBe(1);
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    test('valid unpadded base64 is accepted', async () => {
+        const body = makeBody('<img src="data:image/png;base64,QUJDQQ">');
+        const result = await convertImagesToResources(body);
+        expect(result.failed).toBe(0);
+        const written = fsExtraMock.writeFileSync.mock.calls[0][1] as Uint8Array;
+        expect(Array.from(written)).toEqual([0x41, 0x42, 0x43, 0x41]);
+    });
+
+    test('small base64 image writes exactly its decoded bytes', async () => {
+        // Small Buffers are views into a shared pool; writing the backing ArrayBuffer would leak extra bytes
+        const b64 = PNG_DATA_URL.split(',')[1];
+        const expected = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const body = makeBody(`<img src="${PNG_DATA_URL}">`);
+        await convertImagesToResources(body);
+        const written = fsExtraMock.writeFileSync.mock.calls[0][1] as Uint8Array;
+        expect(written.byteLength).toBe(expected.byteLength);
+        expect(Array.from(written)).toEqual(Array.from(expected));
+    });
+
     test('non-image remote MIME rejected', async () => {
         fetchMock = vi.fn(async () => ({
             ok: true,

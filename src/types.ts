@@ -45,7 +45,8 @@ export interface HtmlToMarkdownResult {
 
 // Image processing types
 export interface ParsedImageData {
-    readonly buffer: ArrayBuffer;
+    /** Exact image bytes; may be a view into a larger (e.g. pooled) buffer, so never use `.buffer` directly. */
+    readonly bytes: Uint8Array;
     readonly mime: string;
     readonly filename: string;
     readonly size: number;
