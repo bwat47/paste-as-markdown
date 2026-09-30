@@ -2,7 +2,6 @@ import { onlyContains, unwrapElement, isTextNode, isElement } from '../shared/do
 import type { PasteOptions } from '../../types';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
-const MEDIA_TAGS = new Set(['img', 'picture', 'source']);
 /**
  * Tags that force a line break in Markdown output and therefore cannot survive inside a link.
  * Restricted to tags the sanitizer allows through (see SANITIZER_ALLOWED_TAGS_BASE): anything
@@ -105,7 +104,8 @@ function isMeaningfulNode(node: ChildNode, options: PasteOptions): boolean {
 
     const tag = node.tagName.toLowerCase();
 
-    if (MEDIA_TAGS.has(tag) && options.includeImages) return true;
+    // Only an <img> counts as media; <picture>/<source> are wrappers, so recurse into them
+    if (tag === 'img' && options.includeImages) return true;
     if (tag === 'svg' && hasAccessibleSvgLabel(node)) return true;
     if (DECORATIVE_SVG_TAGS.has(tag)) return false;
 

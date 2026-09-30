@@ -47,6 +47,31 @@ describe('unrenderable image removal', () => {
         expect(markdown).toBe('Text');
     });
 
+    test.each([
+        ['relative src', 'src="_images/a.png"'],
+        ['missing src', ''],
+    ])('drops a linked picture after removing its image (%s)', async (_label, src) => {
+        const { markdown } = await convertHtmlToMarkdown(
+            '<p>Before</p><a href="https://example.com/full.png">' +
+                `<picture><source srcset="_images/a.webp 1x"><img ${src} alt="Pic"></picture>` +
+                '</a><p>After</p>',
+            IMAGE_OPTIONS
+        );
+
+        expect(markdown).toBe('Before\n\nAfter');
+    });
+
+    test('keeps a linked picture with a renderable image', async () => {
+        const { markdown } = await convertHtmlToMarkdown(
+            '<a href="https://example.com/full.png"><picture>' +
+                '<source srcset="https://example.com/a.webp 1x">' +
+                '<img src="https://example.com/a.png" alt="Pic"></picture></a>',
+            IMAGE_OPTIONS
+        );
+
+        expect(markdown).toBe('[![Pic](https://example.com/a.png)](https://example.com/full.png)');
+    });
+
     test('drops a relative Sphinx figure image and its link but keeps the caption', async () => {
         const html =
             '<figure id="id2" class="figure-padded align-default">' +
