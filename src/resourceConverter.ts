@@ -10,7 +10,8 @@
  * Note: Image attribute normalization is handled by the post-sanitize pass in src/html/post/images.ts
  *
  * Security Considerations:
- *  - Only processes image MIME types (content-type or data: prefix)
+ *  - Requires image MIME types or recognized binary signatures for untyped or generic binary downloads
+ *  - Accepts SVG only when declared (content type or data URL); it is never detected from generic downloads
  *  - Enforces strict base64 and size limits
  */
 
@@ -18,6 +19,7 @@ import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
+import { detectImageMime, normalizeImageMime } from './imageMime';
 import { parseImageSource } from './html/shared/imageSource';
 import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
@@ -48,6 +50,13 @@ interface FileSystem {
  *  - rejects: "QQ==QQ==" (padding mid-string), "QQ!!" (invalid characters), "a-b_" (base64url)
  */
 const STRICT_BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+/**
+ * Content types that carry no image type information and require binary signature detection:
+ * a missing header (normalized to '') or a generic binary type.
+ */
+const UNTYPED_CONTENT_TYPES = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
+/** Extension used when a MIME type has no known image extension. */
+const UNKNOWN_EXTENSION = 'bin';
 
 function isConvertibleSource(source: ImageSource): source is DataImageSource | RemoteImageSource {
     return source.kind !== 'resource';
@@ -122,7 +131,7 @@ export async function convertImagesToResources(
 async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
     const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
     if (!match) throw new Error('Invalid data URL');
-    const mime = match[1].toLowerCase();
+    const mime = normalizeImageMime(match[1].toLowerCase());
     if (!mime.startsWith('image/')) throw new Error('Not image');
     let b64 = match[2];
     b64 = b64.replace(/\s+/g, '');
@@ -153,7 +162,8 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
         const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-        if (!contentType.startsWith('image/')) throw new Error('Not image');
+        const needsMimeDetection = UNTYPED_CONTENT_TYPES.has(contentType);
+        if (!contentType.startsWith('image/') && !needsMimeDetection) throw new Error('Not image');
         const contentLengthHeader = resp.headers.get('content-length');
         if (contentLengthHeader) {
             const asInt = parseInt(contentLengthHeader, 10);
@@ -172,13 +182,31 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
             }
         }
         const merged = concatChunks(chunks, received);
-        const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
-        return { bytes: merged, mime: contentType, filename, size: merged.byteLength };
+        return await parseDownloadedImage(merged, url, contentType, needsMimeDetection);
     } finally {
         clearTimeout(timeout);
         // No-op after a completed download; releases the connection when exiting early.
         controller.abort();
     }
+}
+
+/**
+ * Resolve resource metadata, checking binary signatures when the server supplies no or only a generic
+ * MIME type and normalizing aliased image types.
+ */
+async function parseDownloadedImage(
+    bytes: Uint8Array,
+    url: string,
+    contentType: string,
+    needsMimeDetection: boolean
+): Promise<ParsedImageData> {
+    const mime = needsMimeDetection ? await detectImageMime(bytes) : normalizeImageMime(contentType);
+    if (!mime) throw new Error('Not image');
+    const extension = extensionForMime(mime);
+    const urlFilename = deriveFilenameFromUrl(url, extension);
+    // A known type determines the file extension, which the URL may contradict.
+    const filename = extension === UNKNOWN_EXTENSION ? urlFilename : `${path.parse(urlFilename).name}.${extension}`;
+    return { bytes, mime, filename, size: bytes.byteLength };
 }
 
 /**
@@ -227,7 +255,7 @@ function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
 }
 
 /**
- * Map common image MIME types to file extensions; fallback to 'bin' for unknown types.
+ * Map common image MIME types to file extensions; fallback to `UNKNOWN_EXTENSION` for unknown types.
  */
 function extensionForMime(mime: string): string {
     const map: Record<string, string> = {
@@ -236,12 +264,13 @@ function extensionForMime(mime: string): string {
         'image/jpg': 'jpg',
         'image/gif': 'gif',
         'image/webp': 'webp',
+        'image/avif': 'avif',
         'image/svg+xml': 'svg',
         'image/bmp': 'bmp',
         'image/x-icon': 'ico',
         'image/vnd.microsoft.icon': 'ico',
     };
-    return map[mime] || 'bin';
+    return map[mime] || UNKNOWN_EXTENSION;
 }
 
 /**
@@ -290,7 +319,7 @@ function nextTempFileId(): string {
 async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promise<string> {
     const dataDir: string = await joplin.plugins.dataDir();
     const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
-    const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || 'bin';
+    const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || UNKNOWN_EXTENSION;
     const tmpName = `pam-${Date.now()}-${nextTempFileId()}.${safeExt}`;
     const tmpPath = path.join(dataDir, tmpName);
 

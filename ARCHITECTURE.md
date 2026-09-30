@@ -67,6 +67,8 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - This runs as part of HTML processing so Markdown output can reference Joplin-managed images instead of raw external data when that option is enabled.
 - Size and timeout limits default to `DEFAULT_RESOURCE_CONVERSION_LIMITS` and are injectable per call, so the caps stay explicit dependencies rather than module-level globals.
 - The remote download timeout is a total deadline covering retries, headers and the full body stream.
+- Remote downloads must declare an image content type; responses with no content type or a generic binary one are accepted only when `src/imageMime.ts` (using `file-type`) detects an allowlisted raster format.
+- `normalizeImageMime` in `src/imageMime.ts` maps aliased image types (APNG → `image/png`) for data URLs, declared and detected remote types. Any type with a known extension sets the file extension, overriding the URL's.
 
 ### Shared Infrastructure
 
