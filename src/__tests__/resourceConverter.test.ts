@@ -38,6 +38,14 @@ function mockRemotePngResponse(contentLength: number) {
     }));
 }
 
+/** Promise that never resolves and rejects only when `signal` aborts. */
+function rejectOnAbort(signal: AbortSignal | undefined): Promise<never> {
+    return new Promise((_resolve, reject) => {
+        if (signal?.aborted) return reject(new Error('abort'));
+        signal?.addEventListener('abort', () => reject(new Error('abort')));
+    });
+}
+
 // Small 1x1 transparent png (same as existing tests)
 const PNG_DATA_URL =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
@@ -215,20 +223,37 @@ describe('resourceConverter edge cases', () => {
     test('network timeout abort increments failed count', async () => {
         // Use fake timers to trigger the configured AbortController timeout quickly
         vi.useFakeTimers();
-        fetchMock = vi.fn((...args: unknown[]) => {
-            const opts = args[1];
-            const signal = (opts as { signal?: AbortSignal } | undefined)?.signal;
-            return new Promise((_resolve, reject) => {
-                if (signal?.aborted) return reject(new Error('already aborted'));
-                signal?.addEventListener('abort', () => reject(new Error('abort')));
-                // Never resolve; only abort path will settle the promise.
-            });
-        });
+        fetchMock = vi.fn((...args: unknown[]) =>
+            rejectOnAbort((args[1] as { signal?: AbortSignal } | undefined)?.signal)
+        );
         setGlobal('fetch', fetchMock);
         const body = makeBody('<img src="https://example.com/slow.png">');
         const conversionPromise = convertImagesToResources(body, { downloadTimeoutMs: TEST_DOWNLOAD_TIMEOUT_MS });
         // Fast-forward time to trigger the download timeout inside downloadExternalImage
         vi.advanceTimersByTime(TEST_DOWNLOAD_TIMEOUT_MS);
+        const result = await conversionPromise;
+        expect(result.attempted).toBe(1);
+        expect(result.failed).toBe(1);
+        expect(result.ids).toHaveLength(0);
+    });
+
+    test('timeout aborts a body stream that stalls after headers arrive', async () => {
+        vi.useFakeTimers();
+        fetchMock = vi.fn(async (...args: unknown[]) => {
+            const signal = (args[1] as { signal?: AbortSignal } | undefined)?.signal;
+            return {
+                ok: true,
+                headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+                body: {
+                    // Never yields data; only the abort signal settles the read.
+                    getReader: () => ({ read: () => rejectOnAbort(signal) }),
+                },
+            };
+        });
+        setGlobal('fetch', fetchMock);
+        const body = makeBody('<img src="https://example.com/stalled.png">');
+        const conversionPromise = convertImagesToResources(body, { downloadTimeoutMs: TEST_DOWNLOAD_TIMEOUT_MS });
+        await vi.advanceTimersByTimeAsync(TEST_DOWNLOAD_TIMEOUT_MS);
         const result = await conversionPromise;
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);

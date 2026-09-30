@@ -29,7 +29,8 @@ export interface ResourceConversionLimits {
 const DEFAULT_RESOURCE_CONVERSION_LIMITS: ResourceConversionLimits = {
     // Hard cap for image resource conversion to avoid excessive memory/disk usage (approximately 25 MB).
     maxImageBytes: 25 * 1024 * 1024,
-    downloadTimeoutMs: 15000,
+    // Total deadline per remote image, including retries and the full body download.
+    downloadTimeoutMs: 30000,
 };
 
 // Global joplin API (available at runtime in Joplin plugin environment)
@@ -142,39 +143,42 @@ async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise
 
 /**
  * Download an external image with streaming size enforcement.
- * Aborts if cumulative bytes exceed the configured maximum.
+ * The timeout is a total deadline covering retries, headers and the full body stream.
+ * Aborts if the deadline passes or cumulative bytes exceed the configured maximum.
  */
 async function downloadExternalImage(url: string, limits: ResourceConversionLimits): Promise<ParsedImageData> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), limits.downloadTimeoutMs);
-    const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
-    clearTimeout(timeout);
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-    if (!contentType.startsWith('image/')) throw new Error('Not image');
-    const contentLengthHeader = resp.headers.get('content-length');
-    if (contentLengthHeader) {
-        const asInt = parseInt(contentLengthHeader, 10);
-        if (!isNaN(asInt) && asInt > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
-    }
-    const reader = resp.body!.getReader();
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-            chunks.push(value);
-            received += value.length;
-            if (received > limits.maxImageBytes) {
-                controller.abort();
-                throw new Error('Image exceeds maximum size');
+    try {
+        const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        if (!contentType.startsWith('image/')) throw new Error('Not image');
+        const contentLengthHeader = resp.headers.get('content-length');
+        if (contentLengthHeader) {
+            const asInt = parseInt(contentLengthHeader, 10);
+            if (!isNaN(asInt) && asInt > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
+        }
+        const reader = resp.body!.getReader();
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) {
+                chunks.push(value);
+                received += value.length;
+                if (received > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
             }
         }
+        const merged = concatChunks(chunks, received);
+        const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
+        return { bytes: merged, mime: contentType, filename, size: merged.byteLength };
+    } finally {
+        clearTimeout(timeout);
+        // No-op after a completed download; releases the connection when exiting early.
+        controller.abort();
     }
-    const merged = concatChunks(chunks, received);
-    const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
-    return { bytes: merged, mime: contentType, filename, size: merged.byteLength };
 }
 
 /**
