@@ -41,7 +41,7 @@ function mockRemotePngResponse(contentLength: number, contentType = 'image/png')
 }
 
 /** Remote response streaming `bytes` in small chunks, splitting signatures to exercise detection after merging. */
-function mockChunkedResponse(contentType: string, bytes: Uint8Array) {
+function mockChunkedResponse(contentType: string | null, bytes: Uint8Array) {
     let offset = 0;
     return vi.fn(async () => ({
         ok: true,
@@ -132,6 +132,8 @@ describe('resourceConverter edge cases', () => {
         { contentType: OCTET_STREAM, content: '<html>not an image</html>', ext: null },
         { contentType: OCTET_STREAM, content: '<svg></svg>', ext: null },
         { contentType: OCTET_STREAM, content: '', ext: null },
+        { contentType: null, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
+        { contentType: null, content: '<html>not an image</html>', ext: null },
     ])('validates $contentType downloads by signature ($content)', async ({ contentType, content, ext }) => {
         const bytes = Buffer.from(content);
         setGlobal('fetch', mockChunkedResponse(contentType, bytes));
@@ -274,6 +276,19 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.avif', mime: 'image/avif' }, [
             { path: expect.stringMatching(/\.avif$/) },
+        ]);
+    });
+
+    test.each([
+        { label: 'contradicting URL extension', contentType: 'image/webp', src: 'photo.jpg', ext: 'webp' },
+        { label: 'unknown image type', contentType: 'image/tiff', src: 'scan.tif', ext: 'tif' },
+    ])('declared type with $label is stored with .$ext', async ({ contentType, src, ext }) => {
+        setGlobal('fetch', mockRemotePngResponse(8, contentType));
+        const result = await convertImagesToResources(makeBody(`<img src="https://example.com/${src}">`));
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        const title = src.replace(/\.\w+$/, `.${ext}`);
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: contentType }, [
+            { path: expect.stringMatching(new RegExp(`\\.${ext}$`)) },
         ]);
     });
 
