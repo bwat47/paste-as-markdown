@@ -52,8 +52,5 @@
         "@lezer/markdown": "^1.7.2",
         "dompurify": "^3.4.16",
         "turndown": "7.2.4"
-    },
-    "overrides": {
-        "js-yaml": "^4.2.0"
     }
 }
