@@ -10,8 +10,8 @@
  * Note: Image attribute normalization is handled by the post-sanitize pass in src/html/post/images.ts
  *
  * Security Considerations:
- *  - Requires image MIME types or recognized binary signatures for untyped or generic binary downloads
- *  - Accepts SVG only when declared (content type or data URL); it is never detected from generic downloads
+ *  - Stores raster images only when their binary signature matches a supported format, whatever type is declared
+ *  - Accepts SVG only when declared (content type or data URL) and parsed as well-formed XML with an SVG root
  *  - Enforces strict base64 and size limits
  */
 
@@ -19,7 +19,7 @@ import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
-import { detectImageMime, normalizeImageMime } from './imageMime';
+import { resolveImageType } from './imageMime';
 import { parseImageSource } from './html/shared/imageSource';
 import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
@@ -51,12 +51,12 @@ interface FileSystem {
  */
 const STRICT_BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
 /**
- * Content types that carry no image type information and require binary signature detection:
- * a missing header (normalized to '') or a generic binary type.
+ * Non-image content types that are still downloaded because they carry no type information:
+ * a missing header (normalized to '') or a generic binary type. The signature decides.
  */
 const UNTYPED_CONTENT_TYPES = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
-/** Extension used when a MIME type has no known image extension. */
-const UNKNOWN_EXTENSION = 'bin';
+/** Filename stem used when the source URL has no usable filename. */
+const DEFAULT_FILENAME_STEM = 'pasted';
 
 function isConvertibleSource(source: ImageSource): source is DataImageSource | RemoteImageSource {
     return source.kind !== 'resource';
@@ -131,8 +131,8 @@ export async function convertImagesToResources(
 async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
     const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
     if (!match) throw new Error('Invalid data URL');
-    const mime = normalizeImageMime(match[1].toLowerCase());
-    if (!mime.startsWith('image/')) throw new Error('Not image');
+    const declaredMime = match[1].toLowerCase();
+    if (!declaredMime.startsWith('image/')) throw new Error('Not image');
     let b64 = match[2];
     b64 = b64.replace(/\s+/g, '');
     if (!STRICT_BASE64_PATTERN.test(b64)) throw new Error('Invalid base64 characters');
@@ -144,10 +144,12 @@ async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise
     if (dataLength !== b64.length && b64.length % 4 !== 0) throw new Error('Malformed base64 padding');
     const estimatedBytes = Math.floor((b64.length * 3) / 4);
     if (estimatedBytes > maxImageBytes) throw new Error('Image exceeds maximum size');
-    const bytes = Buffer.from(b64, 'base64');
-    if (bytes.byteLength === 0) throw new Error('Base64 decode failed');
-    if (bytes.byteLength > maxImageBytes) throw new Error('Image exceeds maximum size');
-    return { bytes, mime, filename: `pasted.${extensionForMime(mime)}`, size: bytes.byteLength };
+    const decoded = Buffer.from(b64, 'base64');
+    if (decoded.byteLength === 0) throw new Error('Base64 decode failed');
+    if (decoded.byteLength > maxImageBytes) throw new Error('Image exceeds maximum size');
+    // Plain Uint8Array view: signature detection rejects Buffers from another realm (e.g. under JSDOM).
+    const bytes = new Uint8Array(decoded.buffer, decoded.byteOffset, decoded.byteLength);
+    return toParsedImage(bytes, declaredMime, DEFAULT_FILENAME_STEM);
 }
 
 /**
@@ -162,8 +164,7 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
         const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-        const needsMimeDetection = UNTYPED_CONTENT_TYPES.has(contentType);
-        if (!contentType.startsWith('image/') && !needsMimeDetection) throw new Error('Not image');
+        if (!contentType.startsWith('image/') && !UNTYPED_CONTENT_TYPES.has(contentType)) throw new Error('Not image');
         const contentLengthHeader = resp.headers.get('content-length');
         if (contentLengthHeader) {
             const asInt = parseInt(contentLengthHeader, 10);
@@ -182,7 +183,7 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
             }
         }
         const merged = concatChunks(chunks, received);
-        return await parseDownloadedImage(merged, url, contentType, needsMimeDetection);
+        return await toParsedImage(merged, contentType, deriveFilenameStem(url));
     } finally {
         clearTimeout(timeout);
         // No-op after a completed download; releases the connection when exiting early.
@@ -191,22 +192,13 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
 }
 
 /**
- * Resolve resource metadata, checking binary signatures when the server supplies no or only a generic
- * MIME type and normalizing aliased image types.
+ * Build resource metadata from image content. The resolved type supplies the MIME type and file extension,
+ * so unsupported or mislabeled content is rejected regardless of its declared type.
  */
-async function parseDownloadedImage(
-    bytes: Uint8Array,
-    url: string,
-    contentType: string,
-    needsMimeDetection: boolean
-): Promise<ParsedImageData> {
-    const mime = needsMimeDetection ? await detectImageMime(bytes) : normalizeImageMime(contentType);
-    if (!mime) throw new Error('Not image');
-    const extension = extensionForMime(mime);
-    const urlFilename = deriveFilenameFromUrl(url, extension);
-    // A known type determines the file extension, which the URL may contradict.
-    const filename = extension === UNKNOWN_EXTENSION ? urlFilename : `${path.parse(urlFilename).name}.${extension}`;
-    return { bytes, mime, filename, size: bytes.byteLength };
+async function toParsedImage(bytes: Uint8Array, declaredMime: string, filenameStem: string): Promise<ParsedImageData> {
+    const type = await resolveImageType(bytes, declaredMime);
+    if (!type) throw new Error('Unsupported image type');
+    return { bytes, mime: type.mime, filename: `${filenameStem}.${type.extension}`, size: bytes.byteLength };
 }
 
 /**
@@ -235,42 +227,21 @@ async function fetchWithRetry(url: string, init: RequestInit, retries: number, b
 }
 
 /**
- * Extract filename (if present) from URL path or synthesize one with provided fallback extension.
+ * Filename stem from the URL's last path segment when it looks like a filename, else `DEFAULT_FILENAME_STEM`.
+ * The detected image type always supplies the extension, which the URL may contradict.
  */
-function deriveFilenameFromUrl(url: string, fallbackExt: string): string {
+function deriveFilenameStem(url: string): string {
     try {
-        const u = new URL(url);
-        const last = u.pathname.split('/').filter(Boolean).pop() || '';
-        if (last && /\.[a-z0-9]{2,5}$/i.test(last)) {
-            // Sanitize: remove path traversal and dangerous characters
-            const sanitized = last.replace(/[^a-zA-Z0-9._-]/g, '');
-            return sanitized || `pasted.${fallbackExt}`;
-        }
-        return `pasted.${fallbackExt}`;
+        const last = new URL(url).pathname.split('/').filter(Boolean).pop() || '';
+        if (!/\.[a-z0-9]{2,5}$/i.test(last)) return DEFAULT_FILENAME_STEM;
+        // Sanitize: remove path traversal and dangerous characters
+        const sanitized = last.replace(/[^a-zA-Z0-9._-]/g, '');
+        return path.parse(sanitized).name || DEFAULT_FILENAME_STEM;
     } catch (err) {
         // Expected: malformed URLs will fail to parse, use fallback filename
         logger.debug('Failed to parse URL for filename extraction:', truncateForLog(url), (err as Error)?.message);
-        return `pasted.${fallbackExt}`;
+        return DEFAULT_FILENAME_STEM;
     }
-}
-
-/**
- * Map common image MIME types to file extensions; fallback to `UNKNOWN_EXTENSION` for unknown types.
- */
-function extensionForMime(mime: string): string {
-    const map: Record<string, string> = {
-        'image/png': 'png',
-        'image/jpeg': 'jpg',
-        'image/jpg': 'jpg',
-        'image/gif': 'gif',
-        'image/webp': 'webp',
-        'image/avif': 'avif',
-        'image/svg+xml': 'svg',
-        'image/bmp': 'bmp',
-        'image/x-icon': 'ico',
-        'image/vnd.microsoft.icon': 'ico',
-    };
-    return map[mime] || UNKNOWN_EXTENSION;
 }
 
 /**
@@ -318,9 +289,8 @@ function nextTempFileId(): string {
  */
 async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promise<string> {
     const dataDir: string = await joplin.plugins.dataDir();
-    const rawExt = img.filename.split('.').pop() || extensionForMime(img.mime);
-    const safeExt = rawExt.replace(/[^a-zA-Z0-9]/g, '') || UNKNOWN_EXTENSION;
-    const tmpName = `pam-${Date.now()}-${nextTempFileId()}.${safeExt}`;
+    // The extension always comes from the resolved image type, never from the source URL.
+    const tmpName = `pam-${Date.now()}-${nextTempFileId()}${path.extname(img.filename)}`;
     const tmpPath = path.join(dataDir, tmpName);
 
     // Validate the resolved path is still within dataDir to prevent path traversal

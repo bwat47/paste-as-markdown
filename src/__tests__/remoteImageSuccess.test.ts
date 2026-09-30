@@ -2,11 +2,7 @@ import { describe, test, expect, beforeEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { pasteOptions } from './helpers/pasteOptions';
-
-// 40 byte tiny PNG binary (fake) for streaming
-function tinyPngBytes(): Uint8Array {
-    return new Uint8Array(40).fill(137);
-}
+import { png } from './helpers/imageBytes';
 
 interface JoplinMock {
     plugins: { dataDir: Mock };
@@ -41,16 +37,22 @@ describe('remote image success path', () => {
             }),
             data: { post: dataPostMock },
         } as JoplinMock;
-        global.fetch = vi.fn(async () => ({
-            ok: true,
-            headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
-            body: {
-                getReader: () => ({
-                    read: async () => ({ done: true, value: tinyPngBytes() }),
-                }),
-            },
-            arrayBuffer: async () => tinyPngBytes().buffer,
-        })) as unknown as Mock;
+        global.fetch = vi.fn(async () => {
+            let served = false;
+            return {
+                ok: true,
+                headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+                body: {
+                    getReader: () => ({
+                        read: async () => {
+                            if (served) return { done: true };
+                            served = true;
+                            return { done: false, value: png() };
+                        },
+                    }),
+                },
+            };
+        }) as unknown as Mock;
     });
 
     test('successful remote image conversion increments metrics and rewrites src', async () => {
