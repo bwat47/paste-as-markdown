@@ -20,7 +20,11 @@ function iconDirectory(type: number): Uint8Array {
     return Uint8Array.from([0, 0, type, 0, 1, 0, 16, 16, 0, 0, 1, 0, 32, 0, 0, 0, 0, 0, 22, 0, 0, 0]);
 }
 
-// Copy into a plain Uint8Array: file-type rejects Node Buffers from outside the JSDOM realm.
+/** Copy into a plain Uint8Array: file-type rejects Node Buffers from outside the JSDOM realm. */
+function detect(bytes: Uint8Array): Promise<string | null> {
+    return detectImageMime(Uint8Array.from(bytes));
+}
+
 describe('binary image MIME detection', () => {
     test.each([
         { label: 'PNG', bytes: png(), mime: 'image/png' },
@@ -38,7 +42,7 @@ describe('binary image MIME detection', () => {
         { label: 'BMP', bytes: Buffer.concat([Buffer.from('BM'), Buffer.alloc(52)]), mime: 'image/bmp' },
         { label: 'ICO', bytes: iconDirectory(1), mime: 'image/x-icon' },
     ])('detects $label as $mime', async ({ bytes, mime }) => {
-        expect(await detectImageMime(Uint8Array.from(bytes))).toBe(mime);
+        expect(await detect(bytes)).toBe(mime);
     });
 
     test.each([
@@ -53,7 +57,7 @@ describe('binary image MIME detection', () => {
         // Known file-type limitation: AVIF declared only as a compatible brand is classified as HEIF.
         { label: 'AVIF as compatible brand only', bytes: ftypBox('mif1', ['mif1', 'miaf', 'avif']) },
     ])('rejects $label', async ({ bytes }) => {
-        expect(await detectImageMime(Uint8Array.from(bytes))).toBeNull();
+        expect(await detect(bytes)).toBeNull();
     });
 });
 

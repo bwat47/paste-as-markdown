@@ -126,15 +126,25 @@ afterEach(() => {
 describe('resourceConverter edge cases', () => {
     const OCTET_STREAM = 'Application/Octet-Stream; charset=binary';
     test.each([
-        { contentType: OCTET_STREAM, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
-        { contentType: 'binary/octet-stream', content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
-        { contentType: OCTET_STREAM, content: '\x00\x00\x00\x14ftypavif\x00\x00\x00\x00mif1', ext: 'avif' },
-        { contentType: OCTET_STREAM, content: '<html>not an image</html>', ext: null },
-        { contentType: OCTET_STREAM, content: '<svg></svg>', ext: null },
-        { contentType: OCTET_STREAM, content: '', ext: null },
-        { contentType: null, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
-        { contentType: null, content: '<html>not an image</html>', ext: null },
-    ])('validates $contentType downloads by signature ($content)', async ({ contentType, content, ext }) => {
+        { label: 'octet-stream WebP', contentType: OCTET_STREAM, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
+        {
+            label: 'binary/octet-stream WebP',
+            contentType: 'binary/octet-stream',
+            content: 'RIFF\x14\x00\x00\x00WEBPVP8 ',
+            ext: 'webp',
+        },
+        {
+            label: 'octet-stream AVIF',
+            contentType: OCTET_STREAM,
+            content: '\x00\x00\x00\x14ftypavif\x00\x00\x00\x00mif1',
+            ext: 'avif',
+        },
+        { label: 'octet-stream HTML', contentType: OCTET_STREAM, content: '<html>not an image</html>', ext: null },
+        { label: 'octet-stream SVG', contentType: OCTET_STREAM, content: '<svg></svg>', ext: null },
+        { label: 'empty octet-stream', contentType: OCTET_STREAM, content: '', ext: null },
+        { label: 'untyped WebP', contentType: null, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
+        { label: 'untyped HTML', contentType: null, content: '<html>not an image</html>', ext: null },
+    ])('validates $label download by signature', async ({ contentType, content, ext }) => {
         const bytes = Buffer.from(content);
         setGlobal('fetch', mockChunkedResponse(contentType, bytes));
         const body = makeBody('<img src="https://example.com/image.jpg" alt="">');
