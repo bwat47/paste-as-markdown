@@ -10,7 +10,7 @@
  * Note: Image attribute normalization is handled by the post-sanitize pass in src/html/post/images.ts
  *
  * Security Considerations:
- *  - Only processes image MIME types (content-type or data: prefix)
+ *  - Requires image MIME types or recognized binary signatures for generic binary downloads
  *  - Enforces strict base64 and size limits
  */
 
@@ -18,6 +18,7 @@ import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
+import { detectImageMime } from './imageMime';
 import { parseImageSource } from './html/shared/imageSource';
 import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
@@ -48,6 +49,8 @@ interface FileSystem {
  *  - rejects: "QQ==QQ==" (padding mid-string), "QQ!!" (invalid characters), "a-b_" (base64url)
  */
 const STRICT_BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
+/** Generic content types that carry no image type information and require binary signature detection. */
+const GENERIC_BINARY_MIMES = new Set(['application/octet-stream', 'binary/octet-stream']);
 
 function isConvertibleSource(source: ImageSource): source is DataImageSource | RemoteImageSource {
     return source.kind !== 'resource';
@@ -153,7 +156,8 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
         const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-        if (!contentType.startsWith('image/')) throw new Error('Not image');
+        const needsMimeDetection = GENERIC_BINARY_MIMES.has(contentType);
+        if (!contentType.startsWith('image/') && !needsMimeDetection) throw new Error('Not image');
         const contentLengthHeader = resp.headers.get('content-length');
         if (contentLengthHeader) {
             const asInt = parseInt(contentLengthHeader, 10);
@@ -172,13 +176,28 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
             }
         }
         const merged = concatChunks(chunks, received);
-        const filename = deriveFilenameFromUrl(url, extensionForMime(contentType));
-        return { bytes: merged, mime: contentType, filename, size: merged.byteLength };
+        return await parseDownloadedImage(merged, url, contentType, needsMimeDetection);
     } finally {
         clearTimeout(timeout);
         // No-op after a completed download; releases the connection when exiting early.
         controller.abort();
     }
+}
+
+/** Resolve resource metadata, checking binary signatures when the server supplies only a generic MIME type. */
+async function parseDownloadedImage(
+    bytes: Uint8Array,
+    url: string,
+    contentType: string,
+    needsMimeDetection: boolean
+): Promise<ParsedImageData> {
+    const mime = needsMimeDetection ? await detectImageMime(bytes) : contentType;
+    if (!mime) throw new Error('Not image');
+    const extension = extensionForMime(mime);
+    const originalFilename = deriveFilenameFromUrl(url, extension);
+    // For generic responses the detected type also determines the resource's file extension.
+    const filename = needsMimeDetection ? `${path.parse(originalFilename).name}.${extension}` : originalFilename;
+    return { bytes, mime, filename, size: bytes.byteLength };
 }
 
 /**
@@ -236,6 +255,7 @@ function extensionForMime(mime: string): string {
         'image/jpg': 'jpg',
         'image/gif': 'gif',
         'image/webp': 'webp',
+        'image/avif': 'avif',
         'image/svg+xml': 'svg',
         'image/bmp': 'bmp',
         'image/x-icon': 'ico',

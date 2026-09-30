@@ -14,14 +14,14 @@ function makeBody(html: string): HTMLElement {
 }
 
 /** Remote PNG response advertising `contentLength` and streaming a single small chunk. */
-function mockRemotePngResponse(contentLength: number) {
+function mockRemotePngResponse(contentLength: number, contentType = 'image/png') {
     let served = false;
     return vi.fn(async () => ({
         ok: true,
         headers: {
             get: (h: string) => {
                 const name = h.toLowerCase();
-                if (name === 'content-type') return 'image/png';
+                if (name === 'content-type') return contentType;
                 if (name === 'content-length') return String(contentLength);
                 return null;
             },
@@ -100,6 +100,56 @@ afterEach(() => {
 });
 
 describe('resourceConverter edge cases', () => {
+    const OCTET_STREAM = 'Application/Octet-Stream; charset=binary';
+    test.each([
+        { contentType: OCTET_STREAM, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
+        { contentType: 'binary/octet-stream', content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
+        { contentType: OCTET_STREAM, content: '\x00\x00\x00\x14ftypavif\x00\x00\x00\x00mif1', ext: 'avif' },
+        { contentType: OCTET_STREAM, content: '<html>not an image</html>', ext: null },
+        { contentType: OCTET_STREAM, content: '<svg></svg>', ext: null },
+        { contentType: OCTET_STREAM, content: '', ext: null },
+    ])('validates $contentType downloads by signature ($content)', async ({ contentType, content, ext }) => {
+        const bytes = Buffer.from(content);
+        let offset = 0;
+        setGlobal(
+            'fetch',
+            vi.fn(async () => ({
+                ok: true,
+                headers: {
+                    get: (h: string) => (h === 'content-type' ? contentType : null),
+                },
+                body: {
+                    getReader: () => ({
+                        // Split the signature across chunks to exercise detection after merging.
+                        read: async () => {
+                            if (offset >= bytes.length) return { done: true };
+                            const value = bytes.subarray(offset, offset + 5);
+                            offset += value.length;
+                            return { done: false, value };
+                        },
+                    }),
+                },
+            }))
+        );
+        const body = makeBody('<img src="https://example.com/image.jpg" alt="">');
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: ext ? ['res-ok'] : [], attempted: 1, failed: ext ? 0 : 1 });
+        if (!ext) {
+            expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+            expect(dataPostMock).not.toHaveBeenCalled();
+            expect(body.querySelector('img')?.getAttribute('src')).toBe('https://example.com/image.jpg');
+        } else {
+            expect(dataPostMock).toHaveBeenCalledWith(
+                ['resources'],
+                null,
+                { title: `image.${ext}`, mime: `image/${ext}` },
+                [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) }]
+            );
+            expect(fsExtraMock.writeFileSync.mock.calls[0][1]).toEqual(Uint8Array.from(bytes));
+            expect(body.querySelector('img')?.getAttribute('src')).toBe(':/res-ok');
+        }
+    });
+
     test('fs-extra unavailable -> graceful skip', async () => {
         installJoplinMocks(false);
         const body = makeBody(`<img src="${PNG_DATA_URL}" alt="">`);
@@ -180,13 +230,13 @@ describe('resourceConverter edge cases', () => {
         expect(dataPostMock).not.toHaveBeenCalled();
     });
 
-    test('streaming oversize remote aborts mid-stream', async () => {
+    test.each(['image/png', 'application/octet-stream'])('streaming oversize %s aborts mid-stream', async (mime) => {
         // Single chunk larger than limit to guarantee immediate failure
         const hugeChunk = new Uint8Array(TEST_MAX_IMAGE_BYTES + 1);
         let served = false;
         fetchMock = vi.fn(async () => ({
             ok: true,
-            headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+            headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? mime : null) },
             body: {
                 getReader: () => ({
                     read: async () => {
@@ -203,6 +253,24 @@ describe('resourceConverter edge cases', () => {
         expect(result.attempted).toBe(1);
         expect(result.failed).toBe(1);
         expect(result.ids).toHaveLength(0);
+    });
+
+    test('oversize octet-stream content-length is rejected before reading the body', async () => {
+        setGlobal('fetch', mockRemotePngResponse(TEST_MAX_IMAGE_BYTES + 1, 'application/octet-stream'));
+        const result = await convertImagesToResources(makeBody('<img src="https://example.com/large.webp">'), {
+            maxImageBytes: TEST_MAX_IMAGE_BYTES,
+        });
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    test('image/avif response without a URL extension gets an avif filename', async () => {
+        setGlobal('fetch', mockRemotePngResponse(8, 'image/avif'));
+        const result = await convertImagesToResources(makeBody('<img src="https://example.com/photo">'));
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.avif', mime: 'image/avif' }, [
+            { path: expect.stringMatching(/\.avif$/) },
+        ]);
     });
 
     // The content-length guard compares with a strict `>`, so exactly-at-cap must pass.
@@ -237,13 +305,13 @@ describe('resourceConverter edge cases', () => {
         expect(result.ids).toHaveLength(0);
     });
 
-    test('timeout aborts a body stream that stalls after headers arrive', async () => {
+    test.each(['image/png', 'application/octet-stream'])('timeout aborts a stalled %s body stream', async (mime) => {
         vi.useFakeTimers();
         fetchMock = vi.fn(async (...args: unknown[]) => {
             const signal = (args[1] as { signal?: AbortSignal } | undefined)?.signal;
             return {
                 ok: true,
-                headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
+                headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? mime : null) },
                 body: {
                     // Never yields data; only the abort signal settles the read.
                     getReader: () => ({ read: () => rejectOnAbort(signal) }),
