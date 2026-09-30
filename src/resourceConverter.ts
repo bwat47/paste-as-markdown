@@ -18,7 +18,7 @@ import * as path from 'path';
 import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
-import { detectImageMime } from './imageMime';
+import { detectImageMime, normalizeImageMime } from './imageMime';
 import { parseImageSource } from './html/shared/imageSource';
 import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
@@ -125,7 +125,7 @@ export async function convertImagesToResources(
 async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
     const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
     if (!match) throw new Error('Invalid data URL');
-    const mime = match[1].toLowerCase();
+    const mime = normalizeImageMime(match[1].toLowerCase());
     if (!mime.startsWith('image/')) throw new Error('Not image');
     let b64 = match[2];
     b64 = b64.replace(/\s+/g, '');
@@ -184,19 +184,22 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
     }
 }
 
-/** Resolve resource metadata, checking binary signatures when the server supplies only a generic MIME type. */
+/**
+ * Resolve resource metadata, checking binary signatures when the server supplies only a generic MIME type
+ * and normalizing aliased image types.
+ */
 async function parseDownloadedImage(
     bytes: Uint8Array,
     url: string,
     contentType: string,
     needsMimeDetection: boolean
 ): Promise<ParsedImageData> {
-    const mime = needsMimeDetection ? await detectImageMime(bytes) : contentType;
+    const mime = needsMimeDetection ? await detectImageMime(bytes) : normalizeImageMime(contentType);
     if (!mime) throw new Error('Not image');
     const extension = extensionForMime(mime);
     const originalFilename = deriveFilenameFromUrl(url, extension);
-    // For generic responses the detected type also determines the resource's file extension.
-    const filename = needsMimeDetection ? `${path.parse(originalFilename).name}.${extension}` : originalFilename;
+    // A detected or normalized type also determines the file extension, which the URL may contradict.
+    const filename = mime !== contentType ? `${path.parse(originalFilename).name}.${extension}` : originalFilename;
     return { bytes, mime, filename, size: bytes.byteLength };
 }
 

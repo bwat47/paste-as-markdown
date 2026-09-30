@@ -1,29 +1,8 @@
 import { describe, expect, test } from 'vitest';
-import { detectImageMime } from '../imageMime';
+import { detectImageMime, normalizeImageMime } from '../imageMime';
+import { apng, png } from './helpers/imageBytes';
 
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-const PNG_IHDR_BYTES = 13;
-const PNG_CRC_BYTES = 4;
 const FTYP_HEADER_BYTES = 16;
-
-/** Build a PNG chunk (length, type, data, placeholder CRC). */
-function pngChunk(type: string, dataLength = 0): Buffer {
-    const chunk = Buffer.alloc(8 + dataLength + PNG_CRC_BYTES);
-    chunk.writeUInt32BE(dataLength, 0);
-    chunk.write(type, 4, 'ascii');
-    return chunk;
-}
-
-/** Build a minimal PNG; `file-type` reads past the signature to distinguish PNG from APNG. */
-function png(extraChunks: Buffer[] = []): Uint8Array {
-    return Buffer.concat([
-        Buffer.from(PNG_SIGNATURE),
-        pngChunk('IHDR', PNG_IHDR_BYTES),
-        ...extraChunks,
-        pngChunk('IDAT', 4),
-        pngChunk('IEND'),
-    ]);
-}
 
 /** Build an ISO-BMFF `ftyp` box with the given major and compatible brands. */
 function ftypBox(majorBrand: string, compatibleBrands: string[] = []): Uint8Array {
@@ -45,6 +24,7 @@ function iconDirectory(type: number): Uint8Array {
 describe('binary image MIME detection', () => {
     test.each([
         { label: 'PNG', bytes: png(), mime: 'image/png' },
+        { label: 'APNG (stored as PNG)', bytes: apng(), mime: 'image/png' },
         { label: 'JPEG', bytes: Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]), mime: 'image/jpeg' },
         { label: 'GIF87a', bytes: Buffer.from('GIF87a'), mime: 'image/gif' },
         { label: 'GIF89a', bytes: Buffer.from('GIF89a'), mime: 'image/gif' },
@@ -70,11 +50,19 @@ describe('binary image MIME detection', () => {
         { label: 'MP4', bytes: ftypBox('isom', ['isom', 'mp42']) },
         { label: 'TIFF (image outside the allowlist)', bytes: Uint8Array.from([0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0]) },
         { label: 'CUR (shares the ICO MIME type)', bytes: iconDirectory(2) },
-        // Known file-type limitations: APNG is reported as `apng` (outside the allowlist), and AVIF
-        // declared only as a compatible brand is classified as HEIF.
-        { label: 'APNG', bytes: png([pngChunk('acTL', 8)]) },
+        // Known file-type limitation: AVIF declared only as a compatible brand is classified as HEIF.
         { label: 'AVIF as compatible brand only', bytes: ftypBox('mif1', ['mif1', 'miaf', 'avif']) },
     ])('rejects $label', async ({ bytes }) => {
         expect(await detectImageMime(Uint8Array.from(bytes))).toBeNull();
+    });
+});
+
+describe('image MIME normalization', () => {
+    test.each([
+        { mime: 'image/apng', expected: 'image/png' },
+        { mime: 'image/png', expected: 'image/png' },
+        { mime: 'image/webp', expected: 'image/webp' },
+    ])('maps $mime to $expected', ({ mime, expected }) => {
+        expect(normalizeImageMime(mime)).toBe(expected);
     });
 });

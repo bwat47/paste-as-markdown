@@ -2,9 +2,11 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
+import { apng } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;
 const TEST_DOWNLOAD_TIMEOUT_MS = 50;
+const TEST_CHUNK_BYTES = 5;
 
 // Helper to build a DOM body from HTML string
 function makeBody(html: string): HTMLElement {
@@ -32,6 +34,27 @@ function mockRemotePngResponse(contentLength: number, contentType = 'image/png')
                     if (served) return { done: true };
                     served = true;
                     return { done: false, value: new Uint8Array(8) };
+                },
+            }),
+        },
+    }));
+}
+
+/** Remote response streaming `bytes` in small chunks, splitting signatures to exercise detection after merging. */
+function mockChunkedResponse(contentType: string, bytes: Uint8Array) {
+    let offset = 0;
+    return vi.fn(async () => ({
+        ok: true,
+        headers: {
+            get: (h: string) => (h.toLowerCase() === 'content-type' ? contentType : null),
+        },
+        body: {
+            getReader: () => ({
+                read: async () => {
+                    if (offset >= bytes.length) return { done: true };
+                    const value = bytes.subarray(offset, offset + TEST_CHUNK_BYTES);
+                    offset += value.length;
+                    return { done: false, value };
                 },
             }),
         },
@@ -110,27 +133,7 @@ describe('resourceConverter edge cases', () => {
         { contentType: OCTET_STREAM, content: '', ext: null },
     ])('validates $contentType downloads by signature ($content)', async ({ contentType, content, ext }) => {
         const bytes = Buffer.from(content);
-        let offset = 0;
-        setGlobal(
-            'fetch',
-            vi.fn(async () => ({
-                ok: true,
-                headers: {
-                    get: (h: string) => (h === 'content-type' ? contentType : null),
-                },
-                body: {
-                    getReader: () => ({
-                        // Split the signature across chunks to exercise detection after merging.
-                        read: async () => {
-                            if (offset >= bytes.length) return { done: true };
-                            const value = bytes.subarray(offset, offset + 5);
-                            offset += value.length;
-                            return { done: false, value };
-                        },
-                    }),
-                },
-            }))
-        );
+        setGlobal('fetch', mockChunkedResponse(contentType, bytes));
         const body = makeBody('<img src="https://example.com/image.jpg" alt="">');
         const result = await convertImagesToResources(body);
         expect(result).toEqual({ ids: ext ? ['res-ok'] : [], attempted: 1, failed: ext ? 0 : 1 });
@@ -270,6 +273,37 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.avif', mime: 'image/avif' }, [
             { path: expect.stringMatching(/\.avif$/) },
+        ]);
+    });
+
+    test.each([
+        {
+            label: 'octet-stream download',
+            contentType: 'application/octet-stream',
+            src: 'https://example.com/anim.apng',
+        },
+        { label: 'declared image/apng download', contentType: 'image/apng', src: 'https://example.com/anim.apng' },
+        {
+            label: 'declared image/apng without a URL extension',
+            contentType: 'image/apng',
+            src: 'https://example.com/anim',
+        },
+    ])('APNG $label is stored as PNG', async ({ contentType, src }) => {
+        setGlobal('fetch', mockChunkedResponse(contentType, apng()));
+        const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        const title = src.endsWith('.apng') ? 'anim.png' : 'pasted.png';
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/png' }, [
+            { path: expect.stringMatching(/\.png$/) },
+        ]);
+    });
+
+    test('APNG data URL is stored as PNG', async () => {
+        const dataUrl = `data:image/apng;base64,${Buffer.from(apng()).toString('base64')}`;
+        const result = await convertImagesToResources(makeBody(`<img src="${dataUrl}">`));
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.png', mime: 'image/png' }, [
+            { path: expect.stringMatching(/\.png$/) },
         ]);
     });
 
