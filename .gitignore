@@ -10,3 +10,5 @@ publish/
 *.patch
 *.diff
 prompt/
+coverage/
+.fallowrc.json
