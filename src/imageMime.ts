@@ -1,8 +1,9 @@
 import { fileTypeFromBuffer } from 'file-type/core';
 
 /**
- * Formats accepted from content sniffing, keyed by `file-type` extension. Limited to raster formats
- * the resource converter already supports; SVG is never sniffed because it can carry active content.
+ * Formats accepted from content sniffing, keyed by `file-type` extension. Limited to binary raster
+ * formats; SVG is text with no binary signature, so octet-stream SVG is not detected. Declared SVG
+ * (content type or data URL) is accepted elsewhere and is inert when rendered through `<img>`.
  */
 const ALLOWED_IMAGE_EXTENSIONS = new Set(['png', 'apng', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'ico']);
 

@@ -72,6 +72,7 @@ function rejectOnAbort(signal: AbortSignal | undefined): Promise<never> {
 // Small 1x1 transparent png (same as existing tests)
 const PNG_DATA_URL =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
+const SVG_BASE64 = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>').toString('base64');
 
 interface JoplinMock {
     plugins: { dataDir: Mock };
@@ -273,6 +274,19 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.avif', mime: 'image/avif' }, [
             { path: expect.stringMatching(/\.avif$/) },
+        ]);
+    });
+
+    // SVG has no binary signature, so octet-stream SVG is rejected above; declared SVG is kept.
+    test.each([
+        { label: 'declared image/svg+xml download', src: 'https://example.com/diagram.svg', title: 'diagram.svg' },
+        { label: 'SVG data URL', src: `data:image/svg+xml;base64,${SVG_BASE64}`, title: 'pasted.svg' },
+    ])('$label is stored as SVG', async ({ src, title }) => {
+        setGlobal('fetch', mockRemotePngResponse(8, 'image/svg+xml'));
+        const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/svg+xml' }, [
+            { path: expect.stringMatching(/\.svg$/) },
         ]);
     });
 

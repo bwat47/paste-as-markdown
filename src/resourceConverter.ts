@@ -11,6 +11,7 @@
  *
  * Security Considerations:
  *  - Requires image MIME types or recognized binary signatures for generic binary downloads
+ *  - Accepts SVG only when declared (content type or data URL); it is never detected from generic downloads
  *  - Enforces strict base64 and size limits
  */
 
