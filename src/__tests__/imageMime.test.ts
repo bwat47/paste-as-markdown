@@ -79,9 +79,11 @@ describe('declared image types', () => {
         { label: 'XML declaration', content: `<?xml version="1.0" encoding="UTF-8"?>${SVG_MARKUP}` },
         { label: 'leading comment', content: `<!-- Generator: editor -->${SVG_MARKUP}` },
         { label: 'long leading comment', content: `<!-- ${'Generator '.repeat(150)} -->${SVG_MARKUP}` },
-        { label: 'no namespace', content: '<svg/>' },
         { label: 'namespace prefix', content: '<s:svg xmlns:s="http://www.w3.org/2000/svg"/>' },
-        { label: 'long root tag', content: `<svg data-generator="${'editor'.repeat(150)}"/>` },
+        {
+            label: 'long root tag',
+            content: `<svg xmlns="http://www.w3.org/2000/svg" data-generator="${'editor'.repeat(150)}"/>`,
+        },
         {
             label: 'UTF-8 comment',
             content: `<!--${' '.repeat(507)}é-->${SVG_MARKUP}`,
@@ -110,6 +112,7 @@ describe('declared image types', () => {
         { label: 'XML declaration only', bytes: Buffer.from('<?xml version="1.0"?>') },
         { label: 'SVG doctype followed by HTML', bytes: Buffer.from('<!DOCTYPE svg><html/>') },
         { label: 'nested SVG in HTML', bytes: Buffer.from(`<html>${SVG_MARKUP}</html>`) },
+        { label: 'SVG root without namespace', bytes: Buffer.from('<svg/>') },
         { label: 'SVG root with XHTML namespace', bytes: Buffer.from('<svg xmlns="http://www.w3.org/1999/xhtml"/>') },
         { label: 'incomplete root tag', bytes: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"') },
         { label: 'malformed root tag', bytes: Buffer.from('<svg =broken>') },

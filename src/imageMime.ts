@@ -38,26 +38,26 @@ async function detectImageType(bytes: Uint8Array): Promise<ImageType | null> {
 /**
  * Resolve the type an image is stored as. Raster types always come from the binary signature, so the
  * declared type is ignored. SVG is text with no signature: it is accepted only when declared and its
- * content is well-formed XML with an SVG root in the SVG namespace (or no namespace).
+ * content is well-formed XML with an SVG root in the SVG namespace.
  * This checks XML syntax, not SVG feature validity or sanitization. Declared SVG is inert when rendered through `<img>`.
  *
  * @param declaredMime Lowercase MIME type from a data URL or Content-Type header ('' when absent).
  * @returns The stored type, or null when the content is not a supported image.
  */
 export async function resolveImageType(bytes: Uint8Array, declaredMime: string): Promise<ImageType | null> {
-    if (declaredMime === SVG_MIME) return looksLikeSvg(bytes) ? SVG_TYPE : null;
+    if (declaredMime === SVG_MIME) return isWellFormedSvg(bytes) ? SVG_TYPE : null;
     return detectImageType(bytes);
 }
 
-function looksLikeSvg(bytes: Uint8Array): boolean {
+/**
+ * The SVG namespace is required: without it, browsers treat a standalone file as generic XML and
+ * `<img>` renders nothing.
+ */
+function isWellFormedSvg(bytes: Uint8Array): boolean {
     try {
-        const document = new DOMParser().parseFromString(new TextDecoder().decode(bytes), SVG_MIME);
-        const root = document.documentElement;
-        return (
-            !document.querySelector('parsererror') &&
-            root.localName === 'svg' &&
-            (root.namespaceURI === SVG_NAMESPACE || root.namespaceURI === null)
-        );
+        const doc = new DOMParser().parseFromString(new TextDecoder().decode(bytes), SVG_MIME);
+        const root = doc.documentElement;
+        return !doc.querySelector('parsererror') && root.localName === 'svg' && root.namespaceURI === SVG_NAMESPACE;
     } catch {
         // Reject this image if parsing is unavailable or throws, without aborting the paste.
         return false;

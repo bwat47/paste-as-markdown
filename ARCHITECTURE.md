@@ -68,7 +68,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - Size and timeout limits default to `DEFAULT_RESOURCE_CONVERSION_LIMITS` and are injectable per call, so the caps stay explicit dependencies rather than module-level globals.
 - The remote download timeout is a total deadline covering retries, headers and the full body stream.
 - Data URLs must declare an `image/*` type; remote downloads must declare one or send no/a generic binary content type. Anything else is rejected before decoding or reading the body.
-- `resolveImageType` in `src/imageMime.ts` decides the stored MIME type and extension from content, never from the declared type: raster images must match an allowlisted `file-type` signature (APNG is stored as PNG). SVG has no signature, so it is accepted only when declared as `image/svg+xml` and parsed by `DOMParser` as well-formed XML with an `svg` root in the SVG namespace (or no namespace). This checks XML syntax, not SVG feature validity or sanitization. Unsupported images fail conversion and keep their original `src`.
+- `resolveImageType` in `src/imageMime.ts` decides the stored MIME type and extension from content, never from the declared type: raster images must match an allowlisted `file-type` signature (APNG is stored as PNG). SVG has no signature, so it is accepted only when declared as `image/svg+xml` and parsed by `DOMParser` as well-formed XML with an `svg` root in the SVG namespace. This checks XML syntax, not SVG feature validity or sanitization. Unsupported images fail conversion and keep their original `src`.
 - The resolved type always sets the file extension; a remote URL only contributes the filename stem.
 
 ### Shared Infrastructure
