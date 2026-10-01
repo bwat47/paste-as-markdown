@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import * as path from 'path';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
-import { apng, png } from './helpers/imageBytes';
+import { apng, jpeg, png, tiff } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;
 const TEST_DOWNLOAD_TIMEOUT_MS = 50;
@@ -76,8 +76,6 @@ const PNG_DATA_URL =
 const SVG_BYTES = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
 const WEBP_BYTES = Buffer.from('RIFF\x14\x00\x00\x00WEBPVP8 ');
 const AVIF_BYTES = Buffer.from('\x00\x00\x00\x14ftypavif\x00\x00\x00\x00mif1');
-const JPEG_BYTES = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]);
-const TIFF_BYTES = Uint8Array.from([0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0]);
 
 function toDataUrl(mime: string, bytes: Uint8Array): string {
     return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
@@ -231,7 +229,7 @@ describe('resourceConverter edge cases', () => {
     });
 
     test.each([
-        { label: 'unsupported type (TIFF)', src: toDataUrl('image/tiff', TIFF_BYTES) },
+        { label: 'unsupported type (TIFF)', src: toDataUrl('image/tiff', tiff()) },
         { label: 'non-image content declared as PNG', src: toDataUrl('image/png', Buffer.from('not an image')) },
         { label: 'declared SVG with non-SVG content', src: toDataUrl('image/svg+xml', png()) },
     ])('data URL with $label is rejected and left inline', async ({ src }) => {
@@ -243,7 +241,7 @@ describe('resourceConverter edge cases', () => {
     });
 
     test('data URL is stored with its detected type, not the declared one', async () => {
-        const result = await convertImagesToResources(makeBody(`<img src="${toDataUrl('image/png', JPEG_BYTES)}">`));
+        const result = await convertImagesToResources(makeBody(`<img src="${toDataUrl('image/png', jpeg())}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.jpg', mime: 'image/jpeg' }, [
             { path: expect.stringMatching(/\.jpg$/) },
@@ -332,7 +330,7 @@ describe('resourceConverter edge cases', () => {
         {
             label: 'contradicting signature',
             contentType: 'image/png',
-            bytes: JPEG_BYTES,
+            bytes: jpeg(),
             src: 'photo.png',
             title: 'photo.jpg',
             mime: 'image/jpeg',
@@ -348,7 +346,7 @@ describe('resourceConverter edge cases', () => {
     });
 
     test.each([
-        { label: 'unsupported image type (TIFF)', contentType: 'image/tiff', bytes: TIFF_BYTES },
+        { label: 'unsupported image type (TIFF)', contentType: 'image/tiff', bytes: tiff() },
         { label: 'HTML error page declared as PNG', contentType: 'image/png', bytes: Buffer.from('<html></html>') },
         { label: 'non-SVG content declared as SVG', contentType: 'image/svg+xml', bytes: png() },
     ])('declared $label is rejected', async ({ contentType, bytes }) => {

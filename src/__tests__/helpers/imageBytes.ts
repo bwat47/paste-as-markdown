@@ -29,3 +29,13 @@ export function png(extraChunks: Buffer[] = []): Uint8Array {
 export function apng(): Uint8Array {
     return png([pngChunk('acTL', APNG_ACTL_BYTES)]);
 }
+
+/** Build a minimal JPEG detection header, not a complete image. */
+export function jpeg(): Uint8Array {
+    return Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]);
+}
+
+/** Build a minimal little-endian TIFF detection header, not a complete image. */
+export function tiff(): Uint8Array {
+    return Uint8Array.from([0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0]);
+}
