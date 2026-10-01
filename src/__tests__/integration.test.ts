@@ -241,14 +241,6 @@ describe('integration: convertHtmlToMarkdown', () => {
         }
     });
 
-    test('single <br> becomes hard line break (two spaces + newline)', async () => {
-        const html = '<span>First line</span><br><span>Second line</span>';
-        const { markdown: md } = await convertHtmlToMarkdown(html);
-        // Hard line break should be represented as two spaces before newline
-        expect(md).toMatch(/First line {2}\nSecond line/);
-        expect(md).not.toMatch(/<br\/?/i);
-    });
-
     test('collapses excessive blank lines from email div+br structure', async () => {
         const html = `
 <div>Para 1 line</div><div><br></div><div><b>Para 2 start</b> rest of para</div>
@@ -274,21 +266,11 @@ describe('integration: convertHtmlToMarkdown', () => {
         expect(md).toMatch(/```\nLine 1\nLine 2\n```/);
     });
 
-    test('handles table cell content with consistent formatting', async () => {
+    test('preserves <br> in a top-level table cell and pads columns', async () => {
         const html =
             '<table><thead><tr><th>Col1</th><th>Col2</th></tr></thead><tbody><tr><td>A<br>B</td><td>C</td></tr></tbody></table>';
         const { markdown: md } = await convertHtmlToMarkdown(html);
-        // The GFM plugin handles all table cell processing, maintaining table structure
-        expect(md).toMatch(/\|\s*Col1\s*\|\s*Col2\s*\|/); // Header row
-        expect(md).toMatch(/\|\s*---\s*\|\s*---\s*\|/); // Separator row
-        // Content should be present and table structure maintained
-        expect(md).toContain('A');
-        expect(md).toContain('B');
-        expect(md).toContain('C');
-        // Should be a complete table (no broken structure)
-        const lines = md.split('\n');
-        const tableLines = lines.filter((line) => line.includes('|'));
-        expect(tableLines.length).toBeGreaterThanOrEqual(3); // Header, separator, data row
+        expect(md).toBe('| Col1 | Col2 |\n| --- | --- |\n| A<br>B | C   |');
     });
 
     test('removes standalone &nbsp; placeholder paragraph from Outlook HTML', async () => {
@@ -399,30 +381,40 @@ describe('integration: convertHtmlToMarkdown', () => {
     });
 
     test.each([
-        ['a single break', '<a href="https://example.com"><span>Open on</span><br><span>Scrimba</span></a>'],
-        ['consecutive breaks', '<a href="https://example.com"><span>Open on</span><br><br><span>Scrimba</span></a>'],
-    ])('replaces %s inside an anchor with a space instead of a hard break', async (_caseName, html) => {
+        [
+            'replaces a single break inside an anchor with a space',
+            '<a href="https://example.com"><span>Open on</span><br><span>Scrimba</span></a>',
+            '[Open on Scrimba](https://example.com)',
+        ],
+        [
+            'replaces consecutive breaks inside an anchor with a space',
+            '<a href="https://example.com"><span>Open on</span><br><br><span>Scrimba</span></a>',
+            '[Open on Scrimba](https://example.com)',
+        ],
+        ['keeps a hard break outside anchors', '<p>First line<br>Second line</p>', 'First line  \nSecond line'],
+    ])('%s', async (_caseName, html, expected) => {
         const { markdown: md } = await convertHtmlToMarkdown(html);
 
-        expect(md).toBe('[Open on Scrimba](https://example.com)');
+        expect(md).toBe(expected);
     });
 
-    test('keeps <br> hard breaks outside anchors', async () => {
-        const html = '<p>First line<br>Second line</p>';
-        const { markdown: md } = await convertHtmlToMarkdown(html);
-
-        // Turndown emits either a backslash or two trailing spaces for a hard break.
-        expect(md).toMatch(/First line(\\| {2})\nSecond line/);
-    });
-
-    test('flattens table internals in anchors so no table rows leak into link text', async () => {
+    test.each([
         // Unwrapping only <table> would leave rows behind for Turndown's GFM table rules,
         // which emit pipe rows and a leading newline inside the link text.
-        const html =
-            '<a href="https://example.com"><table><thead><tr><th>Head</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table></a>';
+        [
+            'flattens table internals in anchors so no table rows leak into link text',
+            '<a href="https://example.com"><table><thead><tr><th>Head</th></tr></thead><tbody><tr><td>Cell</td></tr></tbody></table></a>',
+            '[Head Cell](https://example.com)',
+        ],
+        [
+            'does not add leading whitespace for a compact empty block in an anchor',
+            '<a href="https://example.com"><div></div><span>Open</span></a>',
+            '[Open](https://example.com)',
+        ],
+    ])('%s', async (_caseName, html, expected) => {
         const { markdown: md } = await convertHtmlToMarkdown(html);
 
-        expect(md).toBe('[Head Cell](https://example.com)');
+        expect(md).toBe(expected);
     });
 
     test.each([
@@ -433,13 +425,6 @@ describe('integration: convertHtmlToMarkdown', () => {
         const { markdown: md } = await convertHtmlToMarkdown(html);
 
         expect(md).toBe('[Before First Second After](https://example.com)');
-    });
-
-    test('does not add leading whitespace for a compact empty block in an anchor', async () => {
-        const html = '<a href="https://example.com"><div></div><span>Open</span></a>';
-        const { markdown: md } = await convertHtmlToMarkdown(html);
-
-        expect(md).toBe('[Open](https://example.com)');
     });
 
     test.each([

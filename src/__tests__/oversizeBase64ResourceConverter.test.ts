@@ -1,6 +1,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import type { Mock } from 'vitest';
 import { convertImagesToResources } from '../resourceConverter';
+import { pngExceeding } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;
 
@@ -36,9 +37,8 @@ beforeEach(() => installJoplin());
 
 describe('oversize base64 (configured small limit)', () => {
     test('rejects base64 exceeding the configured limit', async () => {
-        // For 64 byte limit: need estimatedBytes > 64. estimatedBytes=floor(len*3/4)
-        // Choose base64 length 100 -> floor(100*3/4)=75 > 64
-        const b64 = 'A'.repeat(100);
+        // A valid PNG over the limit, so only the size check can reject it
+        const b64 = Buffer.from(pngExceeding(TEST_MAX_IMAGE_BYTES)).toString('base64');
         const url = `data:image/png;base64,${b64}`;
         const b = body(`<img src="${url}">`);
         const result = await convertImagesToResources(b, { maxImageBytes: TEST_MAX_IMAGE_BYTES });

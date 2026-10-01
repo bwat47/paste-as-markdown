@@ -113,13 +113,7 @@ describe('invalid list wrapper unwrapping', () => {
             <li>Second item</li>
         </ul>`;
         const { markdown } = await convertHtmlToMarkdown(html);
-        const md = markdown.trim();
-
-        // Should preserve proper nesting
-        expect(md).toMatch(/^-\s+First item/m);
-        expect(md).toContain('1. Sub item 1');
-        expect(md).toContain('2. Sub item 2');
-        expect(md).toMatch(/^-\s+Second item/m);
+        expect(markdown.trim()).toBe('- First item\n\t1. Sub item 1\n\t2. Sub item 2\n- Second item');
     });
 
     test('OL wrapping UL (reverse case)', async () => {

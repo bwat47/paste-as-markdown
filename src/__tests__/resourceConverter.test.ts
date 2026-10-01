@@ -3,7 +3,7 @@ import type { Mock } from 'vitest';
 import * as path from 'path';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
-import { apng, jpeg, png, tiff } from './helpers/imageBytes';
+import { apng, jpeg, png, pngExceeding, tiff } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;
 const TEST_DOWNLOAD_TIMEOUT_MS = 50;
@@ -41,24 +41,25 @@ function mockRemoteResponse(contentLength: number, contentType = 'image/png', by
     }));
 }
 
-/** Remote response streaming `bytes` in small chunks, splitting signatures to exercise detection after merging. */
-function mockChunkedResponse(contentType: string | null, bytes: Uint8Array) {
+/** Stream reader `read` spy yielding `bytes` in `TEST_CHUNK_BYTES` chunks. */
+function chunkedRead(bytes: Uint8Array) {
     let offset = 0;
+    return vi.fn(async () => {
+        if (offset >= bytes.length) return { done: true };
+        const value = bytes.subarray(offset, offset + TEST_CHUNK_BYTES);
+        offset += value.length;
+        return { done: false, value };
+    });
+}
+
+/** Remote response streaming `bytes` in small chunks, splitting signatures to exercise detection after merging. */
+function mockChunkedResponse(contentType: string | null, bytes: Uint8Array, read = chunkedRead(bytes)) {
     return vi.fn(async () => ({
         ok: true,
         headers: {
             get: (h: string) => (h.toLowerCase() === 'content-type' ? contentType : null),
         },
-        body: {
-            getReader: () => ({
-                read: async () => {
-                    if (offset >= bytes.length) return { done: true };
-                    const value = bytes.subarray(offset, offset + TEST_CHUNK_BYTES);
-                    offset += value.length;
-                    return { done: false, value };
-                },
-            }),
-        },
+        body: { getReader: () => ({ read }) },
     }));
 }
 
@@ -182,39 +183,19 @@ describe('resourceConverter edge cases', () => {
         expect(body.querySelector('img')!.getAttribute('src')).toBe(PNG_DATA_URL);
     });
 
-    test('invalid base64 characters cause failure', async () => {
-        const bad = 'data:image/png;base64,@@@###==='; // invalid chars
-        const body = makeBody(`<img src="${bad}">`);
-        const result = await convertImagesToResources(body);
-        expect(result.attempted).toBe(1);
-        expect(result.failed).toBe(1);
-        expect(result.ids).toHaveLength(0);
-    });
-
-    test('malformed base64 padding (length %4 == 1) causes failure', async () => {
-        // base64 length 5 -> 5 % 4 ==1
-        const malformed = 'data:image/png;base64,AAAAA';
-        const body = makeBody(`<img src="${malformed}">`);
-        const result = await convertImagesToResources(body);
-        expect(result.failed).toBe(1);
-    });
-
-    test('padding in the middle of base64 causes failure', async () => {
-        // Buffer's decoder would silently stop at the first '=' and yield a truncated image
-        const body = makeBody('<img src="data:image/png;base64,QQ==QQ==">');
-        const result = await convertImagesToResources(body);
-        expect(result.failed).toBe(1);
-        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
-    });
-
+    // Malformed encodings of GIF bytes ("R0lGODlh" = "GIF89a", "R0lGODlhIQ==" = "GIF89a!"). Buffer's lenient
+    // decoder would still yield a valid GIF from each, so only base64 validation can reject them.
     test.each([
-        { label: 'padding on a non-multiple-of-4 length', b64: 'QQ=' },
-        { label: 'excess padding', b64: 'QUJD==' },
-        { label: 'padding after a dangling data character', b64: 'QUJDA==' },
+        { label: 'invalid character', b64: 'R0lGOD@lhIQ=' },
+        { label: 'data length % 4 == 1', b64: 'R0lGODlhA' },
+        { label: 'padding in the middle', b64: 'R0lGODlhIQ==QQ==' },
+        { label: 'padding on a non-multiple-of-4 length', b64: 'R0lGODlhIQ=' },
+        { label: 'excess padding', b64: 'R0lGODlh==' },
+        { label: 'padding after a dangling data character', b64: 'R0lGODlhA==' },
     ])('malformed base64 ($label) causes failure', async ({ b64 }) => {
-        const body = makeBody(`<img src="data:image/png;base64,${b64}">`);
+        const body = makeBody(`<img src="data:image/gif;base64,${b64}">`);
         const result = await convertImagesToResources(body);
-        expect(result.failed).toBe(1);
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
         expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
     });
 
@@ -276,28 +257,16 @@ describe('resourceConverter edge cases', () => {
     });
 
     test.each(['image/png', 'application/octet-stream'])('streaming oversize %s aborts mid-stream', async (mime) => {
-        // Single chunk larger than limit to guarantee immediate failure
-        const hugeChunk = new Uint8Array(TEST_MAX_IMAGE_BYTES + 1);
-        let served = false;
-        fetchMock = vi.fn(async () => ({
-            ok: true,
-            headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? mime : null) },
-            body: {
-                getReader: () => ({
-                    read: async () => {
-                        if (served) return { done: true };
-                        served = true;
-                        return { done: false, value: hugeChunk };
-                    },
-                }),
-            },
-        }));
-        setGlobal('fetch', fetchMock);
+        // A valid PNG well over the limit, without content-length, so only the streaming check can reject it
+        const bytes = pngExceeding(TEST_MAX_IMAGE_BYTES * 3);
+        const read = chunkedRead(bytes);
+        setGlobal('fetch', mockChunkedResponse(mime, bytes, read));
         const body = makeBody('<img src="https://example.com/large.png">');
         const result = await convertImagesToResources(body, { maxImageBytes: TEST_MAX_IMAGE_BYTES });
-        expect(result.attempted).toBe(1);
-        expect(result.failed).toBe(1);
-        expect(result.ids).toHaveLength(0);
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+        // Reading stops at the first chunk that crosses the limit
+        expect(read).toHaveBeenCalledTimes(Math.ceil((TEST_MAX_IMAGE_BYTES + 1) / TEST_CHUNK_BYTES));
     });
 
     test('oversize octet-stream content-length is rejected before reading the body', async () => {
@@ -474,9 +443,12 @@ describe('resourceConverter edge cases', () => {
             .mockImplementationOnce(() => Promise.reject(new Error('boom')));
         const body = makeBody(`<img src="${PNG_DATA_URL}"><img src="${PNG_DATA_URL}">`);
         const result = await convertImagesToResources(body);
-        expect(result.attempted).toBe(2);
-        expect(fsExtraMock.writeFileSync).toHaveBeenCalled();
-        expect(fsExtraMock.unlink).toHaveBeenCalled(); // called for each attempt (best effort)
+        expect(result).toEqual({ ids: ['res1'], attempted: 2, failed: 1 });
+        const writtenPaths = fsExtraMock.writeFileSync.mock.calls.map((call) => call[0]);
+        expect(new Set(writtenPaths).size).toBe(2);
+        for (const writtenPath of writtenPaths) {
+            expect(fsExtraMock.unlink).toHaveBeenCalledWith(writtenPath, expect.any(Function));
+        }
     });
 
     test('converts src to resource ID and marks as converted', async () => {

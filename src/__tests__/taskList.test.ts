@@ -46,15 +46,7 @@ describe('task list conversion (GFM)', () => {
     </li>
     </ul>`;
         const { markdown } = await convertHtmlToMarkdown(html);
-        const lines = markdown.trim().split(/\n/);
-        // Expect 4 lines: two top-level and two nested
-        expect(lines).toHaveLength(4);
-        // Top-level lines exact spacing
-        expect(lines[0]).toBe('- [ ] ABC');
-        expect(lines[1]).toBe('- [ ] 123');
-        // Nested lines: currently normalization may flatten indentation; accept either indented or flush-left
-        expect(lines[2]).toMatch(/^(?:[ \t]*- \[ \] 456)$/);
-        expect(lines[3]).toMatch(/^(?:[ \t]*- \[ \] 789)$/);
+        expect(markdown.trim()).toBe('- [ ] ABC\n- [ ] 123\n\t- [ ] 456\n\t- [ ] 789');
     });
 
     test('checkbox wrapped in paragraph is promoted before conversion', async () => {

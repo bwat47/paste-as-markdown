@@ -30,6 +30,11 @@ export function apng(): Uint8Array {
     return png([pngChunk('acTL', APNG_ACTL_BYTES)]);
 }
 
+/** Build a valid PNG larger than `byteCount`, padded with an ancillary (`tEXt`) chunk. */
+export function pngExceeding(byteCount: number): Uint8Array {
+    return png([pngChunk('tEXt', byteCount)]);
+}
+
 /** Build a minimal JPEG detection header, not a complete image. */
 export function jpeg(): Uint8Array {
     return Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]);
