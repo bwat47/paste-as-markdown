@@ -41,4 +41,16 @@ describe('non-content UI cleanup', () => {
         // We expect the code block to contain the text from the button or input (e.g., "UI")
         expect(/<pre><code>[\s\S]*UI[\s\S]*<\/code><\/pre>/.test(html)).toBe(true);
     });
+
+    test('preserves images that are themselves role="button" lightbox triggers', async () => {
+        const input = `
+            <figure>
+                <img src="https://example.com/photo.jpg" alt="Workspace" class="lb-zoom" tabindex="0" role="button">
+                <figcaption>Workspace</figcaption>
+            </figure>
+        `;
+
+        const { body } = await processHtml(input, inertPasteOptions({ includeImages: true }));
+        expect(body!.querySelector('img')?.getAttribute('src')).toBe('https://example.com/photo.jpg');
+    });
 });

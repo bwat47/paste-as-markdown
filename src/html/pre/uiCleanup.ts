@@ -1,11 +1,13 @@
 import { isInCode, isTextNode, isElement, unwrapElement } from '../shared/dom';
 
+const MEDIA_SELECTOR = 'img, picture, source, video, audio, canvas';
+
 /**
  * Check if an element contains meaningful content like images, videos, or accessible SVGs.
  */
 function hasMeaningfulContent(element: HTMLElement): boolean {
     // Check for images
-    if (element.querySelector('img, picture, source, video, audio, canvas')) {
+    if (element.querySelector(MEDIA_SELECTOR)) {
         return true;
     }
 
@@ -36,6 +38,9 @@ export function removeNonContentUi(body: HTMLElement): void {
     // Merged query: both <button> and [role="button"] in one pass
     Array.from(body.querySelectorAll('button, [role="button"]')).forEach((btn) => {
         if (isInCode(btn)) return;
+
+        // Media given role="button" (e.g. lightbox zoom triggers) is content, not UI; keep it as is.
+        if (btn.matches(MEDIA_SELECTOR)) return;
 
         // If button contains meaningful content (images, etc.), unwrap it to preserve the content
         if (hasMeaningfulContent(btn as HTMLElement)) {
