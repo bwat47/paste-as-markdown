@@ -1,8 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
+import * as path from 'path';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
-import { apng } from './helpers/imageBytes';
+import { apng, png } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;
 const TEST_DOWNLOAD_TIMEOUT_MS = 50;
@@ -15,8 +16,8 @@ function makeBody(html: string): HTMLElement {
     return doc.body as HTMLElement;
 }
 
-/** Remote PNG response advertising `contentLength` and streaming a single small chunk. */
-function mockRemotePngResponse(contentLength: number, contentType = 'image/png') {
+/** Remote response advertising `contentLength` and streaming `bytes` (a small PNG by default) as a single chunk. */
+function mockRemoteResponse(contentLength: number, contentType = 'image/png', bytes: Uint8Array = png()) {
     let served = false;
     return vi.fn(async () => ({
         ok: true,
@@ -33,7 +34,7 @@ function mockRemotePngResponse(contentLength: number, contentType = 'image/png')
                 read: async () => {
                     if (served) return { done: true };
                     served = true;
-                    return { done: false, value: new Uint8Array(8) };
+                    return { done: false, value: bytes };
                 },
             }),
         },
@@ -72,7 +73,15 @@ function rejectOnAbort(signal: AbortSignal | undefined): Promise<never> {
 // Small 1x1 transparent png (same as existing tests)
 const PNG_DATA_URL =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
-const SVG_BASE64 = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>').toString('base64');
+const SVG_BYTES = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+const WEBP_BYTES = Buffer.from('RIFF\x14\x00\x00\x00WEBPVP8 ');
+const AVIF_BYTES = Buffer.from('\x00\x00\x00\x14ftypavif\x00\x00\x00\x00mif1');
+const JPEG_BYTES = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0]);
+const TIFF_BYTES = Uint8Array.from([0x49, 0x49, 0x2a, 0x00, 8, 0, 0, 0]);
+
+function toDataUrl(mime: string, bytes: Uint8Array): string {
+    return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
+}
 
 interface JoplinMock {
     plugins: { dataDir: Mock };
@@ -212,11 +221,33 @@ describe('resourceConverter edge cases', () => {
     });
 
     test('valid unpadded base64 is accepted', async () => {
-        const body = makeBody('<img src="data:image/png;base64,QUJDQQ">');
+        const gif = Buffer.from('GIF89a!');
+        const unpadded = gif.toString('base64').replace(/=/g, '');
+        const body = makeBody(`<img src="data:image/gif;base64,${unpadded}">`);
         const result = await convertImagesToResources(body);
         expect(result.failed).toBe(0);
         const written = fsExtraMock.writeFileSync.mock.calls[0][1] as Uint8Array;
-        expect(Array.from(written)).toEqual([0x41, 0x42, 0x43, 0x41]);
+        expect(Array.from(written)).toEqual(Array.from(gif));
+    });
+
+    test.each([
+        { label: 'unsupported type (TIFF)', src: toDataUrl('image/tiff', TIFF_BYTES) },
+        { label: 'non-image content declared as PNG', src: toDataUrl('image/png', Buffer.from('not an image')) },
+        { label: 'declared SVG with non-SVG content', src: toDataUrl('image/svg+xml', png()) },
+    ])('data URL with $label is rejected and left inline', async ({ src }) => {
+        const body = makeBody(`<img src="${src}">`);
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+        expect(body.querySelector('img')?.getAttribute('src')).toBe(src);
+    });
+
+    test('data URL is stored with its detected type, not the declared one', async () => {
+        const result = await convertImagesToResources(makeBody(`<img src="${toDataUrl('image/png', JPEG_BYTES)}">`));
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.jpg', mime: 'image/jpeg' }, [
+            { path: expect.stringMatching(/\.jpg$/) },
+        ]);
     });
 
     test('small base64 image writes exactly its decoded bytes', async () => {
@@ -272,7 +303,7 @@ describe('resourceConverter edge cases', () => {
     });
 
     test('oversize octet-stream content-length is rejected before reading the body', async () => {
-        setGlobal('fetch', mockRemotePngResponse(TEST_MAX_IMAGE_BYTES + 1, 'application/octet-stream'));
+        setGlobal('fetch', mockRemoteResponse(TEST_MAX_IMAGE_BYTES + 1, 'application/octet-stream'));
         const result = await convertImagesToResources(makeBody('<img src="https://example.com/large.webp">'), {
             maxImageBytes: TEST_MAX_IMAGE_BYTES,
         });
@@ -281,7 +312,7 @@ describe('resourceConverter edge cases', () => {
     });
 
     test('image/avif response without a URL extension gets an avif filename', async () => {
-        setGlobal('fetch', mockRemotePngResponse(8, 'image/avif'));
+        setGlobal('fetch', mockRemoteResponse(AVIF_BYTES.length, 'image/avif', AVIF_BYTES));
         const result = await convertImagesToResources(makeBody('<img src="https://example.com/photo">'));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.avif', mime: 'image/avif' }, [
@@ -290,24 +321,51 @@ describe('resourceConverter edge cases', () => {
     });
 
     test.each([
-        { label: 'contradicting URL extension', contentType: 'image/webp', src: 'photo.jpg', ext: 'webp' },
-        { label: 'unknown image type', contentType: 'image/tiff', src: 'scan.tif', ext: 'tif' },
-    ])('declared type with $label is stored with .$ext', async ({ contentType, src, ext }) => {
-        setGlobal('fetch', mockRemotePngResponse(8, contentType));
+        {
+            label: 'contradicting URL extension',
+            contentType: 'image/webp',
+            bytes: WEBP_BYTES,
+            src: 'photo.jpg',
+            title: 'photo.webp',
+            mime: 'image/webp',
+        },
+        {
+            label: 'contradicting signature',
+            contentType: 'image/png',
+            bytes: JPEG_BYTES,
+            src: 'photo.png',
+            title: 'photo.jpg',
+            mime: 'image/jpeg',
+        },
+    ])('declared type with $label is stored as $title', async ({ contentType, bytes, src, title, mime }) => {
+        setGlobal('fetch', mockRemoteResponse(bytes.length, contentType, bytes));
         const result = await convertImagesToResources(makeBody(`<img src="https://example.com/${src}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
-        const title = src.replace(/\.\w+$/, `.${ext}`);
-        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: contentType }, [
-            { path: expect.stringMatching(new RegExp(`\\.${ext}$`)) },
+        const ext = path.extname(title);
+        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime }, [
+            { path: expect.stringMatching(new RegExp(`\\${ext}$`)) },
         ]);
+    });
+
+    test.each([
+        { label: 'unsupported image type (TIFF)', contentType: 'image/tiff', bytes: TIFF_BYTES },
+        { label: 'HTML error page declared as PNG', contentType: 'image/png', bytes: Buffer.from('<html></html>') },
+        { label: 'non-SVG content declared as SVG', contentType: 'image/svg+xml', bytes: png() },
+    ])('declared $label is rejected', async ({ contentType, bytes }) => {
+        setGlobal('fetch', mockRemoteResponse(bytes.length, contentType, bytes));
+        const body = makeBody('<img src="https://example.com/scan.tif">');
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+        expect(body.querySelector('img')?.getAttribute('src')).toBe('https://example.com/scan.tif');
     });
 
     // SVG has no binary signature, so octet-stream SVG is rejected above; declared SVG is kept.
     test.each([
         { label: 'declared image/svg+xml download', src: 'https://example.com/diagram.svg', title: 'diagram.svg' },
-        { label: 'SVG data URL', src: `data:image/svg+xml;base64,${SVG_BASE64}`, title: 'pasted.svg' },
+        { label: 'SVG data URL', src: toDataUrl('image/svg+xml', SVG_BYTES), title: 'pasted.svg' },
     ])('$label is stored as SVG', async ({ src, title }) => {
-        setGlobal('fetch', mockRemotePngResponse(8, 'image/svg+xml'));
+        setGlobal('fetch', mockRemoteResponse(SVG_BYTES.length, 'image/svg+xml', SVG_BYTES));
         const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/svg+xml' }, [
@@ -351,7 +409,7 @@ describe('resourceConverter edge cases', () => {
         { label: 'at the cap is accepted', contentLength: TEST_MAX_IMAGE_BYTES, failed: 0, ids: 1 },
         { label: 'one byte over the cap is rejected', contentLength: TEST_MAX_IMAGE_BYTES + 1, failed: 1, ids: 0 },
     ])('remote image whose content-length sits $label', async ({ contentLength, failed, ids }) => {
-        fetchMock = mockRemotePngResponse(contentLength);
+        fetchMock = mockRemoteResponse(contentLength);
         setGlobal('fetch', fetchMock);
         const body = makeBody('<img src="https://example.com/sized.png">');
         const result = await convertImagesToResources(body, { maxImageBytes: TEST_MAX_IMAGE_BYTES });
