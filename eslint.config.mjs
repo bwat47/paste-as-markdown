@@ -57,6 +57,14 @@ export default [
         },
     },
 
+    // Asymmetric matchers such as expect.stringMatching() are typed `any`.
+    {
+        files: ['src/__tests__/**'],
+        rules: {
+            '@typescript-eslint/no-unsafe-assignment': 'off',
+        },
+    },
+
     // Prettier compatibility
     prettier,
 ];

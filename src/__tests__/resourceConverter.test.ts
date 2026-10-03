@@ -176,7 +176,7 @@ describe('resourceConverter edge cases', () => {
                 ['resources'],
                 null,
                 { title: `image.${ext}`, mime: `image/${ext}` },
-                [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) as unknown }]
+                [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) }]
             );
             expect(fsExtraMock.writeFileSync.mock.calls[0][1]).toEqual(Uint8Array.from(bytes));
             expect(body.querySelector('img')?.getAttribute('src')).toBe(':/res-ok');
@@ -249,7 +249,7 @@ describe('resourceConverter edge cases', () => {
             ['resources'],
             null,
             { title: `${FALLBACK_STEM}.jpg`, mime: 'image/jpeg' },
-            [{ path: expect.stringMatching(/\.jpg$/) as unknown }]
+            [{ path: expect.stringMatching(/\.jpg$/) }]
         );
     });
 
@@ -335,7 +335,7 @@ describe('resourceConverter edge cases', () => {
             ['resources'],
             null,
             { title: `${FALLBACK_STEM}.avif`, mime: 'image/avif' },
-            [{ path: expect.stringMatching(/\.avif$/) as unknown }]
+            [{ path: expect.stringMatching(/\.avif$/) }]
         );
     });
 
@@ -362,7 +362,7 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         const ext = path.extname(title);
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime }, [
-            { path: expect.stringMatching(new RegExp(`\\${ext}$`)) as unknown },
+            { path: expect.stringMatching(new RegExp(`\\${ext}$`)) },
         ]);
     });
 
@@ -388,7 +388,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/svg+xml' }, [
-            { path: expect.stringMatching(/\.svg$/) as unknown },
+            { path: expect.stringMatching(/\.svg$/) },
         ]);
     });
 
@@ -410,7 +410,7 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         const title = src.endsWith('.apng') ? 'anim.png' : `${FALLBACK_STEM}.png`;
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/png' }, [
-            { path: expect.stringMatching(/\.png$/) as unknown },
+            { path: expect.stringMatching(/\.png$/) },
         ]);
     });
 
@@ -422,7 +422,7 @@ describe('resourceConverter edge cases', () => {
             ['resources'],
             null,
             { title: `${FALLBACK_STEM}.png`, mime: 'image/png' },
-            [{ path: expect.stringMatching(/\.png$/) as unknown }]
+            [{ path: expect.stringMatching(/\.png$/) }]
         );
     });
 
