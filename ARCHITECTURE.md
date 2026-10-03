@@ -70,6 +70,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - Data URLs must declare an `image/*` type; remote downloads must declare one or send no/a generic binary content type. Anything else is rejected before decoding or reading the body.
 - `resolveImageType` in `src/imageMime.ts` decides the stored MIME type and extension from content, never from the declared type: raster images must match an allowlisted `file-type` signature (APNG is stored as PNG). SVG has no signature, so it is accepted only when declared as `image/svg+xml` and parsed by `DOMParser` as well-formed XML with an `svg` root in the SVG namespace. This checks XML syntax, not SVG feature validity or sanitization. Unsupported images fail conversion and keep their original `src`.
 - The resolved type always sets the file extension; a remote URL only contributes the filename stem.
+- Images without a usable URL filename get a fallback stem from `src/resourceTitles.ts`: `pasted-<local YYYY-MM-DD-HHmmss>` shared by the whole paste, with `-2`, `-3`, ... for later fallback images. A stem is used up only when its resource is created, so failed images leave no gaps.
 
 ### Shared Infrastructure
 
