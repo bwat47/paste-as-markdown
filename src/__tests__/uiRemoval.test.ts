@@ -18,7 +18,7 @@ describe('non-content UI cleanup', () => {
 
         const { body } = await processHtml(input, inertPasteOptions());
         expect(body).not.toBeNull();
-        const html = body!.innerHTML;
+        const html = body.innerHTML;
 
         // Checkbox preserved
         expect(/<input[^>]*type="checkbox"/i.test(html)).toBe(true);
@@ -51,6 +51,6 @@ describe('non-content UI cleanup', () => {
         `;
 
         const { body } = await processHtml(input, inertPasteOptions({ includeImages: true }));
-        expect(body!.querySelector('img')?.getAttribute('src')).toBe('https://example.com/photo.jpg');
+        expect(body.querySelector('img')?.getAttribute('src')).toBe('https://example.com/photo.jpg');
     });
 });

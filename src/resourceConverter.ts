@@ -92,7 +92,7 @@ export async function convertImagesToResources(
         logger.info('fs-extra unavailable; skipping resource conversion', (err as Error)?.message);
         return { ids: [], attempted: 0, failed: 0 };
     }
-    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
+    const imgs = Array.from(body.querySelectorAll('img[src]'));
     const pastedAt = new Date();
     // Counts only resources actually created, so failed images leave no gaps in the fallback sequence
     let fallbackCount = 0;

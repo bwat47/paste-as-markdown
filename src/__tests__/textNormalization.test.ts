@@ -8,7 +8,7 @@ describe('text normalization toggle', () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: false }));
         expect(body).not.toBeNull();
-        const html = body!.innerHTML;
+        const html = body.innerHTML;
 
         // Curly quotes should remain when normalization is disabled
         expect(html).toContain('\u201CSmart\u201D');
@@ -23,7 +23,7 @@ describe('text normalization toggle', () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
         expect(body).not.toBeNull();
-        const html = body!.innerHTML;
+        const html = body.innerHTML;
 
         // Curly quotes should be converted to straight quotes
         expect(html).toContain('"Smart"');
@@ -35,7 +35,7 @@ describe('text normalization toggle', () => {
         const input = '<p>Use&nbsp;&amp;nbsp; or &amp;#8220; entities &#8220;here&#8221;</p>';
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
         expect(body).not.toBeNull();
-        expect(body!.textContent).toBe('Use &nbsp; or &#8220; entities "here"');
+        expect(body.textContent).toBe('Use &nbsp; or &#8220; entities "here"');
     });
 });
 
@@ -69,6 +69,6 @@ describe('character normalization', () => {
     ])('$name', async ({ input, expected }) => {
         const { body } = await processHtml(input, inertPasteOptions());
         expect(body).not.toBeNull();
-        expect(body!.textContent).toBe(expected);
+        expect(body.textContent).toBe(expected);
     });
 });

@@ -101,7 +101,7 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
     service.addRule('pamListItem', {
         filter: 'li',
         replacement: (content, node, options: TurndownService.Options) => {
-            const element = node as HTMLElement;
+            const element = node;
             const parent = element.parentElement;
             let prefix: string;
             if (parent && parent.nodeName === 'OL') {

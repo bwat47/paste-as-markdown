@@ -11,7 +11,7 @@ export function removeGoogleDocsWrappers(body: HTMLElement): void {
 
     // Find the Google Docs marker anywhere within the pasted HTML.
     // Some pastes place the docs-internal id on a descendant rather than the wrapper node.
-    const marker = body.querySelector('[id^="docs-internal-guid-"]') as HTMLElement | null;
+    const marker = body.querySelector('[id^="docs-internal-guid-"]');
 
     // If a marker exists, ensure we only unwrap wrappers that actually contain it.
     const markerContainedBy = (el: Element) => (marker ? el.contains(marker) : true);

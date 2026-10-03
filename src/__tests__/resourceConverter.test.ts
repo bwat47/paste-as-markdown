@@ -16,7 +16,7 @@ const FALLBACK_STEM = 'pasted-2026-10-03-143025';
 function makeBody(html: string): HTMLElement {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
-    return doc.body as HTMLElement;
+    return doc.body;
 }
 
 /** Remote response advertising `contentLength` and streaming `bytes` (a small PNG by default) as a single chunk. */
@@ -96,7 +96,7 @@ let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
 let fetchMock: Mock | undefined;
 
 function setGlobal<T>(key: string, value: T) {
-    (globalThis as unknown as Record<string, unknown>)[key] = value as unknown;
+    (globalThis as unknown as Record<string, unknown>)[key] = value;
 }
 
 function installJoplinMocks(fsAvailable = true) {

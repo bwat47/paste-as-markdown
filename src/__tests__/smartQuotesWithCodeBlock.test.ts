@@ -9,7 +9,7 @@ describe('smart quotes normalization with large code block present', () => {
         const input = readFileSync(join(__dirname, 'clipboard_export.html'), 'utf8');
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
         expect(body).not.toBeNull();
-        const html = body!.innerHTML;
+        const html = body.innerHTML;
 
         // Expect the “Copy as HTML / Plain Text” phrase to be normalized to straight quotes.
         // We look for any occurrence of the phrase with straight quotes in the sanitized output.

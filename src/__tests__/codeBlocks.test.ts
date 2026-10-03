@@ -79,7 +79,7 @@ describe('normalizeCodeBlocks', () => {
 
         normalizeCodeBlocks(body);
 
-        const code = body.querySelector('pre code') as HTMLElement | null;
+        const code = body.querySelector('pre code');
         expect(code).not.toBeNull();
         expect(code?.classList.contains('language-typescript')).toBe(true);
         expect(body.innerHTML).not.toContain('TypeScript');

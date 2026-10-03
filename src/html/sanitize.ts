@@ -29,7 +29,7 @@ export function sanitizeHtml(content: DocumentFragment, includeImages: boolean):
         throw new Error('Window is undefined');
     }
 
-    const purifier = createDOMPurify(window as unknown as typeof window);
+    const purifier = createDOMPurify(window);
     purifier.addHook('afterSanitizeAttributes', restrictInputsToCheckboxes);
     const sanitized = purifier.sanitize(content, { ...buildSanitizerConfig({ includeImages }), RETURN_DOM: true });
     if (!isHtmlElement(sanitized)) {

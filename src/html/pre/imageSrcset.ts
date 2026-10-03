@@ -200,7 +200,7 @@ function collectSrcsetCandidatePool(image: HTMLImageElement): string[] {
  * at all. Existing src values remain authoritative, and DOMPurify validates every promoted URL.
  */
 export function promoteLargestSrcsetCandidateToSrc(body: HTMLElement): void {
-    const images = Array.from(body.querySelectorAll('img')) as HTMLImageElement[];
+    const images = Array.from(body.querySelectorAll('img'));
 
     images.forEach((image) => {
         if (image.getAttribute('src')?.trim()) return;

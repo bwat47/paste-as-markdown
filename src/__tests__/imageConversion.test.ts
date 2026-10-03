@@ -44,7 +44,7 @@ describe('image resource conversion', () => {
             data: {
                 post: dataPostMock,
             },
-        } as JoplinMock;
+        };
     });
 
     test('converts a single base64 image to a resource and sanitizes attributes', async () => {
@@ -59,7 +59,7 @@ describe('image resource conversion', () => {
         // Resulting markup should have resource src and only whitelisted attributes
         const body = result.body;
         expect(body).not.toBeNull();
-        const outputHtml = body!.innerHTML;
+        const outputHtml = body.innerHTML;
         expect(outputHtml).toContain('src=":/res1"');
         expect(outputHtml).not.toContain('data-junk');
     });
@@ -128,6 +128,6 @@ describe('image resource conversion', () => {
         // One image should reference resource; second should remain as original data URL (or possibly sanitized original)
         const body = result.body;
         expect(body).not.toBeNull();
-        expect(body!.innerHTML).toContain('src=":/resA"');
+        expect(body.innerHTML).toContain('src=":/resA"');
     });
 });

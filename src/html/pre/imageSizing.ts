@@ -4,7 +4,7 @@
  * to treat sized images as raw HTML embeds instead of Markdown images.
  */
 export function promoteImageSizingStylesToAttributes(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[style]')) as HTMLImageElement[];
+    const imgs = Array.from(body.querySelectorAll('img[style]'));
     imgs.forEach((img) => {
         const style = img.getAttribute('style')!; // Non-null: selector guarantees style exists
         const hasAttrWidth = img.hasAttribute('width');
