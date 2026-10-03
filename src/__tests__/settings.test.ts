@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import type { Mock } from 'vitest';
+import type { SettingItem } from 'api/types';
 import { SettingItemType } from 'api/types';
 import { DEFAULT_PASTE_OPTIONS, loadPasteOptions, registerPluginSettings, SETTINGS } from '../settings';
 import logger from '../logger';
@@ -9,13 +10,13 @@ vi.mock('api');
 
 describe('settings', () => {
     let registerSection: Mock;
-    let registerSettings: Mock;
+    let registerSettings: Mock<(settings: Record<string, SettingItem>) => Promise<void>>;
     let values: Mock<(keys: string[]) => Promise<Record<string, unknown>>>;
 
     beforeEach(async () => {
         vi.clearAllMocks();
         registerSection = vi.fn<() => Promise<void>>().mockResolvedValue();
-        registerSettings = vi.fn<() => Promise<void>>().mockResolvedValue();
+        registerSettings = vi.fn<(settings: Record<string, SettingItem>) => Promise<void>>().mockResolvedValue();
         values = vi.fn<(keys: string[]) => Promise<Record<string, unknown>>>();
 
         const joplinModule = await import('api');

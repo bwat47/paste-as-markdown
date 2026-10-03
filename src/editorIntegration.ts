@@ -9,7 +9,7 @@ const INSERTION_FAILURE_MESSAGE = 'Unable to insert markdown into editor';
 /** Returns whether the pending context menu was opened from a Markdown editor. */
 async function isEditorContextMenuOrigin(): Promise<boolean> {
     try {
-        const result = await joplin.commands.execute('editor.execCommand', {
+        const result: unknown = await joplin.commands.execute('editor.execCommand', {
             name: IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND,
         });
         return result === true;
@@ -22,7 +22,7 @@ async function isEditorContextMenuOrigin(): Promise<boolean> {
 /** Returns whether Joplin is using its Markdown editor rather than the rich text editor. */
 export async function isMarkdownEditorMode(): Promise<boolean> {
     try {
-        const isMarkdownEditor = await joplin.settings.globalValue(EDITOR_CODE_VIEW_SETTING);
+        const isMarkdownEditor: unknown = await joplin.settings.globalValue(EDITOR_CODE_VIEW_SETTING);
         return isMarkdownEditor === true;
     } catch (err) {
         logger.debug('Markdown editor mode check failed', err);
@@ -42,7 +42,7 @@ export async function isMarkdownEditorContextMenuOrigin(): Promise<boolean> {
  */
 export async function insertMarkdownAtCursor(markdown: string): Promise<void> {
     try {
-        const inserted = await joplin.commands.execute('editor.execCommand', {
+        const inserted: unknown = await joplin.commands.execute('editor.execCommand', {
             name: INSERT_MARKDOWN_COMMAND,
             args: [markdown],
         });

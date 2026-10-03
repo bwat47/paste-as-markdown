@@ -92,7 +92,7 @@ interface JoplinMock {
 }
 
 let dataPostMock: Mock;
-let fsExtraMock: { writeFileSync: Mock; existsSync: Mock; unlink: Mock };
+let fsExtraMock: { writeFileSync: Mock<(path: string, data: Uint8Array) => void>; existsSync: Mock; unlink: Mock };
 let fetchMock: Mock | undefined;
 
 function setGlobal<T>(key: string, value: T) {
@@ -102,7 +102,7 @@ function setGlobal<T>(key: string, value: T) {
 function installJoplinMocks(fsAvailable = true) {
     dataPostMock = vi.fn(() => Promise.resolve({ id: 'res-ok' }));
     fsExtraMock = {
-        writeFileSync: vi.fn(),
+        writeFileSync: vi.fn<(path: string, data: Uint8Array) => void>(),
         existsSync: vi.fn().mockReturnValue(true),
         unlink: vi.fn((...args: unknown[]) => {
             const cb = args[1] as ((err?: Error | null) => void) | undefined;
@@ -172,11 +172,20 @@ describe('resourceConverter edge cases', () => {
                 ['resources'],
                 null,
                 { title: `image.${ext}`, mime: `image/${ext}` },
-                [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) }]
+                [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) as unknown }]
             );
             expect(fsExtraMock.writeFileSync.mock.calls[0][1]).toEqual(Uint8Array.from(bytes));
             expect(body.querySelector('img')?.getAttribute('src')).toBe(':/res-ok');
         }
+    });
+
+    test.each([null, {}, { id: 123 }])('rejects an invalid resource response %j and cleans up the temp file', async (response) => {
+        dataPostMock.mockResolvedValue(response);
+        const body = makeBody('<img src="' + PNG_DATA_URL + '">');
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+        expect(body.querySelector('img')?.getAttribute('src')).toBe(PNG_DATA_URL);
+        expect(fsExtraMock.unlink).toHaveBeenCalledOnce();
     });
 
     test('fs-extra unavailable -> graceful skip', async () => {
@@ -210,7 +219,7 @@ describe('resourceConverter edge cases', () => {
         const body = makeBody(`<img src="data:image/gif;base64,${unpadded}">`);
         const result = await convertImagesToResources(body);
         expect(result.failed).toBe(0);
-        const written = fsExtraMock.writeFileSync.mock.calls[0][1] as Uint8Array;
+        const written = fsExtraMock.writeFileSync.mock.calls[0][1];
         expect(Array.from(written)).toEqual(Array.from(gif));
     });
 
@@ -233,7 +242,7 @@ describe('resourceConverter edge cases', () => {
             ['resources'],
             null,
             { title: `${FALLBACK_STEM}.jpg`, mime: 'image/jpeg' },
-            [{ path: expect.stringMatching(/\.jpg$/) }]
+            [{ path: expect.stringMatching(/\.jpg$/) as unknown }]
         );
     });
 
@@ -266,7 +275,7 @@ describe('resourceConverter edge cases', () => {
         const expected = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
         const body = makeBody(`<img src="${PNG_DATA_URL}">`);
         await convertImagesToResources(body);
-        const written = fsExtraMock.writeFileSync.mock.calls[0][1] as Uint8Array;
+        const written = fsExtraMock.writeFileSync.mock.calls[0][1];
         expect(written.byteLength).toBe(expected.byteLength);
         expect(Array.from(written)).toEqual(Array.from(expected));
     });
@@ -317,7 +326,7 @@ describe('resourceConverter edge cases', () => {
             ['resources'],
             null,
             { title: `${FALLBACK_STEM}.avif`, mime: 'image/avif' },
-            [{ path: expect.stringMatching(/\.avif$/) }]
+            [{ path: expect.stringMatching(/\.avif$/) as unknown }]
         );
     });
 
@@ -344,7 +353,7 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         const ext = path.extname(title);
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime }, [
-            { path: expect.stringMatching(new RegExp(`\\${ext}$`)) },
+            { path: expect.stringMatching(new RegExp(`\\${ext}$`)) as unknown },
         ]);
     });
 
@@ -370,7 +379,7 @@ describe('resourceConverter edge cases', () => {
         const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/svg+xml' }, [
-            { path: expect.stringMatching(/\.svg$/) },
+            { path: expect.stringMatching(/\.svg$/) as unknown },
         ]);
     });
 
@@ -392,7 +401,7 @@ describe('resourceConverter edge cases', () => {
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
         const title = src.endsWith('.apng') ? 'anim.png' : `${FALLBACK_STEM}.png`;
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/png' }, [
-            { path: expect.stringMatching(/\.png$/) },
+            { path: expect.stringMatching(/\.png$/) as unknown },
         ]);
     });
 
@@ -404,7 +413,7 @@ describe('resourceConverter edge cases', () => {
             ['resources'],
             null,
             { title: `${FALLBACK_STEM}.png`, mime: 'image/png' },
-            [{ path: expect.stringMatching(/\.png$/) }]
+            [{ path: expect.stringMatching(/\.png$/) as unknown }]
         );
     });
 
