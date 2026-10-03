@@ -98,11 +98,11 @@ describe('processHtml pass orchestration', () => {
             includeImages: true,
             convertImagesToResources: true,
         };
-        vi.spyOn(resourceConverter, 'convertImagesToResources').mockImplementation(async (body) => {
+        vi.spyOn(resourceConverter, 'convertImagesToResources').mockImplementation((body) => {
             const image = body.querySelector('img');
             image?.setAttribute('src', ':/resource-id');
             image?.setAttribute('data-pam-converted', 'true');
-            return { ids: ['resource-id'], attempted: 1, failed: 0 };
+            return Promise.resolve({ ids: ['resource-id'], attempted: 1, failed: 0 });
         });
         let callCount = 0;
         const runPassesSpy = vi.spyOn(passRunner, 'runPasses').mockImplementation(() => {

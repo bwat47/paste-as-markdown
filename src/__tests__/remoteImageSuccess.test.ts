@@ -37,21 +37,21 @@ describe('remote image success path', () => {
             }),
             data: { post: dataPostMock },
         };
-        global.fetch = vi.fn(async () => {
+        global.fetch = vi.fn(() => {
             let served = false;
-            return {
+            return Promise.resolve({
                 ok: true,
                 headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
                 body: {
                     getReader: () => ({
-                        read: async () => {
-                            if (served) return { done: true };
+                        read: () => {
+                            if (served) return Promise.resolve({ done: true });
                             served = true;
-                            return { done: false, value: png() };
+                            return Promise.resolve({ done: false, value: png() });
                         },
                     }),
                 },
-            };
+            });
         });
     });
 

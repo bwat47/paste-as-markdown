@@ -22,48 +22,52 @@ function makeBody(html: string): HTMLElement {
 /** Remote response advertising `contentLength` and streaming `bytes` (a small PNG by default) as a single chunk. */
 function mockRemoteResponse(contentLength: number, contentType = 'image/png', bytes: Uint8Array = png()) {
     let served = false;
-    return vi.fn(async () => ({
-        ok: true,
-        headers: {
-            get: (h: string) => {
-                const name = h.toLowerCase();
-                if (name === 'content-type') return contentType;
-                if (name === 'content-length') return String(contentLength);
-                return null;
-            },
-        },
-        body: {
-            getReader: () => ({
-                read: async () => {
-                    if (served) return { done: true };
-                    served = true;
-                    return { done: false, value: bytes };
+    return vi.fn(() =>
+        Promise.resolve({
+            ok: true,
+            headers: {
+                get: (h: string) => {
+                    const name = h.toLowerCase();
+                    if (name === 'content-type') return contentType;
+                    if (name === 'content-length') return String(contentLength);
+                    return null;
                 },
-            }),
-        },
-    }));
+            },
+            body: {
+                getReader: () => ({
+                    read: () => {
+                        if (served) return Promise.resolve({ done: true });
+                        served = true;
+                        return Promise.resolve({ done: false, value: bytes });
+                    },
+                }),
+            },
+        })
+    );
 }
 
 /** Stream reader `read` spy yielding `bytes` in `TEST_CHUNK_BYTES` chunks. */
 function chunkedRead(bytes: Uint8Array) {
     let offset = 0;
-    return vi.fn(async () => {
-        if (offset >= bytes.length) return { done: true };
+    return vi.fn(() => {
+        if (offset >= bytes.length) return Promise.resolve({ done: true });
         const value = bytes.subarray(offset, offset + TEST_CHUNK_BYTES);
         offset += value.length;
-        return { done: false, value };
+        return Promise.resolve({ done: false, value });
     });
 }
 
 /** Remote response streaming `bytes` in small chunks, splitting signatures to exercise detection after merging. */
 function mockChunkedResponse(contentType: string | null, bytes: Uint8Array, read = chunkedRead(bytes)) {
-    return vi.fn(async () => ({
-        ok: true,
-        headers: {
-            get: (h: string) => (h.toLowerCase() === 'content-type' ? contentType : null),
-        },
-        body: { getReader: () => ({ read }) },
-    }));
+    return vi.fn(() =>
+        Promise.resolve({
+            ok: true,
+            headers: {
+                get: (h: string) => (h.toLowerCase() === 'content-type' ? contentType : null),
+            },
+            body: { getReader: () => ({ read }) },
+        })
+    );
 }
 
 /** Promise that never resolves and rejects only when `signal` aborts. */
@@ -179,14 +183,17 @@ describe('resourceConverter edge cases', () => {
         }
     });
 
-    test.each([null, {}, { id: 123 }])('rejects an invalid resource response %j and cleans up the temp file', async (response) => {
-        dataPostMock.mockResolvedValue(response);
-        const body = makeBody('<img src="' + PNG_DATA_URL + '">');
-        const result = await convertImagesToResources(body);
-        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
-        expect(body.querySelector('img')?.getAttribute('src')).toBe(PNG_DATA_URL);
-        expect(fsExtraMock.unlink).toHaveBeenCalledOnce();
-    });
+    test.each([null, {}, { id: 123 }])(
+        'rejects an invalid resource response %j and cleans up the temp file',
+        async (response) => {
+            dataPostMock.mockResolvedValue(response);
+            const body = makeBody('<img src="' + PNG_DATA_URL + '">');
+            const result = await convertImagesToResources(body);
+            expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+            expect(body.querySelector('img')?.getAttribute('src')).toBe(PNG_DATA_URL);
+            expect(fsExtraMock.unlink).toHaveBeenCalledOnce();
+        }
+    );
 
     test('fs-extra unavailable -> graceful skip', async () => {
         installJoplinMocks(false);
@@ -281,12 +288,14 @@ describe('resourceConverter edge cases', () => {
     });
 
     test('non-image remote MIME rejected', async () => {
-        fetchMock = vi.fn(async () => ({
-            ok: true,
-            headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'text/html' : null) },
-            body: null,
-            arrayBuffer: async () => new ArrayBuffer(10),
-        }));
+        fetchMock = vi.fn(() =>
+            Promise.resolve({
+                ok: true,
+                headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'text/html' : null) },
+                body: null,
+                arrayBuffer: () => Promise.resolve(new ArrayBuffer(10)),
+            })
+        );
         setGlobal('fetch', fetchMock);
         const body = makeBody('<img src="https://example.com/file.txt">');
         const result = await convertImagesToResources(body);
@@ -451,16 +460,16 @@ describe('resourceConverter edge cases', () => {
 
     test.each(['image/png', 'application/octet-stream'])('timeout aborts a stalled %s body stream', async (mime) => {
         vi.useFakeTimers();
-        fetchMock = vi.fn(async (...args: unknown[]) => {
+        fetchMock = vi.fn((...args: unknown[]) => {
             const signal = (args[1] as { signal?: AbortSignal } | undefined)?.signal;
-            return {
+            return Promise.resolve({
                 ok: true,
                 headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? mime : null) },
                 body: {
                     // Never yields data; only the abort signal settles the read.
                     getReader: () => ({ read: () => rejectOnAbort(signal) }),
                 },
-            };
+            });
         });
         setGlobal('fetch', fetchMock);
         const body = makeBody('<img src="https://example.com/stalled.png">');
