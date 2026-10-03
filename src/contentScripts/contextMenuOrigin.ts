@@ -1,8 +1,8 @@
 export const EDITOR_CONTEXT_MENU_EVENT_GRACE_MS = 1000;
 
 export interface ContextMenuOriginTracker {
-    mark(): void;
-    consume(): boolean;
+    mark(this: void): void;
+    consume(this: void): boolean;
 }
 
 /** Creates a single-use marker for a recent context-menu event in one editor instance. */

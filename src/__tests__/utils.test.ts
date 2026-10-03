@@ -18,9 +18,11 @@ describe('utils', () => {
         test('calls joplin toast API with correct parameters', async () => {
             const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
 
+            const showToastSpy = vi.spyOn(mockJoplin.views.dialogs, 'showToast');
+
             await showToast('Test message', ToastType.Info, 5000);
 
-            expect(mockJoplin.views.dialogs.showToast).toHaveBeenCalledWith({
+            expect(showToastSpy).toHaveBeenCalledWith({
                 message: 'Test message',
                 type: ToastType.Info,
                 duration: 5000,
@@ -30,9 +32,11 @@ describe('utils', () => {
         test('uses default parameters when not provided', async () => {
             const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
 
+            const showToastSpy = vi.spyOn(mockJoplin.views.dialogs, 'showToast');
+
             await showToast('Test message');
 
-            expect(mockJoplin.views.dialogs.showToast).toHaveBeenCalledWith({
+            expect(showToastSpy).toHaveBeenCalledWith({
                 message: 'Test message',
                 type: ToastType.Info,
                 duration: 4000, // TOAST_DURATION constant
