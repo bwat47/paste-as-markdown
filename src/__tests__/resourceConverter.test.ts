@@ -117,7 +117,7 @@ function installJoplinMocks(fsAvailable = true) {
         plugins: { dataDir: vi.fn(() => Promise.resolve('/tmp')) },
         data: { post: dataPostMock },
         require: vi.fn((...args: unknown[]) => {
-            const mod = args[0];
+            const mod = String(args[0]);
             if (mod === 'fs-extra') {
                 if (!fsAvailable) throw new Error('fs-extra missing');
                 return fsExtraMock;
