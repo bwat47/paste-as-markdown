@@ -1,7 +1,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import type { MockedFunction } from 'vitest';
+import type { Mock } from 'vitest';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
+import type { Toast } from 'api/types';
 import logger from '../logger';
 
 // Mock the joplin API
@@ -9,20 +10,22 @@ vi.mock('api');
 
 describe('utils', () => {
     describe('showToast', () => {
+        let showToastMock: Mock<(toast: Toast) => Promise<void>>;
+
         beforeEach(async () => {
-            const apiModule = await import('api');
-            (global as { mockJoplin?: typeof import('api').default }).mockJoplin = apiModule.default;
             vi.clearAllMocks();
+            showToastMock = vi.fn<(toast: Toast) => Promise<void>>().mockResolvedValue();
+
+            const joplinModule = await import('api');
+            (joplinModule.default as unknown) = {
+                views: { dialogs: { showToast: showToastMock } },
+            };
         });
 
         test('calls joplin toast API with correct parameters', async () => {
-            const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
-
-            const showToastSpy = vi.spyOn(mockJoplin.views.dialogs, 'showToast');
-
             await showToast('Test message', ToastType.Info, 5000);
 
-            expect(showToastSpy).toHaveBeenCalledWith({
+            expect(showToastMock).toHaveBeenCalledWith({
                 message: 'Test message',
                 type: ToastType.Info,
                 duration: 5000,
@@ -30,13 +33,9 @@ describe('utils', () => {
         });
 
         test('uses default parameters when not provided', async () => {
-            const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
-
-            const showToastSpy = vi.spyOn(mockJoplin.views.dialogs, 'showToast');
-
             await showToast('Test message');
 
-            expect(showToastSpy).toHaveBeenCalledWith({
+            expect(showToastMock).toHaveBeenCalledWith({
                 message: 'Test message',
                 type: ToastType.Info,
                 duration: 4000, // TOAST_DURATION constant
@@ -44,13 +43,8 @@ describe('utils', () => {
         });
 
         test('handles API errors gracefully', async () => {
-            const mockJoplin = (global as { mockJoplin?: typeof import('api').default }).mockJoplin!;
-            const warnSpy = vi
-                .spyOn(logger as unknown as { warn: (...args: unknown[]) => void }, 'warn')
-                .mockImplementation(() => {});
-            (mockJoplin.views.dialogs.showToast as MockedFunction<() => Promise<void>>).mockRejectedValue(
-                new Error('API Error')
-            );
+            const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+            showToastMock.mockRejectedValue(new Error('API Error'));
 
             await expect(showToast('Test message')).resolves.not.toThrow();
             expect(warnSpy).toHaveBeenCalledWith('Failed to show toast', expect.any(Error));
