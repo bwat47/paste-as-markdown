@@ -87,12 +87,12 @@ export async function convertImagesToResources(
     const limits = { ...DEFAULT_RESOURCE_CONVERSION_LIMITS, ...limitOverrides };
     let fs: FileSystem;
     try {
-        fs = joplin.require('fs-extra');
+        fs = joplin.require('fs-extra') as FileSystem;
     } catch (err) {
         logger.info('fs-extra unavailable; skipping resource conversion', (err as Error)?.message);
         return { ids: [], attempted: 0, failed: 0 };
     }
-    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
+    const imgs = Array.from(body.querySelectorAll('img[src]'));
     const pastedAt = new Date();
     // Counts only resources actually created, so failed images leave no gaps in the fallback sequence
     let fallbackCount = 0;
@@ -133,7 +133,7 @@ export async function convertImagesToResources(
  * Performs early size estimation before allocating full decoded buffer.
  */
 async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
-    const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
+    const match = /^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i.exec(dataUrl);
     if (!match) throw new Error('Invalid data URL');
     const declaredMime = match[1].toLowerCase();
     if (!declaredMime.startsWith('image/')) throw new Error('Not image');
@@ -308,7 +308,12 @@ async function createJoplinResource(fs: FileSystem, img: ParsedImageData, title:
     }
     try {
         fs.writeFileSync(tmpPath, img.bytes);
-        const resource = await joplin.data.post(['resources'], null, { title, mime: img.mime }, [{ path: tmpPath }]);
+        const resource: unknown = await joplin.data.post(['resources'], null, { title, mime: img.mime }, [
+            { path: tmpPath },
+        ]);
+        if (!resource || typeof resource !== 'object' || !('id' in resource) || typeof resource.id !== 'string') {
+            throw new Error('Resource response is missing a string ID');
+        }
         return resource.id;
     } catch (e) {
         logger.warn('Failed to create resource from temp file', e);

@@ -10,6 +10,17 @@ async function toMarkdown(html: string, listIndentation?: ListIndentation): Prom
     return markdown.trim();
 }
 
+/** Whether CommonMark parses `markdown` as a bullet list item nested inside an ordered list item. */
+function hasBulletItemNestedInOrderedItem(markdown: string): boolean {
+    const nestedItem = parser
+        .parse(markdown)
+        .topNode.getChild('OrderedList')
+        ?.getChild('ListItem')
+        ?.getChild('BulletList')
+        ?.getChild('ListItem');
+    return nestedItem != null;
+}
+
 describe('List indentation option', () => {
     test('uses tabs by default', async () => {
         const html = '<ul><li>Parent<ul><li>Child</li></ul></li></ul>';
@@ -50,17 +61,16 @@ describe('List indentation option', () => {
 
     test('indents enough to preserve nesting after a wide ordered marker', async () => {
         const html = '<ol start="100"><li>Parent<ul><li>Child</li></ul></li></ol>';
-        const nestedStructure = 'OrderedList(ListItem(ListMark,Paragraph,BulletList(ListItem(ListMark,Paragraph))))';
 
         // Tabs advance to four-column stops, so the five-column `100. ` marker rounds up to two tabs.
         const tabbed = await toMarkdown(html, LIST_INDENTATION.TABS);
         expect(tabbed).toBe('100. Parent\n\t\t- Child');
-        expect(parser.parse(tabbed).toString()).toContain(nestedStructure);
+        expect(hasBulletItemNestedInOrderedItem(tabbed)).toBe(true);
 
         // Spaces match the marker width exactly rather than rounding.
         const spaced = await toMarkdown(html, LIST_INDENTATION.SPACES);
         expect(spaced).toBe('100. Parent\n     - Child');
-        expect(parser.parse(spaced).toString()).toContain(nestedStructure);
+        expect(hasBulletItemNestedInOrderedItem(spaced)).toBe(true);
     });
 
     test('preserves indentation inside fenced code in a list item', async () => {

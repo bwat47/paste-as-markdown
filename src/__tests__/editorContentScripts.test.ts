@@ -88,7 +88,7 @@ describe('editor content scripts', () => {
             defineOption: vi.fn(),
             defineExtension: vi.fn(),
         };
-        codeMirror5ContentScript().plugin(codeMirror as never);
+        codeMirror5ContentScript().plugin(codeMirror);
         expect(codeMirror.defineOption).not.toHaveBeenCalled();
         expect(codeMirror.defineExtension).not.toHaveBeenCalled();
     });

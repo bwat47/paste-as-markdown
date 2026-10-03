@@ -36,23 +36,23 @@ describe('remote image success path', () => {
                 throw new Error('mod');
             }),
             data: { post: dataPostMock },
-        } as JoplinMock;
-        global.fetch = vi.fn(async () => {
+        };
+        global.fetch = vi.fn(() => {
             let served = false;
-            return {
+            return Promise.resolve({
                 ok: true,
                 headers: { get: (h: string) => (h.toLowerCase() === 'content-type' ? 'image/png' : null) },
                 body: {
                     getReader: () => ({
-                        read: async () => {
-                            if (served) return { done: true };
+                        read: () => {
+                            if (served) return Promise.resolve({ done: true });
                             served = true;
-                            return { done: false, value: png() };
+                            return Promise.resolve({ done: false, value: png() });
                         },
                     }),
                 },
-            };
-        }) as unknown as Mock;
+            });
+        });
     });
 
     test('successful remote image conversion increments metrics and rewrites src', async () => {
@@ -63,8 +63,7 @@ describe('remote image success path', () => {
         expect(result.resources.failed).toBe(0);
         expect(result.resources.resourcesCreated).toBe(1);
         const body = result.body;
-        expect(body).not.toBeNull();
-        expect(body!.innerHTML).toMatch(/src=":\/resRemote"/);
+        expect(body.innerHTML).toMatch(/src=":\/resRemote"/);
         expect(dataPostMock).toHaveBeenCalledTimes(1);
     });
 });

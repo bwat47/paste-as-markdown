@@ -107,11 +107,11 @@ export function normalizeCodeBlocks(body: HTMLElement): void {
 }
 
 function convertCodeMirrorEditors(body: HTMLElement): void {
-    const editors = Array.from(body.querySelectorAll('.cm-editor')) as HTMLElement[];
+    const editors = Array.from(body.querySelectorAll('.cm-editor'));
     editors.forEach((editor) => {
-        const content = editor.querySelector('.cm-content') as HTMLElement | null;
+        const content = editor.querySelector('.cm-content');
         if (!content) return;
-        const lineElements = Array.from(content.querySelectorAll('.cm-line')) as HTMLElement[];
+        const lineElements = Array.from(content.querySelectorAll('.cm-line'));
         if (lineElements.length === 0) return;
 
         const lines = lineElements.map((line) => extractCodeMirrorLineText(line));
@@ -160,7 +160,7 @@ function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
         'figure[class*=" highlight-"]',
         'pre',
     ];
-    const wrappers = Array.from(body.querySelectorAll(selectors.join(', '))) as HTMLElement[];
+    const wrappers = Array.from(body.querySelectorAll<HTMLElement>(selectors.join(', ')));
     const pres: HTMLElement[] = [];
     wrappers.forEach((wrapperEl) => {
         const pre =
@@ -219,7 +219,7 @@ function removeUIElements(pre: HTMLElement): void {
         }
     }
     if (!code) {
-        const descendant = pre.querySelector('code') as HTMLElement | null;
+        const descendant = pre.querySelector('code');
         if (descendant) {
             // Move the descendant code to be the only relevant child of <pre>
             while (pre.firstChild) pre.removeChild(pre.firstChild);
@@ -274,7 +274,7 @@ function isUiToolbarWrapper(element: HTMLElement): boolean {
     ) {
         return true;
     }
-    const button = element.querySelector('button, [role="button"]') as HTMLElement | null;
+    const button = element.querySelector('button, [role="button"]');
     if (button) {
         const buttonClasses = button.className || '';
         if (/\bcopy|clipboard\b/i.test(buttonClasses)) {
@@ -337,7 +337,7 @@ function consumeLanguageLabel(pre: HTMLElement): string | null {
         const scan = scanPreviousSiblingsForLabel(current);
         if (scan.status === 'found') return scan.language;
         if (scan.status === 'blocked') return null;
-        const parent = current.parentElement as HTMLElement | null;
+        const parent: HTMLElement | null = current.parentElement;
         if (!parent || !onlyContains(parent, current)) {
             break;
         }
@@ -366,7 +366,7 @@ function scanPreviousSiblingsForLabel(element: HTMLElement): LabelScanResult {
 }
 
 function consumeLabelElement(label: HTMLElement): void {
-    const parent = label.parentElement as HTMLElement | null;
+    const parent = label.parentElement;
     label.remove();
     if (parent) {
         removeEmptyAncestors(parent);
@@ -428,7 +428,7 @@ function removeEmptyAncestors(start: HTMLElement): void {
         const content = current.textContent ?? '';
         const text = normalizeNbsp(content).trim();
         if (text) break;
-        const parent = current.parentElement as HTMLElement | null;
+        const parent: HTMLElement | null = current.parentElement;
         current.remove();
         current = parent;
         if (!current) break;

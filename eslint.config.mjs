@@ -43,6 +43,28 @@ export default [
         },
     },
 
+    // Type-aware checks for TypeScript sources; JS tooling keeps untyped linting.
+    {
+        files: ['**/*.{ts,tsx}'],
+        languageOptions: {
+            parserOptions: {
+                projectService: true,
+                tsconfigRootDir: import.meta.dirname,
+            },
+        },
+        rules: {
+            ...tsPlugin.configs['recommended-type-checked'].rules,
+        },
+    },
+
+    // Asymmetric matchers such as expect.stringMatching() are typed `any`.
+    {
+        files: ['src/__tests__/**'],
+        rules: {
+            '@typescript-eslint/no-unsafe-assignment': 'off',
+        },
+    },
+
     // Prettier compatibility
     prettier,
 ];

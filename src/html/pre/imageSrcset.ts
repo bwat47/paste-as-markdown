@@ -73,13 +73,13 @@ function parseCandidate(url: string, descriptors: readonly string[]): SrcsetCand
     }
     if (descriptors.length !== 1) return null;
 
-    const widthMatch = descriptors[0].match(WIDTH_DESCRIPTOR);
+    const widthMatch = WIDTH_DESCRIPTOR.exec(descriptors[0]);
     if (widthMatch) {
         const width = Number(widthMatch[1]);
         return Number.isFinite(width) && width > 0 ? { url, kind: 'width', value: width } : null;
     }
 
-    const densityMatch = descriptors[0].match(DENSITY_DESCRIPTOR);
+    const densityMatch = DENSITY_DESCRIPTOR.exec(descriptors[0]);
     if (!densityMatch) return null;
 
     const density = Number(densityMatch[1]);
@@ -150,7 +150,10 @@ function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | nul
         : 'density';
     const comparable = candidates.filter((candidate) => candidate.kind === preferredKind);
 
-    return comparable.reduce((largest, candidate) => (candidate.value > largest.value ? candidate : largest));
+    return comparable.reduce(
+        (largest, candidate) => (candidate.value > largest.value ? candidate : largest),
+        comparable[0]
+    );
 }
 
 /**
@@ -200,7 +203,7 @@ function collectSrcsetCandidatePool(image: HTMLImageElement): string[] {
  * at all. Existing src values remain authoritative, and DOMPurify validates every promoted URL.
  */
 export function promoteLargestSrcsetCandidateToSrc(body: HTMLElement): void {
-    const images = Array.from(body.querySelectorAll('img')) as HTMLImageElement[];
+    const images = Array.from(body.querySelectorAll('img'));
 
     images.forEach((image) => {
         if (image.getAttribute('src')?.trim()) return;

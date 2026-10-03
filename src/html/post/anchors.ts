@@ -200,7 +200,7 @@ function flattenLineBreakingElementsInAnchor(anchor: HTMLElement): void {
 export function normalizeAnchors(body: HTMLElement): void {
     const anchors = body.querySelectorAll('a');
     anchors.forEach((anchor) => {
-        const { isPermalink, wrapsHeading } = analyzeAnchor(anchor as HTMLElement);
+        const { isPermalink, wrapsHeading } = analyzeAnchor(anchor);
         if (isPermalink) {
             anchor.remove();
         } else if (wrapsHeading) {
@@ -216,10 +216,10 @@ export function normalizeAnchors(body: HTMLElement): void {
                     parent.removeChild(anchor);
                 }
             } else {
-                unwrapElement(anchor as HTMLElement);
+                unwrapElement(anchor);
             }
         } else if (anchor.getAttribute('href')) {
-            flattenLineBreakingElementsInAnchor(anchor as HTMLElement);
+            flattenLineBreakingElementsInAnchor(anchor);
         }
     });
 }

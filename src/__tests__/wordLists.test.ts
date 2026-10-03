@@ -172,7 +172,7 @@ describe('Desktop Word lists', () => {
         expect(body.textContent).toContain('Visible text');
     });
 
-    test('leaves flattened paragraphs and incomplete metadata unchanged', async () => {
+    test('leaves flattened paragraphs and incomplete metadata unchanged', () => {
         const body = new DOMParser().parseFromString(
             '<p>· Flattened</p><p>o Ordinary text</p>' +
                 '<p style="mso-list:l0 level1 lfo1">· Missing span</p>' +

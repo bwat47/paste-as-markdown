@@ -6,31 +6,31 @@ import { IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editorCommands';
 vi.mock('api');
 
 describe('editor integration', () => {
-    let globalValue: Mock<(key: string) => Promise<unknown>>;
+    let globalValues: Mock<(keys: string[]) => Promise<unknown[]>>;
     let execute: Mock<(command: string, args: unknown) => Promise<unknown>>;
 
     beforeEach(async () => {
         vi.clearAllMocks();
-        globalValue = vi.fn<(key: string) => Promise<unknown>>();
+        globalValues = vi.fn<(keys: string[]) => Promise<unknown[]>>();
         execute = vi.fn<(command: string, args: unknown) => Promise<unknown>>();
 
         const joplinModule = await import('api');
         (joplinModule.default as unknown) = {
-            settings: { globalValue },
+            settings: { globalValues },
             commands: { execute },
         };
     });
 
     test('rejects rich text mode without querying the Markdown editor', async () => {
-        globalValue.mockResolvedValue(false);
+        globalValues.mockResolvedValue([false]);
 
         await expect(isMarkdownEditorContextMenuOrigin()).resolves.toBe(false);
-        expect(globalValue).toHaveBeenCalledWith('editor.codeView');
+        expect(globalValues).toHaveBeenCalledWith(['editor.codeView']);
         expect(execute).not.toHaveBeenCalled();
     });
 
     test('accepts a Markdown editor context menu origin', async () => {
-        globalValue.mockResolvedValue(true);
+        globalValues.mockResolvedValue([true]);
         execute.mockResolvedValue(true);
 
         await expect(isMarkdownEditorContextMenuOrigin()).resolves.toBe(true);
@@ -40,7 +40,7 @@ describe('editor integration', () => {
     });
 
     test('rejects the viewer while Markdown mode is enabled', async () => {
-        globalValue.mockResolvedValue(true);
+        globalValues.mockResolvedValue([true]);
         execute.mockResolvedValue(false);
 
         await expect(isMarkdownEditorContextMenuOrigin()).resolves.toBe(false);

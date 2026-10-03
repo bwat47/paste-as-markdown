@@ -28,7 +28,7 @@ export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
         if (pre.querySelector('table')) {
             return;
         }
-        const code = pre.querySelector('code') as HTMLElement | null;
+        const code = pre.querySelector('code');
         const target = code || pre;
         if (!target) return;
         const text = collectTextWithLineBreaks(target);

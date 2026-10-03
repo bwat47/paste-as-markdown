@@ -289,7 +289,7 @@ describe('integration: convertHtmlToMarkdown', () => {
         const html = '<pre><code>Line1\n\n\nLine2\n\n\n\nLine3</code></pre><p>After</p><p>More</p>';
         const { markdown: md } = await convertHtmlToMarkdown(html);
         // Inside fence keep 3+ newlines (at least one triple) intact
-        const fenceMatch = md.match(/```[\s\S]*```/);
+        const fenceMatch = /```[\s\S]*```/.exec(md);
         expect(fenceMatch).toBeTruthy();
         if (fenceMatch) {
             // Expect original triple newline sequence still present

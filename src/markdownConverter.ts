@@ -101,7 +101,7 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
     service.addRule('pamListItem', {
         filter: 'li',
         replacement: (content, node, options: TurndownService.Options) => {
-            const element = node as HTMLElement;
+            const element = node;
             const parent = element.parentElement;
             let prefix: string;
             if (parent && parent.nodeName === 'OL') {
@@ -120,7 +120,7 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
                 .replace(/\n/g, `\n${indent}`); // indent child lines while preserving Markdown nesting
 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
-            const taskMatch = content.match(/^(\[[ xX]\])([\s\S]*)$/);
+            const taskMatch = /^(\[[ xX]\])([\s\S]*)$/.exec(content);
             if (taskMatch) {
                 const [, marker, remainder] = taskMatch;
                 const [firstLine, ...otherLines] = remainder.split('\n');

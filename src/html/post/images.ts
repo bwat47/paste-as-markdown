@@ -82,7 +82,7 @@ function sanitizeGeneratedAlt(raw: string): string {
  * - Images without alt or empty alt: generate fallback from src
  */
 export function normalizeImageAltAttributes(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
+    const imgs = Array.from(body.querySelectorAll('img[src]'));
 
     imgs.forEach((img) => {
         const existingAlt = img.getAttribute('alt');
