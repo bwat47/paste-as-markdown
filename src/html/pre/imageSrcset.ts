@@ -150,7 +150,10 @@ function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | nul
         : 'density';
     const comparable = candidates.filter((candidate) => candidate.kind === preferredKind);
 
-    return comparable.reduce((largest, candidate) => (candidate.value > largest.value ? candidate : largest));
+    return comparable.reduce(
+        (largest, candidate) => (candidate.value > largest.value ? candidate : largest),
+        comparable[0]
+    );
 }
 
 /**
