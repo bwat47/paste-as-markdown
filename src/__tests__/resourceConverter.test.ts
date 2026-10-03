@@ -8,6 +8,9 @@ import { apng, jpeg, png, pngExceeding, tiff } from './helpers/imageBytes';
 const TEST_MAX_IMAGE_BYTES = 64;
 const TEST_DOWNLOAD_TIMEOUT_MS = 50;
 const TEST_CHUNK_BYTES = 5;
+// Local time, so the expected fallback stem does not depend on the test machine's time zone
+const PASTED_AT = new Date(2026, 9, 3, 14, 30, 25);
+const FALLBACK_STEM = 'pasted-2026-10-03-143025';
 
 // Helper to build a DOM body from HTML string
 function makeBody(html: string): HTMLElement {
@@ -122,6 +125,8 @@ function installJoplinMocks(fsAvailable = true) {
 }
 
 beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(PASTED_AT);
     installJoplinMocks(true);
     fetchMock = undefined;
     setGlobal('fetch', undefined);
@@ -224,9 +229,35 @@ describe('resourceConverter edge cases', () => {
     test('data URL is stored with its detected type, not the declared one', async () => {
         const result = await convertImagesToResources(makeBody(`<img src="${toDataUrl('image/png', jpeg())}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
-        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.jpg', mime: 'image/jpeg' }, [
-            { path: expect.stringMatching(/\.jpg$/) },
-        ]);
+        expect(dataPostMock).toHaveBeenCalledWith(
+            ['resources'],
+            null,
+            { title: `${FALLBACK_STEM}.jpg`, mime: 'image/jpeg' },
+            [{ path: expect.stringMatching(/\.jpg$/) }]
+        );
+    });
+
+    test('fallback titles are unique within a paste and skip URL-named and rejected images', async () => {
+        setGlobal('fetch', mockRemoteResponse(SVG_BYTES.length, 'image/svg+xml', SVG_BYTES));
+        const body = makeBody(
+            `<img src="${PNG_DATA_URL}">` +
+                `<img src="${toDataUrl('image/png', tiff())}">` +
+                '<img src="https://example.com/diagram.svg">' +
+                `<img src="${toDataUrl('image/jpeg', jpeg())}">`
+        );
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: ['res-ok', 'res-ok', 'res-ok'], attempted: 4, failed: 1 });
+        const titles = dataPostMock.mock.calls.map((call) => (call[2] as { title: string }).title);
+        expect(titles).toEqual([`${FALLBACK_STEM}.png`, 'diagram.svg', `${FALLBACK_STEM}-2.jpg`]);
+    });
+
+    test('a failed resource creation does not use up its fallback title', async () => {
+        dataPostMock.mockRejectedValueOnce(new Error('Joplin API error'));
+        const body = makeBody(`<img src="${PNG_DATA_URL}"><img src="${toDataUrl('image/jpeg', jpeg())}">`);
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 2, failed: 1 });
+        const titles = dataPostMock.mock.calls.map((call) => (call[2] as { title: string }).title);
+        expect(titles).toEqual([`${FALLBACK_STEM}.png`, `${FALLBACK_STEM}.jpg`]);
     });
 
     test('small base64 image writes exactly its decoded bytes', async () => {
@@ -282,9 +313,12 @@ describe('resourceConverter edge cases', () => {
         setGlobal('fetch', mockRemoteResponse(AVIF_BYTES.length, 'image/avif', AVIF_BYTES));
         const result = await convertImagesToResources(makeBody('<img src="https://example.com/photo">'));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
-        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.avif', mime: 'image/avif' }, [
-            { path: expect.stringMatching(/\.avif$/) },
-        ]);
+        expect(dataPostMock).toHaveBeenCalledWith(
+            ['resources'],
+            null,
+            { title: `${FALLBACK_STEM}.avif`, mime: 'image/avif' },
+            [{ path: expect.stringMatching(/\.avif$/) }]
+        );
     });
 
     test.each([
@@ -330,7 +364,7 @@ describe('resourceConverter edge cases', () => {
     // SVG has no binary signature, so octet-stream SVG is rejected above; declared SVG is kept.
     test.each([
         { label: 'declared image/svg+xml download', src: 'https://example.com/diagram.svg', title: 'diagram.svg' },
-        { label: 'SVG data URL', src: toDataUrl('image/svg+xml', SVG_BYTES), title: 'pasted.svg' },
+        { label: 'SVG data URL', src: toDataUrl('image/svg+xml', SVG_BYTES), title: `${FALLBACK_STEM}.svg` },
     ])('$label is stored as SVG', async ({ src, title }) => {
         setGlobal('fetch', mockRemoteResponse(SVG_BYTES.length, 'image/svg+xml', SVG_BYTES));
         const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
@@ -356,7 +390,7 @@ describe('resourceConverter edge cases', () => {
         setGlobal('fetch', mockChunkedResponse(contentType, apng()));
         const result = await convertImagesToResources(makeBody(`<img src="${src}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
-        const title = src.endsWith('.apng') ? 'anim.png' : 'pasted.png';
+        const title = src.endsWith('.apng') ? 'anim.png' : `${FALLBACK_STEM}.png`;
         expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title, mime: 'image/png' }, [
             { path: expect.stringMatching(/\.png$/) },
         ]);
@@ -366,9 +400,12 @@ describe('resourceConverter edge cases', () => {
         const dataUrl = `data:image/apng;base64,${Buffer.from(apng()).toString('base64')}`;
         const result = await convertImagesToResources(makeBody(`<img src="${dataUrl}">`));
         expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
-        expect(dataPostMock).toHaveBeenCalledWith(['resources'], null, { title: 'pasted.png', mime: 'image/png' }, [
-            { path: expect.stringMatching(/\.png$/) },
-        ]);
+        expect(dataPostMock).toHaveBeenCalledWith(
+            ['resources'],
+            null,
+            { title: `${FALLBACK_STEM}.png`, mime: 'image/png' },
+            [{ path: expect.stringMatching(/\.png$/) }]
+        );
     });
 
     // The content-length guard compares with a strict `>`, so exactly-at-cap must pass.

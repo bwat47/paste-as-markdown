@@ -21,6 +21,7 @@ import type { ParsedImageData } from './types';
 import logger from './logger';
 import { resolveImageType } from './imageMime';
 import { parseImageSource } from './html/shared/imageSource';
+import { formatFallbackStem } from './resourceTitles';
 import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
 export interface ResourceConversionLimits {
@@ -55,8 +56,6 @@ const STRICT_BASE64_PATTERN = /^[A-Za-z0-9+/]*={0,2}$/;
  * a missing header (normalized to '') or a generic binary type. The signature decides.
  */
 const UNTYPED_CONTENT_TYPES = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
-/** Filename stem used when the source URL has no usable filename. */
-const DEFAULT_FILENAME_STEM = 'pasted';
 
 function isConvertibleSource(source: ImageSource): source is DataImageSource | RemoteImageSource {
     return source.kind !== 'resource';
@@ -94,6 +93,9 @@ export async function convertImagesToResources(
         return { ids: [], attempted: 0, failed: 0 };
     }
     const imgs = Array.from(body.querySelectorAll('img[src]')) as HTMLImageElement[];
+    const pastedAt = new Date();
+    // Counts only resources actually created, so failed images leave no gaps in the fallback sequence
+    let fallbackCount = 0;
     const ids: string[] = [];
     let attempted = 0;
     let failed = 0;
@@ -106,7 +108,9 @@ export async function convertImagesToResources(
             if (isDataSource(source)) data = await parseBase64Image(source.url, limits.maxImageBytes);
             else if (isRemoteSource(source)) data = await downloadExternalImage(source.url, limits);
             if (!data) continue;
-            const id = await createJoplinResource(fs, data);
+            const stem = data.stem ?? formatFallbackStem(pastedAt, fallbackCount + 1);
+            const id = await createJoplinResource(fs, data, `${stem}.${data.extension}`);
+            if (data.stem === null) fallbackCount++;
             img.setAttribute('src', `:/${id}`);
             // data-pam-converted is used by imageLinks post-processing step to unwrap converted images from links
             img.setAttribute('data-pam-converted', 'true');
@@ -149,7 +153,7 @@ async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise
     if (decoded.byteLength > maxImageBytes) throw new Error('Image exceeds maximum size');
     // Plain Uint8Array view: signature detection rejects Buffers from another realm (e.g. under JSDOM).
     const bytes = new Uint8Array(decoded.buffer, decoded.byteOffset, decoded.byteLength);
-    return toParsedImage(bytes, declaredMime, DEFAULT_FILENAME_STEM);
+    return toParsedImage(bytes, declaredMime, null);
 }
 
 /**
@@ -195,10 +199,10 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
  * Build resource metadata from image content. The resolved type supplies the MIME type and file extension,
  * so unsupported or mislabeled content is rejected regardless of its declared type.
  */
-async function toParsedImage(bytes: Uint8Array, declaredMime: string, filenameStem: string): Promise<ParsedImageData> {
+async function toParsedImage(bytes: Uint8Array, declaredMime: string, stem: string | null): Promise<ParsedImageData> {
     const type = await resolveImageType(bytes, declaredMime);
     if (!type) throw new Error('Unsupported image type');
-    return { bytes, mime: type.mime, filename: `${filenameStem}.${type.extension}`, size: bytes.byteLength };
+    return { bytes, mime: type.mime, extension: type.extension, stem, size: bytes.byteLength };
 }
 
 /**
@@ -227,20 +231,20 @@ async function fetchWithRetry(url: string, init: RequestInit, retries: number, b
 }
 
 /**
- * Filename stem from the URL's last path segment when it looks like a filename, else `DEFAULT_FILENAME_STEM`.
+ * Filename stem from the URL's last path segment when it looks like a filename, else null.
  * The detected image type always supplies the extension, which the URL may contradict.
  */
-function deriveFilenameStem(url: string): string {
+function deriveFilenameStem(url: string): string | null {
     try {
         const last = new URL(url).pathname.split('/').filter(Boolean).pop() || '';
-        if (!/\.[a-z0-9]{2,5}$/i.test(last)) return DEFAULT_FILENAME_STEM;
+        if (!/\.[a-z0-9]{2,5}$/i.test(last)) return null;
         // Sanitize: remove path traversal and dangerous characters
         const sanitized = last.replace(/[^a-zA-Z0-9._-]/g, '');
-        return path.parse(sanitized).name || DEFAULT_FILENAME_STEM;
+        return path.parse(sanitized).name || null;
     } catch (err) {
         // Expected: malformed URLs will fail to parse, use fallback filename
         logger.debug('Failed to parse URL for filename extraction:', truncateForLog(url), (err as Error)?.message);
-        return DEFAULT_FILENAME_STEM;
+        return null;
     }
 }
 
@@ -287,10 +291,10 @@ function nextTempFileId(): string {
  *  - Uses synchronous write when available for simplicity (files are small & sequential).
  *  - Best-effort cleanup of temp file (errors during cleanup are logged but not rethrown).
  */
-async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promise<string> {
+async function createJoplinResource(fs: FileSystem, img: ParsedImageData, title: string): Promise<string> {
     const dataDir: string = await joplin.plugins.dataDir();
     // The extension always comes from the resolved image type, never from the source URL.
-    const tmpName = `pam-${Date.now()}-${nextTempFileId()}${path.extname(img.filename)}`;
+    const tmpName = `pam-${Date.now()}-${nextTempFileId()}.${img.extension}`;
     const tmpPath = path.join(dataDir, tmpName);
 
     // Validate the resolved path is still within dataDir to prevent path traversal
@@ -304,9 +308,7 @@ async function createJoplinResource(fs: FileSystem, img: ParsedImageData): Promi
     }
     try {
         fs.writeFileSync(tmpPath, img.bytes);
-        const resource = await joplin.data.post(['resources'], null, { title: img.filename, mime: img.mime }, [
-            { path: tmpPath },
-        ]);
+        const resource = await joplin.data.post(['resources'], null, { title, mime: img.mime }, [{ path: tmpPath }]);
         return resource.id;
     } catch (e) {
         logger.warn('Failed to create resource from temp file', e);

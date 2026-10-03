@@ -48,6 +48,9 @@ export interface ParsedImageData {
     /** Exact image bytes; may be a view into a larger (e.g. pooled) buffer, so never use `.buffer` directly. */
     readonly bytes: Uint8Array;
     readonly mime: string;
-    readonly filename: string;
+    /** File extension of the resolved image type, without the dot. */
+    readonly extension: string;
+    /** Filename stem from the source URL, or null when it has none (a fallback stem is assigned on save). */
+    readonly stem: string | null;
     readonly size: number;
 }
