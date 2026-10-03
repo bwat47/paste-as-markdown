@@ -25,14 +25,12 @@ describe('empty anchor cleanup', () => {
             </p>
         `;
         const { body } = await processHtml(input, options);
-        expect(body).not.toBeNull();
         expect(body.querySelector('a[href="https://example.com"]')).toBeNull();
     });
 
     test('preserves image anchors when images are included', async () => {
         const input = '<p><a href="https://example.com"><img src="https://example.com/test.png" alt="Example"></a></p>';
         const { body } = await processHtml(input, options);
-        expect(body).not.toBeNull();
         const anchor = body.querySelector('a[href="https://example.com"]');
         expect(anchor).not.toBeNull();
         expect(anchor!.querySelector('img')).not.toBeNull();
@@ -45,7 +43,6 @@ describe('empty anchor cleanup', () => {
             </h2>
         `;
         const { body } = await processHtml(input, options);
-        expect(body).not.toBeNull();
         const heading = body.querySelector('h2#rate-limits');
         expect(heading).not.toBeNull();
         expect(heading!.textContent).toContain('Rate Limits');
@@ -59,7 +56,6 @@ describe('empty anchor cleanup', () => {
             </h2>
         `;
         const { body } = await processHtml(input, options);
-        expect(body).not.toBeNull();
         const heading = body.querySelector('h2#quota');
         expect(heading).not.toBeNull();
         expect(heading!.textContent).toContain('Quota Limits');

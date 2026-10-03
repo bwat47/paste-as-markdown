@@ -7,7 +7,6 @@ describe('text normalization toggle', () => {
     test('does not normalize smart quotes when normalizeQuotes is false', async () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: false }));
-        expect(body).not.toBeNull();
         const html = body.innerHTML;
 
         // Curly quotes should remain when normalization is disabled
@@ -22,7 +21,6 @@ describe('text normalization toggle', () => {
     test('normalizes smart quotes when normalizeQuotes is true', async () => {
         const input = '<p>&#8220;Smart&#8221; and &#8216;quotes&#8217;</p>';
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
-        expect(body).not.toBeNull();
         const html = body.innerHTML;
 
         // Curly quotes should be converted to straight quotes
@@ -34,7 +32,6 @@ describe('text normalization toggle', () => {
     test('preserves literal entity text alongside real NBSP and smart quotes', async () => {
         const input = '<p>Use&nbsp;&amp;nbsp; or &amp;#8220; entities &#8220;here&#8221;</p>';
         const { body } = await processHtml(input, inertPasteOptions({ normalizeQuotes: true }));
-        expect(body).not.toBeNull();
         expect(body.textContent).toBe('Use &nbsp; or &#8220; entities "here"');
     });
 });
@@ -68,7 +65,6 @@ describe('character normalization', () => {
         },
     ])('$name', async ({ input, expected }) => {
         const { body } = await processHtml(input, inertPasteOptions());
-        expect(body).not.toBeNull();
         expect(body.textContent).toBe(expected);
     });
 });

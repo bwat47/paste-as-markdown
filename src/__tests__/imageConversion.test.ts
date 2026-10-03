@@ -58,7 +58,6 @@ describe('image resource conversion', () => {
         expect(dataPostMock).toHaveBeenCalledTimes(1);
         // Resulting markup should have resource src and only whitelisted attributes
         const body = result.body;
-        expect(body).not.toBeNull();
         const outputHtml = body.innerHTML;
         expect(outputHtml).toContain('src=":/res1"');
         expect(outputHtml).not.toContain('data-junk');
@@ -127,7 +126,6 @@ describe('image resource conversion', () => {
         expect(dataPostMock).toHaveBeenCalledTimes(2);
         // One image should reference resource; second should remain as original data URL (or possibly sanitized original)
         const body = result.body;
-        expect(body).not.toBeNull();
         expect(body.innerHTML).toContain('src=":/resA"');
     });
 });

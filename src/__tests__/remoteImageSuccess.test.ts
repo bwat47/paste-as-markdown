@@ -63,7 +63,6 @@ describe('remote image success path', () => {
         expect(result.resources.failed).toBe(0);
         expect(result.resources.resourcesCreated).toBe(1);
         const body = result.body;
-        expect(body).not.toBeNull();
         expect(body.innerHTML).toMatch(/src=":\/resRemote"/);
         expect(dataPostMock).toHaveBeenCalledTimes(1);
     });

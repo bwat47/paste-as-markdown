@@ -17,7 +17,6 @@ describe('non-content UI cleanup', () => {
         `;
 
         const { body } = await processHtml(input, inertPasteOptions());
-        expect(body).not.toBeNull();
         const html = body.innerHTML;
 
         // Checkbox preserved
