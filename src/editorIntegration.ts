@@ -22,8 +22,8 @@ async function isEditorContextMenuOrigin(): Promise<boolean> {
 /** Returns whether Joplin is using its Markdown editor rather than the rich text editor. */
 export async function isMarkdownEditorMode(): Promise<boolean> {
     try {
-        const isMarkdownEditor: unknown = await joplin.settings.globalValue(EDITOR_CODE_VIEW_SETTING);
-        return isMarkdownEditor === true;
+        const values: unknown[] = await joplin.settings.globalValues([EDITOR_CODE_VIEW_SETTING]);
+        return values[0] === true;
     } catch (err) {
         logger.debug('Markdown editor mode check failed', err);
         return false;
