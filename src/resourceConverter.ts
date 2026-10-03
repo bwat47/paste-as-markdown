@@ -133,7 +133,7 @@ export async function convertImagesToResources(
  * Performs early size estimation before allocating full decoded buffer.
  */
 async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
-    const match = dataUrl.match(/^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i);
+    const match = /^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i.exec(dataUrl);
     if (!match) throw new Error('Invalid data URL');
     const declaredMime = match[1].toLowerCase();
     if (!declaredMime.startsWith('image/')) throw new Error('Not image');

@@ -12,8 +12,8 @@ export function promoteImageSizingStylesToAttributes(body: HTMLElement): void {
         // Only promote style sizing if neither width nor height attribute is present.
         if (!hasAttrWidth && !hasAttrHeight) {
             // Extract numeric px values; ignore percentages and other units
-            const w = style.match(/\bwidth\s*:\s*([0-9.]+)\s*px\b/i);
-            const h = style.match(/\bheight\s*:\s*([0-9.]+)\s*px\b/i);
+            const w = /\bwidth\s*:\s*([0-9.]+)\s*px\b/i.exec(style);
+            const h = /\bheight\s*:\s*([0-9.]+)\s*px\b/i.exec(style);
             const parsedWidth = w ? parseInt(w[1], 10) : null;
             const parsedHeight = h ? parseInt(h[1], 10) : null;
             if (parsedWidth && parsedWidth > 0) {

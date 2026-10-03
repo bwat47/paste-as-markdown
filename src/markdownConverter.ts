@@ -120,7 +120,7 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
                 .replace(/\n/g, `\n${indent}`); // indent child lines while preserving Markdown nesting
 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
-            const taskMatch = content.match(/^(\[[ xX]\])([\s\S]*)$/);
+            const taskMatch = /^(\[[ xX]\])([\s\S]*)$/.exec(content);
             if (taskMatch) {
                 const [, marker, remainder] = taskMatch;
                 const [firstLine, ...otherLines] = remainder.split('\n');

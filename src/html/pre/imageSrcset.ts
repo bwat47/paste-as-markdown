@@ -73,13 +73,13 @@ function parseCandidate(url: string, descriptors: readonly string[]): SrcsetCand
     }
     if (descriptors.length !== 1) return null;
 
-    const widthMatch = descriptors[0].match(WIDTH_DESCRIPTOR);
+    const widthMatch = WIDTH_DESCRIPTOR.exec(descriptors[0]);
     if (widthMatch) {
         const width = Number(widthMatch[1]);
         return Number.isFinite(width) && width > 0 ? { url, kind: 'width', value: width } : null;
     }
 
-    const densityMatch = descriptors[0].match(DENSITY_DESCRIPTOR);
+    const densityMatch = DENSITY_DESCRIPTOR.exec(descriptors[0]);
     if (!densityMatch) return null;
 
     const density = Number(densityMatch[1]);
