@@ -59,4 +59,14 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
         expect(markdown).not.toMatch(/width=\"/);
         expect(markdown).not.toMatch(/style=/);
     });
+
+    test('custom properties and max-*/line-height do not shadow the real width/height', async () => {
+        const html =
+            '<p><img src="https://example.com/x.png" alt="Alt" style="--card-border-width: 1px; ' +
+            'max-width: 500px; line-height: 20px; max-height: 300px; width: 1288px; height: auto !important;"></p>';
+        const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
+        expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" width="1288">');
+        expect(markdown).not.toMatch(/height=\"/);
+        expect(markdown).not.toMatch(/style=/);
+    });
 });

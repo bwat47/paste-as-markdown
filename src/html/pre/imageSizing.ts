@@ -1,26 +1,39 @@
 /**
+ * Pixel length value as serialized by CSSStyleDeclaration, for example "120px" or "120.5px".
+ * Other units ("100%", "10em") and keywords ("auto") do not match.
+ */
+const PX_LENGTH = /^([0-9.]+)px$/i;
+
+/** Parse a CSS px length into a positive integer, or null when it is not a positive px value. */
+function parsePxLength(value: string): number | null {
+    const match = PX_LENGTH.exec(value.trim());
+    const parsed = match ? parseInt(match[1], 10) : NaN;
+    return parsed > 0 ? parsed : null;
+}
+
+/**
  * Promote inline style width/height on <img> elements to HTML attributes before sanitization.
  * This ensures sizing survives DOMPurify (which may drop style) and allows our Turndown rule
  * to treat sized images as raw HTML embeds instead of Markdown images.
+ *
+ * Reads the parsed `style.width` / `style.height` declarations rather than scanning the raw
+ * style string, so properties like `max-width`, `line-height` or `--card-border-width` are ignored.
  */
 export function promoteImageSizingStylesToAttributes(body: HTMLElement): void {
-    const imgs = Array.from(body.querySelectorAll('img[style]'));
+    const imgs = Array.from(body.querySelectorAll<HTMLImageElement>('img[style]'));
     imgs.forEach((img) => {
-        const style = img.getAttribute('style')!; // Non-null: selector guarantees style exists
         const hasAttrWidth = img.hasAttribute('width');
         const hasAttrHeight = img.hasAttribute('height');
         // Only promote style sizing if neither width nor height attribute is present.
         if (!hasAttrWidth && !hasAttrHeight) {
-            // Extract numeric px values; ignore percentages and other units
-            const w = /\bwidth\s*:\s*([0-9.]+)\s*px\b/i.exec(style);
-            const h = /\bheight\s*:\s*([0-9.]+)\s*px\b/i.exec(style);
-            const parsedWidth = w ? parseInt(w[1], 10) : null;
-            const parsedHeight = h ? parseInt(h[1], 10) : null;
-            if (parsedWidth && parsedWidth > 0) {
-                img.setAttribute('width', String(parsedWidth));
+            // Only px values are promoted; percentages, other units and keywords are ignored
+            const width = parsePxLength(img.style.width);
+            const height = parsePxLength(img.style.height);
+            if (width) {
+                img.setAttribute('width', String(width));
             }
-            if (parsedHeight && parsedHeight > 0) {
-                img.setAttribute('height', String(parsedHeight));
+            if (height) {
+                img.setAttribute('height', String(height));
             }
         }
         // Always remove style for determinism and to avoid leaking CSS
