@@ -50,17 +50,30 @@ describe('List indentation option', () => {
 
     test('indents enough to preserve nesting after a wide ordered marker', async () => {
         const html = '<ol start="100"><li>Parent<ul><li>Child</li></ul></li></ol>';
-        const nestedStructure = 'OrderedList(ListItem(ListMark,Paragraph,BulletList(ListItem(ListMark,Paragraph))))';
 
         // Tabs advance to four-column stops, so the five-column `100. ` marker rounds up to two tabs.
         const tabbed = await toMarkdown(html, LIST_INDENTATION.TABS);
         expect(tabbed).toBe('100. Parent\n\t\t- Child');
-        expect(parser.parse(tabbed).toString()).toContain(nestedStructure);
+        expect(
+            parser
+                .parse(tabbed)
+                .topNode.getChild('OrderedList')
+                ?.getChild('ListItem')
+                ?.getChild('BulletList')
+                ?.getChild('ListItem')?.name
+        ).toBe('ListItem');
 
         // Spaces match the marker width exactly rather than rounding.
         const spaced = await toMarkdown(html, LIST_INDENTATION.SPACES);
         expect(spaced).toBe('100. Parent\n     - Child');
-        expect(parser.parse(spaced).toString()).toContain(nestedStructure);
+        expect(
+            parser
+                .parse(spaced)
+                .topNode.getChild('OrderedList')
+                ?.getChild('ListItem')
+                ?.getChild('BulletList')
+                ?.getChild('ListItem')?.name
+        ).toBe('ListItem');
     });
 
     test('preserves indentation inside fenced code in a list item', async () => {
