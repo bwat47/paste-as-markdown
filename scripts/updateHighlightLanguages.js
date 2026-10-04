@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 
 /**
  * Fetches Highlight.js' SUPPORTED_LANGUAGES.md, drops rows that require third-party packages, normalizes aliases (including

@@ -44,6 +44,17 @@ export default [
         },
     },
 
+    // Node scripts are CommonJS.
+    {
+        files: ['scripts/**/*.js'],
+        languageOptions: {
+            sourceType: 'commonjs',
+        },
+        rules: {
+            '@typescript-eslint/no-require-imports': 'off',
+        },
+    },
+
     // Type-aware checks for TypeScript sources; JS tooling keeps untyped linting.
     {
         files: ['**/*.{ts,tsx}'],
