@@ -633,8 +633,7 @@ describe('pasteHandler', () => {
 
             await handlePasteAsMarkdown();
 
-            expect(mockJoplin.settings.values).toHaveBeenCalledOnce();
-            expect(mockJoplin.settings.values).toHaveBeenCalledWith(Object.values(SETTINGS));
+            expect(mockJoplin.settings.values).toHaveBeenCalledExactlyOnceWith(Object.values(SETTINGS));
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
                 {

@@ -5,6 +5,7 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import importPlugin from 'eslint-plugin-import-x';
 import sonarjs from 'eslint-plugin-sonarjs';
+import vitest from '@vitest/eslint-plugin';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
@@ -57,10 +58,17 @@ export default [
         },
     },
 
-    // Asymmetric matchers such as expect.stringMatching() are typed `any`.
+    // Vitest checks for tests and helpers, including assertion-aware method references.
     {
-        files: ['src/__tests__/**'],
+        files: ['src/**/__tests__/**/*.ts', 'src/**/*.test.ts'],
+        plugins: {
+            vitest,
+        },
         rules: {
+            ...vitest.configs.recommended.rules,
+            '@typescript-eslint/unbound-method': 'off',
+            'vitest/unbound-method': 'error',
+            // Asymmetric matchers such as expect.stringMatching() are typed `any`.
             '@typescript-eslint/no-unsafe-assignment': 'off',
         },
     },

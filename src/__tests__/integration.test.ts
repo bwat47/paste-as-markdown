@@ -291,10 +291,8 @@ describe('integration: convertHtmlToMarkdown', () => {
         // Inside fence keep 3+ newlines (at least one triple) intact
         const fenceMatch = /```[\s\S]*```/.exec(md);
         expect(fenceMatch).toBeTruthy();
-        if (fenceMatch) {
-            // Expect original triple newline sequence still present
-            expect(fenceMatch[0]).toMatch(/Line1\n\n\nLine2/);
-        }
+        // Expect original triple newline sequence still present
+        expect(fenceMatch?.[0]).toMatch(/Line1\n\n\nLine2/);
         // Outside fence sequences collapsed to a single blank line between paragraphs
         expect(md).toMatch(/Line3[\s\S]*After\n\nMore/);
         // Ensure no 3+ newline runs remain outside fences

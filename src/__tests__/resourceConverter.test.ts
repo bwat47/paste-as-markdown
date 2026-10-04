@@ -156,31 +156,36 @@ describe('resourceConverter edge cases', () => {
             content: '\x00\x00\x00\x14ftypavif\x00\x00\x00\x00mif1',
             ext: 'avif',
         },
-        { label: 'octet-stream HTML', contentType: OCTET_STREAM, content: '<html>not an image</html>', ext: null },
-        { label: 'octet-stream SVG', contentType: OCTET_STREAM, content: '<svg></svg>', ext: null },
-        { label: 'empty octet-stream', contentType: OCTET_STREAM, content: '', ext: null },
         { label: 'untyped WebP', contentType: null, content: 'RIFF\x14\x00\x00\x00WEBPVP8 ', ext: 'webp' },
-        { label: 'untyped HTML', contentType: null, content: '<html>not an image</html>', ext: null },
     ])('validates $label download by signature', async ({ contentType, content, ext }) => {
         const bytes = Buffer.from(content);
         setGlobal('fetch', mockChunkedResponse(contentType, bytes));
         const body = makeBody('<img src="https://example.com/image.jpg" alt="">');
         const result = await convertImagesToResources(body);
-        expect(result).toEqual({ ids: ext ? ['res-ok'] : [], attempted: 1, failed: ext ? 0 : 1 });
-        if (!ext) {
-            expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
-            expect(dataPostMock).not.toHaveBeenCalled();
-            expect(body.querySelector('img')?.getAttribute('src')).toBe('https://example.com/image.jpg');
-        } else {
-            expect(dataPostMock).toHaveBeenCalledWith(
-                ['resources'],
-                null,
-                { title: `image.${ext}`, mime: `image/${ext}` },
-                [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) }]
-            );
-            expect(fsExtraMock.writeFileSync.mock.calls[0][1]).toEqual(Uint8Array.from(bytes));
-            expect(body.querySelector('img')?.getAttribute('src')).toBe(':/res-ok');
-        }
+        expect(result).toEqual({ ids: ['res-ok'], attempted: 1, failed: 0 });
+        expect(dataPostMock).toHaveBeenCalledWith(
+            ['resources'],
+            null,
+            { title: `image.${ext}`, mime: `image/${ext}` },
+            [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) }]
+        );
+        expect(fsExtraMock.writeFileSync.mock.calls[0][1]).toEqual(Uint8Array.from(bytes));
+        expect(body.querySelector('img')?.getAttribute('src')).toBe(':/res-ok');
+    });
+
+    test.each([
+        { label: 'octet-stream HTML', contentType: OCTET_STREAM, content: '<html>not an image</html>' },
+        { label: 'octet-stream SVG', contentType: OCTET_STREAM, content: '<svg></svg>' },
+        { label: 'empty octet-stream', contentType: OCTET_STREAM, content: '' },
+        { label: 'untyped HTML', contentType: null, content: '<html>not an image</html>' },
+    ])('rejects $label download by signature', async ({ contentType, content }) => {
+        setGlobal('fetch', mockChunkedResponse(contentType, Buffer.from(content)));
+        const body = makeBody('<img src="https://example.com/image.jpg" alt="">');
+        const result = await convertImagesToResources(body);
+        expect(result).toEqual({ ids: [], attempted: 1, failed: 1 });
+        expect(fsExtraMock.writeFileSync).not.toHaveBeenCalled();
+        expect(dataPostMock).not.toHaveBeenCalled();
+        expect(body.querySelector('img')?.getAttribute('src')).toBe('https://example.com/image.jpg');
     });
 
     test.each([null, {}, { id: 123 }])(

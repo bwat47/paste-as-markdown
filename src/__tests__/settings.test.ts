@@ -86,8 +86,7 @@ describe('settings', () => {
             forceTightLists: true,
             listIndentation: LIST_INDENTATION.TABS,
         });
-        expect(values).toHaveBeenCalledOnce();
-        expect(values).toHaveBeenCalledWith(Object.values(SETTINGS));
+        expect(values).toHaveBeenCalledExactlyOnceWith(Object.values(SETTINGS));
     });
 
     test('uses defaults for missing or malformed values and logs malformed values', async () => {
