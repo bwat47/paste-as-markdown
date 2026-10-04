@@ -429,4 +429,3 @@ export function isHighlightLanguage(id: string): boolean {
 export function getHighlightLanguages(): ReadonlySet<string> {
     return HIGHLIGHT_LANGUAGES;
 }
-
