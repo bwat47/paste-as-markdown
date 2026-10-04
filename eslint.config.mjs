@@ -1,8 +1,8 @@
 // Flat config (ESM). Adds ignores, Node globals, and TS-friendly rule tweaks.
 
+import { defineConfig } from 'eslint/config';
 import js from '@eslint/js';
-import tsParser from '@typescript-eslint/parser';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
+import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import-x';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import sonarjs from 'eslint-plugin-sonarjs';
@@ -10,27 +10,25 @@ import vitest from '@vitest/eslint-plugin';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
-export default [
+export default defineConfig([
     {
         ignores: ['api/**', 'dist/**'],
     },
 
     js.configs.recommended,
     sonarjs.configs.recommended,
+    // Registers the TS parser/plugin for all files and disables core rules TypeScript handles in .ts files.
+    tseslint.configs.recommended,
 
     // Project TS/JS sources
     {
         files: ['**/*.{ts,tsx,js,mjs,cjs}'],
         languageOptions: {
-            parser: tsParser,
-            ecmaVersion: 2020,
-            sourceType: 'module',
             globals: {
                 ...globals.node,
             },
         },
         plugins: {
-            '@typescript-eslint': tsPlugin,
             import: importPlugin,
         },
         settings: {
@@ -42,10 +40,7 @@ export default [
             'import-x/parsers': { '@typescript-eslint/parser': ['.ts', '.tsx'] },
         },
         rules: {
-            // Turn off rules TypeScript handles (prevents NodeJS / type-only false positives)
-            'no-undef': 'off',
             'no-useless-escape': 'off',
-            ...tsPlugin.configs.recommended.rules,
             // report an error if any circular dependency is found
             'import/no-cycle': ['error', { maxDepth: Infinity }],
             '@typescript-eslint/no-inferrable-types': 'error',
@@ -67,25 +62,20 @@ export default [
     // Type-aware checks for TypeScript sources; JS tooling keeps untyped linting.
     {
         files: ['**/*.{ts,tsx}'],
+        extends: [tseslint.configs.recommendedTypeCheckedOnly],
         languageOptions: {
             parserOptions: {
                 projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
         },
-        rules: {
-            ...tsPlugin.configs['recommended-type-checked'].rules,
-        },
     },
 
     // Vitest checks for tests and helpers, including assertion-aware method references.
     {
         files: ['src/**/__tests__/**/*.ts', 'src/**/*.test.ts'],
-        plugins: {
-            vitest,
-        },
+        extends: [vitest.configs.recommended],
         rules: {
-            ...vitest.configs.recommended.rules,
             '@typescript-eslint/unbound-method': 'off',
             'vitest/unbound-method': 'error',
             // Asymmetric matchers such as expect.stringMatching() are typed `any`.
@@ -95,4 +85,4 @@ export default [
 
     // Prettier compatibility
     prettier,
-];
+]);
