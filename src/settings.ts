@@ -1,8 +1,7 @@
 import joplin from 'api';
 import { SettingItemType } from 'api/types';
 import logger from './logger';
-import { LIST_INDENTATION } from './types';
-import type { ListIndentation, PasteOptions } from './types';
+import { LIST_INDENTATION, type ListIndentation, type PasteOptions } from './types';
 
 export const SETTINGS = {
     INCLUDE_IMAGES: 'includeImages',

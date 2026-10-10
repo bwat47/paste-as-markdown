@@ -1,5 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { Mock } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import * as path from 'path';
 import { convertImagesToResources } from '../resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';

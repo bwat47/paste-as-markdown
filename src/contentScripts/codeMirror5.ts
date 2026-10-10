@@ -1,6 +1,5 @@
 import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editorCommands';
-import { createContextMenuOriginTracker } from './contextMenuOrigin';
-import type { ContextMenuOriginTracker } from './contextMenuOrigin';
+import { createContextMenuOriginTracker, type ContextMenuOriginTracker } from './contextMenuOrigin';
 
 const ENABLE_CONTENT_SCRIPT_OPTION = 'pasteAsMarkdown-enableContentScript';
 

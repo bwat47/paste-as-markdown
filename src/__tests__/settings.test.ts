@@ -1,7 +1,5 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-import type { Mock } from 'vitest';
-import type { SettingItem } from 'api/types';
-import { SettingItemType } from 'api/types';
+import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+import { type SettingItem, SettingItemType } from 'api/types';
 import { DEFAULT_PASTE_OPTIONS, loadPasteOptions, registerPluginSettings, SETTINGS } from '../settings';
 import logger from '../logger';
 import { LIST_INDENTATION } from '../types';

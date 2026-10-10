@@ -1,8 +1,7 @@
 import TurndownService from 'turndown';
 import { gfm } from '@bwat47/turndown-plugin-gfm';
 import { transformMarkdownOutsideFencedCode } from './markdown/fencedCode';
-import { LIST_INDENTATION } from './types';
-import type { PasteOptions, ListIndentation } from './types';
+import { LIST_INDENTATION, type PasteOptions, type ListIndentation } from './types';
 
 /** Options used only by DOM-to-Markdown conversion. */
 export type MarkdownConversionOptions = Pick<PasteOptions, 'listIndentation'>;

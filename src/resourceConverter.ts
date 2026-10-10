@@ -20,9 +20,13 @@ import type Joplin from '../api/Joplin';
 import type { ParsedImageData } from './types';
 import logger from './logger';
 import { resolveImageType } from './imageMime';
-import { parseImageSource } from './html/shared/imageSource';
+import {
+    parseImageSource,
+    type DataImageSource,
+    type ImageSource,
+    type RemoteImageSource,
+} from './html/shared/imageSource';
 import { formatFallbackStem } from './resourceTitles';
-import type { DataImageSource, ImageSource, RemoteImageSource } from './html/shared/imageSource';
 
 export interface ResourceConversionLimits {
     readonly maxImageBytes: number;

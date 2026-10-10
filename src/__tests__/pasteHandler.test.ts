@@ -1,5 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import type { Mock, MockedFunction } from 'vitest';
+import { describe, test, expect, vi, beforeEach, type Mock, type MockedFunction } from 'vitest';
 import { handlePasteAsMarkdown } from '../pasteHandler';
 import { convertHtmlToMarkdown } from '../pasteConversion';
 import { HtmlProcessingError } from '../html/processHtml';

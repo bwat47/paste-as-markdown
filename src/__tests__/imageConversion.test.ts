@@ -1,5 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from 'vitest';
-import type { Mock } from 'vitest';
+import { describe, test, expect, beforeEach, vi, type Mock } from 'vitest';
 import { processHtml } from '../html/processHtml';
 import { pasteOptions } from './helpers/pasteOptions';
 

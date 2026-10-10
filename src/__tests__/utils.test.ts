@@ -1,8 +1,6 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import type { Mock } from 'vitest';
+import { describe, test, expect, vi, beforeEach, type Mock } from 'vitest';
 import { showToast } from '../utils';
-import { ToastType } from 'api/types';
-import type { Toast } from 'api/types';
+import { ToastType, type Toast } from 'api/types';
 import logger from '../logger';
 
 // Mock the joplin API

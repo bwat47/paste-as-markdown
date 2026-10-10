@@ -1,6 +1,5 @@
 import { DEFAULT_PASTE_OPTIONS } from '../../settings';
-import { LIST_INDENTATION } from '../../types';
-import type { PasteOptions } from '../../types';
+import { LIST_INDENTATION, type PasteOptions } from '../../types';
 
 /**
  * Builds a complete `PasteOptions` from the shared defaults so tests only spell out the flags

@@ -1,5 +1,4 @@
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-import type { Mock } from 'vitest';
+import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
 import { isMarkdownEditorContextMenuOrigin } from '../editorIntegration';
 import { IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editorCommands';
 
