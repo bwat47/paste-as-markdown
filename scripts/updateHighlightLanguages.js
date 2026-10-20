@@ -90,7 +90,7 @@ function renderFile(languages, retrievedOn) {
 
     const items = languages.map((lang) => `    '${lang}',`).join('\n');
 
-    return `${header}\n\nconst LANGUAGE_IDENTIFIERS = [\n${items}\n] as const;\n\nconst HIGHLIGHT_LANGUAGES = new Set<string>(LANGUAGE_IDENTIFIERS);\n\nexport function isHighlightLanguage(id: string): boolean {\n    return HIGHLIGHT_LANGUAGES.has(id.toLowerCase());\n}\n\nexport function getHighlightLanguages(): ReadonlySet<string> {\n    return HIGHLIGHT_LANGUAGES;\n}\n`;
+    return `${header}\n\nconst LANGUAGE_IDENTIFIERS = [\n${items}\n] as const;\n\nconst HIGHLIGHT_LANGUAGES = new Set<string>(LANGUAGE_IDENTIFIERS);\n\nexport function isHighlightLanguage(id: string): boolean {\n    return HIGHLIGHT_LANGUAGES.has(id.toLowerCase());\n}\n`;
 }
 
 async function main() {

@@ -1,7 +1,7 @@
 /**
  * Highlight.js core language identifiers and aliases (no third-party packages).
  * Source: https://raw.githubusercontent.com/highlightjs/highlight.js/refs/heads/main/SUPPORTED_LANGUAGES.md
- * Retrieved: 2026-10-04 (update when Joplin bumps highlight.js).
+ * Retrieved: 2026-10-20 (update when Joplin bumps highlight.js).
  */
 
 const LANGUAGE_IDENTIFIERS = [
@@ -426,6 +426,3 @@ export function isHighlightLanguage(id: string): boolean {
     return HIGHLIGHT_LANGUAGES.has(id.toLowerCase());
 }
 
-export function getHighlightLanguages(): ReadonlySet<string> {
-    return HIGHLIGHT_LANGUAGES;
-}
