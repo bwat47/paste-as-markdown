@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { resolveImageType } from '../imageMime';
+import { resolveImageType } from '../resources/imageMime';
 import { apng, jpeg, png, tiff } from './helpers/imageBytes';
 
 const FTYP_HEADER_BYTES = 16;

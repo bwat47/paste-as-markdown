@@ -1,5 +1,5 @@
 import { processHtml } from './html/processHtml';
-import { domToMarkdown } from './markdownConverter';
+import { domToMarkdown } from './markdown/markdownConverter';
 import type { HtmlToMarkdownResult, PassContext, PasteOptions } from './types';
 
 /** Runs HTML preparation, resource conversion, and Markdown conversion in order. */

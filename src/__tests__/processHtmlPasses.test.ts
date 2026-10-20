@@ -2,7 +2,7 @@ import { describe, expect, test, afterEach, vi } from 'vitest';
 import { HtmlProcessingError, processHtml } from '../html/processHtml';
 import * as passRunner from '../html/passes/runner';
 import { PROCESSING_PASSES } from '../html/passes/registry';
-import * as resourceConverter from '../resourceConverter';
+import * as resourceConverter from '../resources/resourceConverter';
 import logger from '../logger';
 import type { ProcessingPass } from '../html/passes/types';
 import { inertPasteOptions } from './helpers/pasteOptions';

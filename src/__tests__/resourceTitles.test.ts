@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { formatFallbackStem, formatFilenameTimestamp } from '../resourceTitles';
+import { formatFallbackStem, formatFilenameTimestamp } from '../resources/resourceTitles';
 
 describe('formatFilenameTimestamp', () => {
     test('formats local time as a sortable, colon-free timestamp', () => {
