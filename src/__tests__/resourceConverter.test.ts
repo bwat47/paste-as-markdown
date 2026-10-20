@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import * as path from 'path';
-import { convertImagesToResources } from '../resourceConverter';
+import { convertImagesToResources } from '../resources/resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
 import { apng, jpeg, png, pngExceeding, tiff } from './helpers/imageBytes';
 

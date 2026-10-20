@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach, type Mock } from 'vitest';
-import { convertImagesToResources } from '../resourceConverter';
+import { convertImagesToResources } from '../resources/resourceConverter';
 import { pngExceeding } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;

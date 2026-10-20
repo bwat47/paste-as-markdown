@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from 'vitest';
 import type { CodeMirrorControl } from 'api/types';
-import codeMirror5ContentScript from '../contentScripts/codeMirror5';
-import codeMirror6ContentScript from '../contentScripts/codeMirror6';
+import codeMirror5ContentScript from '../editor/contentScripts/codeMirror5';
+import codeMirror6ContentScript from '../editor/contentScripts/codeMirror6';
 import {
     createContextMenuOriginTracker,
     EDITOR_CONTEXT_MENU_EVENT_GRACE_MS,
-} from '../contentScripts/contextMenuOrigin';
-import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editorCommands';
+} from '../editor/contentScripts/contextMenuOrigin';
+import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editor/editorCommands';
 
 type EditorCommand = (...args: unknown[]) => unknown;
 

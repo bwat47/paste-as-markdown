@@ -25,9 +25,9 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Editor Integration
 
-- `src/editorCommands.ts` holds the command names shared between the plugin and its content scripts.
-- `src/contentScripts/codeMirror6.ts` and `src/contentScripts/codeMirror5.ts` register those commands in the CodeMirror 6 and legacy editors respectively; each ignores the other's editor. They expose a shared insertion command and track recent editor `contextmenu` events via `src/contentScripts/contextMenuOrigin.ts`, a single-use marker with a short grace period.
-- `src/editorIntegration.ts` is the plugin-side wrapper for those commands. Insertion falls back to Joplin's `insertText` when the content script is unavailable. The context-menu filter first checks Joplin's `editor.codeView` setting to exclude rich text mode, then consumes the marker to distinguish the Markdown editor from its viewer.
+- `src/editor/editorCommands.ts` holds the command names shared between the plugin and its content scripts.
+- `src/editor/contentScripts/codeMirror6.ts` and `src/editor/contentScripts/codeMirror5.ts` register those commands in the CodeMirror 6 and legacy editors respectively; each ignores the other's editor. They expose a shared insertion command and track recent editor `contextmenu` events via `src/editor/contentScripts/contextMenuOrigin.ts`, a single-use marker with a short grace period.
+- `src/editor/editorIntegration.ts` is the plugin-side wrapper for those commands. Insertion falls back to Joplin's `insertText` when the content script is unavailable. The context-menu filter first checks Joplin's `editor.codeView` setting to exclude rich text mode, then consumes the marker to distinguish the Markdown editor from its viewer.
 
 ### Settings
 
@@ -55,7 +55,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Markdown Conversion
 
-- `src/markdownConverter.ts` exposes synchronous `domToMarkdown`, translating a sanitized, fully processed DOM into Markdown without modifying the supplied tree.
+- `src/markdown/markdownConverter.ts` exposes synchronous `domToMarkdown`, translating a sanitized, fully processed DOM into Markdown without modifying the supplied tree.
 - Its caller must supply the body returned by `processHtml` or an equivalent trusted DOM; the converter does not sanitize input, run HTML passes, or create resources. Image inclusion is resolved during sanitization; the converter accepts only the list-indentation option.
 - It builds a fresh Turndown pipeline for each paste, applies the GFM plugin, adds a small set of project-specific rules, and performs final Markdown cleanup before returning the result.
 - The custom list-item rule applies the configured spaces-or-tabs indentation while preserving the width required for valid nested Markdown.
@@ -63,14 +63,14 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Resource Conversion
 
-- `src/resourceConverter.ts` handles optional image conversion into Joplin resources.
+- `src/resources/resourceConverter.ts` handles optional image conversion into Joplin resources.
 - This runs as part of HTML processing so Markdown output can reference Joplin-managed images instead of raw external data when that option is enabled.
 - Size and timeout limits default to `DEFAULT_RESOURCE_CONVERSION_LIMITS` and are injectable per call, so the caps stay explicit dependencies rather than module-level globals.
 - The remote download timeout is a total deadline covering retries, headers and the full body stream.
 - Data URLs must declare an `image/*` type; remote downloads must declare one or send no/a generic binary content type. Anything else is rejected before decoding or reading the body.
-- `resolveImageType` in `src/imageMime.ts` decides the stored MIME type and extension from content, never from the declared type: raster images must match an allowlisted `file-type` signature (APNG is stored as PNG). SVG has no signature, so it is accepted only when declared as `image/svg+xml` and parsed by `DOMParser` as well-formed XML with an `svg` root in the SVG namespace. This checks XML syntax, not SVG feature validity or sanitization. Unsupported images fail conversion and keep their original `src`.
+- `resolveImageType` in `src/resources/imageMime.ts` decides the stored MIME type and extension from content, never from the declared type: raster images must match an allowlisted `file-type` signature (APNG is stored as PNG). SVG has no signature, so it is accepted only when declared as `image/svg+xml` and parsed by `DOMParser` as well-formed XML with an `svg` root in the SVG namespace. This checks XML syntax, not SVG feature validity or sanitization. Unsupported images fail conversion and keep their original `src`.
 - The resolved type always sets the file extension; a remote URL only contributes the filename stem.
-- Images without a usable URL filename get a fallback stem from `src/resourceTitles.ts`: `pasted-<local YYYY-MM-DD-HHmmss>` shared by the whole paste, with `-2`, `-3`, ... for later fallback images. A stem is used up only when its resource is created, so failed images leave no gaps.
+- Images without a usable URL filename get a fallback stem from `src/resources/resourceTitles.ts`: `pasted-<local YYYY-MM-DD-HHmmss>` shared by the whole paste, with `-2`, `-3`, ... for later fallback images. A stem is used up only when its resource is created, so failed images leave no gaps.
 
 ### Shared Infrastructure
 
