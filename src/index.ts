@@ -2,7 +2,7 @@ import joplin from 'api';
 import { registerPluginSettings } from './settings';
 import { ContentScriptType, MenuItemLocation } from 'api/types';
 import logger from './logger';
-import { isMarkdownEditorContextMenuOrigin } from './editorIntegration';
+import { isMarkdownEditorContextMenuOrigin } from './editor/editorIntegration';
 import { executePasteAsMarkdownCommand } from './pasteCommand';
 
 const PASTE_AS_MARKDOWN_COMMAND = 'pasteHtmlAsMarkdown';
@@ -18,12 +18,12 @@ void joplin.plugins.register({
             await joplin.contentScripts.register(
                 ContentScriptType.CodeMirrorPlugin,
                 CODE_MIRROR_6_CONTENT_SCRIPT_ID,
-                './contentScripts/codeMirror6.js'
+                './editor/contentScripts/codeMirror6.js'
             );
             await joplin.contentScripts.register(
                 ContentScriptType.CodeMirrorPlugin,
                 CODE_MIRROR_5_CONTENT_SCRIPT_ID,
-                './contentScripts/codeMirror5.js'
+                './editor/contentScripts/codeMirror5.js'
             );
         } catch (err) {
             logger.error('Failed to register editor content scripts', err);

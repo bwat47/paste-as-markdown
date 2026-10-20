@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { ToastType } from 'api/types';
-import { isMarkdownEditorMode } from '../editorIntegration';
+import { isMarkdownEditorMode } from '../editor/editorIntegration';
 import { handlePasteAsMarkdown } from '../pasteHandler';
 import { executePasteAsMarkdownCommand } from '../pasteCommand';
 import { showToast } from '../utils';
 
-vi.mock('../editorIntegration');
+vi.mock('../editor/editorIntegration');
 vi.mock('../pasteHandler');
 vi.mock('../utils');
 vi.mock('../logger', () => ({

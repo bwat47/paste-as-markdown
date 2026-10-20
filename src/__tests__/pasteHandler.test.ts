@@ -6,7 +6,7 @@ import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../settings';
 import { LIST_INDENTATION } from '../types';
-import { INSERT_MARKDOWN_COMMAND } from '../editorCommands';
+import { INSERT_MARKDOWN_COMMAND } from '../editor/editorCommands';
 
 // Mock dependencies
 vi.mock('api');

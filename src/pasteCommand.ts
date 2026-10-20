@@ -1,5 +1,5 @@
 import { ToastType } from 'api/types';
-import { isMarkdownEditorMode } from './editorIntegration';
+import { isMarkdownEditorMode } from './editor/editorIntegration';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import logger from './logger';
 import { showToast } from './utils';

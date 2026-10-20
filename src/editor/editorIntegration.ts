@@ -1,5 +1,5 @@
 import joplin from 'api';
-import logger from './logger';
+import logger from '../logger';
 import { INSERT_MARKDOWN_COMMAND, IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from './editorCommands';
 
 const EDITOR_CODE_VIEW_SETTING = 'editor.codeView';

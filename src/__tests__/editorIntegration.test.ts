@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
-import { isMarkdownEditorContextMenuOrigin } from '../editorIntegration';
-import { IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editorCommands';
+import { isMarkdownEditorContextMenuOrigin } from '../editor/editorIntegration';
+import { IS_EDITOR_CONTEXT_MENU_ORIGIN_COMMAND } from '../editor/editorCommands';
 
 vi.mock('api');
 

@@ -14,7 +14,7 @@ import type {
 import { DEFAULT_PASS_CONTEXT } from './html/passContext';
 import { loadPasteOptions } from './settings';
 import logger from './logger';
-import { insertMarkdownAtCursor } from './editorIntegration';
+import { insertMarkdownAtCursor } from './editor/editorIntegration';
 
 async function readClipboardHtml(): Promise<string | null> {
     try {
