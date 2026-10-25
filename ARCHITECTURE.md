@@ -7,7 +7,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ## High-Level Flow
 
 1. Joplin invokes the plugin's paste command.
-2. The paste handler reads clipboard data and plugin settings.
+2. The paste handler reads clipboard data and plugin settings. If the clipboard holds HTML and the paste options dialog is enabled, the user can adjust the options for this paste or cancel it.
 3. If HTML is available, the conversion pipeline:
     - normalizes and sanitizes the HTML,
     - optionally converts pasted images into Joplin resources,
@@ -20,7 +20,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Entry Point
 
-- `src/index.ts` registers the Joplin command, menus, and separate CodeMirror 5 and CodeMirror 6 content scripts, and delegates settings setup to `src/settings.ts`.
+- `src/index.ts` registers the Joplin command, menus, separate CodeMirror 5 and CodeMirror 6 content scripts, and the paste options dialog, and delegates settings setup to `src/settings.ts`. The dialog's prompt is passed explicitly through the command into the paste handler; if dialog creation fails, a prompt that keeps the saved options is used instead.
 - `src/pasteCommand.ts` is the command boundary. It stops before reading or converting clipboard data when `editor.codeView` indicates the unsupported rich text editor.
 
 ### Editor Integration
@@ -31,13 +31,19 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 
 ### Settings
 
-- `src/settings.ts` owns setting keys, paste-option defaults, Joplin settings registration, and loading raw values into validated `PasteOptions`.
+- `src/settings.ts` owns setting keys, paste-option defaults and labels, Joplin settings registration, and loading raw values into validated `PasteSettings` (the `PasteOptions` plus the show-dialog flag).
 - Defaulting happens only at this boundary; the rest of the pipeline requires complete, already-resolved options.
+
+### Paste Options Dialog
+
+- `src/dialog/pasteOptionsDialog.ts` creates the optional per-paste dialog once at startup and returns a `PasteOptionsPrompt`. It renders a form pre-filled from the saved options and parses the submitted form data back into `PasteOptions`; Cancel resolves to `null`, as does a prompt made while the dialog is already open (Joplin errors on a second `open`), so the overlapping paste is skipped. Unchecked and disabled checkboxes are absent from form data and read as `false`.
+- `src/dialog/webview/` holds the dialog's plain JS and CSS, copied into `dist` as-is. The script disables checkboxes marked `data-requires` while their prerequisite is unchecked (resource conversion requires images) and blocks native form submission. Listeners are delegated from `document` because the form HTML is replaced before each paste.
 
 ### Paste Orchestration
 
 - `src/pasteHandler.ts` coordinates the end-to-end paste flow.
-- It reads clipboard content, loads resolved options from `src/settings.ts`, detects a clipboard source discriminant such as `google-docs`, builds the shared pass context, calls the conversion pipeline, inserts the result through the active Markdown editor's content-script command, and manages user-facing fallback behavior.
+- HTML pastes capture plain text for fallback before opening the options dialog. Fallback paths use that snapshot without re-reading the clipboard; an empty or unreadable snapshot disables fallback without blocking HTML conversion.
+- It reads clipboard content, loads resolved options from `src/settings.ts` (consulting the options prompt only for HTML pastes with the dialog enabled; a cancelled dialog ends the paste with a distinct `{ cancelled: true }` result rather than a failure), detects a clipboard source discriminant such as `google-docs`, builds the shared pass context, calls the conversion pipeline, inserts the result through the active Markdown editor's content-script command, and manages user-facing fallback behavior.
 - `src/pasteConversion.ts` exposes `convertHtmlToMarkdown`, composing HTML processing with DOM-to-Markdown conversion and returning Markdown alongside resource metadata. It requires complete paste options and an explicit pass context.
 
 ### HTML Processing

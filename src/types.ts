@@ -8,6 +8,16 @@ interface ConversionResult {
 export type ConversionSuccess = ConversionResult & { success: true };
 export type ConversionFailure = ConversionResult & { success: false; warnings: readonly string[] };
 
+/**
+ * The user cancelled the paste, so nothing was inserted and there is nothing to report.
+ * Has no `success` field, so callers must rule out a cancel before checking for failure.
+ */
+interface PasteCancelled {
+    cancelled: true;
+}
+
+export type PasteResult = ConversionSuccess | ConversionFailure | PasteCancelled;
+
 export const LIST_INDENTATION = {
     SPACES: 'spaces',
     TABS: 'tabs',
@@ -22,6 +32,12 @@ export interface PasteOptions {
     forceTightLists: boolean;
     listIndentation: ListIndentation;
 }
+
+/**
+ * Lets the user adjust the resolved options for a single paste.
+ * Resolves to the options to paste with, or `null` when the user cancels the paste.
+ */
+export type PasteOptionsPrompt = (defaults: PasteOptions) => Promise<PasteOptions | null>;
 
 export type ClipboardSource = 'generic' | 'google-docs';
 

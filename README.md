@@ -40,6 +40,7 @@ If the clipboard contains HTML, the plugin cleans it, converts it to Markdown, a
 - **Normalize smart quotes** — Convert Word and Office smart quotes to plain quotes for better Markdown compatibility. Enabled by default.
 - **Force tight lists** — Remove blank lines between ordinary list items while retaining the spacing required by multi-block items.
 - **List indentation** — Indent nested list items and continuation lines with tabs or spaces. Tabs are used by default to match the default behavior of Joplin's Markdown editor.
+- **Show paste options dialog** — Before each HTML paste, show a dialog to adjust the options above for that paste only. The dialog starts from your saved settings. Disabled by default.
 
 ## Output format
 

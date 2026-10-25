@@ -4,6 +4,8 @@ import { ContentScriptType, MenuItemLocation } from 'api/types';
 import logger from './logger';
 import { isMarkdownEditorContextMenuOrigin } from './editor/editorIntegration';
 import { executePasteAsMarkdownCommand } from './pasteCommand';
+import { createPasteOptionsDialog } from './dialog/pasteOptionsDialog';
+import type { PasteOptionsPrompt } from './types';
 
 const PASTE_AS_MARKDOWN_COMMAND = 'pasteHtmlAsMarkdown';
 const PASTE_AS_MARKDOWN_SHORTCUT = 'Ctrl+Alt+V';
@@ -29,12 +31,20 @@ void joplin.plugins.register({
             logger.error('Failed to register editor content scripts', err);
         }
 
+        // Without the dialog, pastes still work using the saved settings.
+        let promptForPasteOptions: PasteOptionsPrompt = (options) => Promise.resolve(options);
+        try {
+            promptForPasteOptions = await createPasteOptionsDialog();
+        } catch (err) {
+            logger.error('Failed to create paste options dialog; pastes will use saved settings', err);
+        }
+
         // Register command
         await joplin.commands.register({
             name: PASTE_AS_MARKDOWN_COMMAND,
             label: 'Paste HTML as Markdown',
             iconName: 'fas fa-paste',
-            execute: executePasteAsMarkdownCommand,
+            execute: () => executePasteAsMarkdownCommand(promptForPasteOptions),
         });
 
         await registerPluginSettings();

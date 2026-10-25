@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
 import { type SettingItem, SettingItemType } from 'api/types';
-import { DEFAULT_PASTE_OPTIONS, loadPasteOptions, registerPluginSettings, SETTINGS } from '../settings';
+import { DEFAULT_PASTE_OPTIONS, loadPasteSettings, registerPluginSettings, SETTINGS } from '../settings';
 import logger from '../logger';
 import { LIST_INDENTATION } from '../types';
 
@@ -65,6 +65,11 @@ describe('settings', () => {
                     [LIST_INDENTATION.TABS]: 'Tabs',
                 },
             },
+            [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'pasteAsMarkdown',
+            },
         });
     });
 
@@ -75,14 +80,18 @@ describe('settings', () => {
             [SETTINGS.NORMALIZE_QUOTES]: false,
             [SETTINGS.FORCE_TIGHT_LISTS]: true,
             [SETTINGS.LIST_INDENTATION]: LIST_INDENTATION.TABS,
+            [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true,
         });
 
-        await expect(loadPasteOptions()).resolves.toEqual({
-            includeImages: false,
-            convertImagesToResources: true,
-            normalizeQuotes: false,
-            forceTightLists: true,
-            listIndentation: LIST_INDENTATION.TABS,
+        await expect(loadPasteSettings()).resolves.toEqual({
+            options: {
+                includeImages: false,
+                convertImagesToResources: true,
+                normalizeQuotes: false,
+                forceTightLists: true,
+                listIndentation: LIST_INDENTATION.TABS,
+            },
+            showPasteOptionsDialog: true,
         });
         expect(values).toHaveBeenCalledExactlyOnceWith(Object.values(SETTINGS));
     });
@@ -95,7 +104,10 @@ describe('settings', () => {
             [SETTINGS.LIST_INDENTATION]: 'two-spaces',
         });
 
-        await expect(loadPasteOptions()).resolves.toEqual(DEFAULT_PASTE_OPTIONS);
+        await expect(loadPasteSettings()).resolves.toEqual({
+            options: DEFAULT_PASTE_OPTIONS,
+            showPasteOptionsDialog: false,
+        });
         // Each payload is distinct, so matching all three against an exact call count pins the
         // warnings exactly without coupling to the order settings are resolved in.
         expect(warnSpy).toHaveBeenCalledWith('Invalid boolean setting; using default', {

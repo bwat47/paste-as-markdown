@@ -65,6 +65,16 @@ export default defineConfig([
         },
     },
 
+    // Dialog webview scripts run in the browser, not Node.
+    {
+        files: ['src/**/webview/**/*.js'],
+        languageOptions: {
+            globals: {
+                ...globals.browser,
+            },
+        },
+    },
+
     // Type-aware checks for TypeScript sources; JS tooling keeps untyped linting.
     {
         files: ['**/*.{ts,tsx}'],

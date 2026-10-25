@@ -9,10 +9,12 @@ import type {
     ConversionFailure,
     PassContext,
     PasteOptions,
+    PasteOptionsPrompt,
+    PasteResult,
     ResourceConversionMeta,
 } from './types';
 import { DEFAULT_PASS_CONTEXT } from './html/passContext';
-import { loadPasteOptions } from './settings';
+import { loadPasteSettings } from './settings';
 import logger from './logger';
 import { insertMarkdownAtCursor } from './editor/editorIntegration';
 
@@ -56,13 +58,12 @@ async function readClipboardText(): Promise<string> {
 }
 
 /**
- * Attempts to read plain text from clipboard, insert it, and notify the user.
+ * Attempts to insert the captured plain text and notify the user.
  * Returns a ConversionFailure result on success (successful fallback is still a conversion failure).
- * Returns null if plain text cannot be read or inserted.
+ * Returns null if captured plain text is unavailable or cannot be inserted.
  */
-async function attemptPlainTextFallback(errorMessage: string): Promise<ConversionFailure | null> {
+async function attemptPlainTextFallback(text: string, errorMessage: string): Promise<ConversionFailure | null> {
     try {
-        const text = await readClipboardText();
         if (!text) {
             return null;
         }
@@ -75,7 +76,7 @@ async function attemptPlainTextFallback(errorMessage: string): Promise<Conversio
             plainTextFallback: true,
         };
     } catch (err) {
-        logger.error('Failed to read or insert plain text during fallback', err);
+        logger.error('Failed to insert captured plain text during fallback', err);
         return null;
     }
 }
@@ -85,11 +86,12 @@ async function attemptPlainTextFallback(errorMessage: string): Promise<Conversio
  * Always resolves to a ConversionFailure describing what happened.
  */
 async function fallbackOrFailure(
+    text: string,
     errorMessage: string,
     failureToast: string,
     fallbackWarning: string
 ): Promise<ConversionFailure> {
-    const fallbackResult = await attemptPlainTextFallback(errorMessage);
+    const fallbackResult = await attemptPlainTextFallback(text, errorMessage);
     if (fallbackResult) {
         return fallbackResult;
     }
@@ -139,11 +141,12 @@ function buildSuccessMessage(options: PasteOptions, resources: ResourceConversio
 }
 
 /** Maps a conversion error to a user-facing result, attempting a plain text fallback first. */
-async function handleConversionFailure(err: unknown): Promise<ConversionFailure> {
+async function handleConversionFailure(err: unknown, fallbackText: string): Promise<ConversionFailure> {
     if (err instanceof HtmlProcessingError) {
         // Technical error details logged for debugging, user sees only actionable result
         logger.error('HTML processing failed, attempting plain text fallback', err);
         return fallbackOrFailure(
+            fallbackText,
             err.message,
             'Paste failed: unable to process HTML or read plain text',
             'Plain text fallback failed'
@@ -152,23 +155,42 @@ async function handleConversionFailure(err: unknown): Promise<ConversionFailure>
 
     logger.error('Conversion failed, attempting plain text fallback', err);
     const errorMessage = (err as Error)?.message || 'HTML conversion failed';
-    return fallbackOrFailure(errorMessage, 'Paste failed: no HTML or plain text available', 'No plain text available');
+    return fallbackOrFailure(
+        fallbackText,
+        errorMessage,
+        'Paste failed: no HTML or plain text available',
+        'No plain text available'
+    );
+}
+
+/** Loads the saved paste options and, when the user enabled it, lets them adjust those options for this paste. */
+async function resolvePasteOptions(promptForOptions: PasteOptionsPrompt): Promise<PasteOptions | null> {
+    const { options, showPasteOptionsDialog } = await loadPasteSettings();
+    return showPasteOptionsDialog ? promptForOptions(options) : options;
 }
 
 /**
  * Reads clipboard HTML or plain text, converts to Markdown using user settings,
  * inserts result at cursor, and provides user feedback. Falls back to plain text if conversion fails.
+ *
+ * `promptForOptions` is only consulted when the clipboard holds HTML and the options dialog setting is enabled.
  */
-export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | ConversionFailure> {
-    const options = await loadPasteOptions();
-
-    // Read HTML and detect source
+export async function handlePasteAsMarkdown(promptForOptions: PasteOptionsPrompt): Promise<PasteResult> {
     const html = await readClipboardHtml();
+    if (!html || !/</.test(html)) {
+        return pastePlainTextOnly();
+    }
+
+    // Capture fallback text and source before the dialog opens. Never re-read the clipboard after it closes.
+    // A missing text flavour must not prevent a successful HTML paste.
+    const fallbackText = await readClipboardText().catch(() => '');
     const source = await detectClipboardSource(html);
     const passContext: PassContext = { source };
 
-    if (!html || !/</.test(html)) {
-        return pastePlainTextOnly();
+    const options = await resolvePasteOptions(promptForOptions);
+    if (!options) {
+        logger.debug('Paste cancelled from the paste options dialog');
+        return { cancelled: true };
     }
 
     try {
@@ -187,6 +209,7 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
             logger.error('Failed to insert converted markdown, attempting plain text fallback', insertErr);
             const errorMessage = (insertErr as Error)?.message || 'Editor insertion failed';
             return fallbackOrFailure(
+                fallbackText,
                 errorMessage,
                 'Paste failed: unable to insert content into editor',
                 'Plain text fallback also failed'
@@ -196,6 +219,6 @@ export async function handlePasteAsMarkdown(): Promise<ConversionSuccess | Conve
         await showToast(buildSuccessMessage(options, resources), ToastType.Success);
         return { markdown, success: true, plainTextFallback: false };
     } catch (err) {
-        return handleConversionFailure(err);
+        return handleConversionFailure(err, fallbackText);
     }
 }
