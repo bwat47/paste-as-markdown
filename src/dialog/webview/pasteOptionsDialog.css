@@ -1,0 +1,51 @@
+/*
+ * Joplin sizes fit-to-content dialogs from this wrapper's bounding box. As a plain block it always
+ * reports the current frame width, so the dialog never grows to fit wider content; shrink-wrap it instead.
+ */
+#joplin-plugin-content {
+    width: max-content;
+}
+
+.paste-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 300px;
+    font-family: var(--joplin-font-family);
+    font-size: var(--joplin-font-size);
+    color: var(--joplin-color);
+}
+
+/* The form is only focused so key events reach the dialog; it isn't a control, so don't outline it. */
+.paste-options:focus {
+    outline: none;
+}
+
+.paste-options h3 {
+    margin: 0 0 4px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--joplin-divider-color, rgba(127, 127, 127, 0.35));
+}
+
+.paste-options .option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.paste-options .option-dependent {
+    margin-left: 22px;
+}
+
+.paste-options .option:has(input:disabled) {
+    opacity: 0.5;
+}
+
+.paste-options .option-select {
+    margin-top: 4px;
+}
+
+.paste-options select {
+    font: inherit;
+}

@@ -5,8 +5,9 @@ import { HtmlProcessingError } from '../html/processHtml';
 import { showToast } from '../utils';
 import { ToastType } from 'api/types';
 import { SETTINGS } from '../settings';
-import { LIST_INDENTATION } from '../types';
+import { LIST_INDENTATION, type PasteOptionsPrompt } from '../types';
 import { INSERT_MARKDOWN_COMMAND } from '../editor/editorCommands';
+import { pasteOptions } from './helpers/pasteOptions';
 
 // Mock dependencies
 vi.mock('api');
@@ -28,6 +29,7 @@ describe('pasteHandler', () => {
         };
     };
 
+    let promptForOptions: Mock<PasteOptionsPrompt>;
     let mockConvertHtmlToMarkdown: MockedFunction<typeof convertHtmlToMarkdown>;
     let mockShowToast: MockedFunction<typeof showToast>;
 
@@ -51,6 +53,8 @@ describe('pasteHandler', () => {
         };
         (joplinModule.default as unknown) = mockJoplin;
 
+        promptForOptions = vi.fn<PasteOptionsPrompt>();
+
         // Mock other dependencies
         mockConvertHtmlToMarkdown = convertHtmlToMarkdown as MockedFunction<typeof convertHtmlToMarkdown>;
         mockShowToast = showToast as MockedFunction<typeof showToast>;
@@ -73,7 +77,7 @@ describe('pasteHandler', () => {
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
@@ -111,7 +115,7 @@ describe('pasteHandler', () => {
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
-            await handlePasteAsMarkdown();
+            await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
@@ -135,7 +139,7 @@ describe('pasteHandler', () => {
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
-            await handlePasteAsMarkdown();
+            await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, expect.anything(), { source: 'google-docs' });
         });
@@ -149,7 +153,7 @@ describe('pasteHandler', () => {
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
-            await handlePasteAsMarkdown();
+            await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, expect.anything(), { source: 'google-docs' });
         });
@@ -166,7 +170,7 @@ describe('pasteHandler', () => {
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
@@ -204,7 +208,7 @@ describe('pasteHandler', () => {
                 },
             });
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
@@ -245,7 +249,7 @@ describe('pasteHandler', () => {
                 },
             });
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Pasted as Markdown (converted 1 of 2 images)',
@@ -275,7 +279,7 @@ describe('pasteHandler', () => {
                 },
             });
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Pasted as Markdown (2 image resources created)',
@@ -296,7 +300,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(null);
             mockJoplin.clipboard.readText.mockResolvedValue(plainText);
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.clipboard.readHtml).toHaveBeenCalled();
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
@@ -318,7 +322,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(plainText);
             mockJoplin.clipboard.readText.mockResolvedValue(plainText);
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
@@ -337,7 +341,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(null);
             mockJoplin.clipboard.readText.mockResolvedValue('');
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockShowToast).toHaveBeenCalledWith('Clipboard is empty', ToastType.Info);
             expect(result).toEqual({
@@ -356,7 +360,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readText.mockResolvedValue(plainText);
             mockConvertHtmlToMarkdown.mockRejectedValue(new Error('Conversion failed'));
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
                 html,
@@ -391,7 +395,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockRejectedValue(error);
             mockJoplin.clipboard.readText.mockResolvedValue(fallbackText);
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
@@ -418,7 +422,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockRejectedValue(error);
             mockJoplin.clipboard.readText.mockResolvedValue(fallbackText);
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.commands.execute).toHaveBeenCalledWith('editor.execCommand', {
                 name: INSERT_MARKDOWN_COMMAND,
@@ -441,7 +445,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockRejectedValue(error);
             mockJoplin.clipboard.readText.mockResolvedValue('');
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
@@ -475,7 +479,7 @@ describe('pasteHandler', () => {
             insertionSetup(markdown);
             mockJoplin.commands.execute.mockRejectedValueOnce(new Error('editor command failed'));
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(1, 'editor.execCommand', {
                 name: INSERT_MARKDOWN_COMMAND,
@@ -492,7 +496,7 @@ describe('pasteHandler', () => {
             insertionSetup(markdown);
             mockJoplin.commands.execute.mockResolvedValueOnce(false);
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(2, 'insertText', markdown);
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(2);
@@ -507,7 +511,7 @@ describe('pasteHandler', () => {
                 .mockRejectedValueOnce(new Error('editor command failed'))
                 .mockRejectedValueOnce(new Error('insertText failed'));
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.commands.execute).toHaveBeenNthCalledWith(3, 'editor.execCommand', {
                 name: INSERT_MARKDOWN_COMMAND,
@@ -530,7 +534,7 @@ describe('pasteHandler', () => {
                 .mockRejectedValueOnce(new Error('editor command failed'))
                 .mockRejectedValueOnce(new Error('insertText failed'));
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.commands.execute).toHaveBeenCalledTimes(2);
             expect(mockShowToast).toHaveBeenCalledWith(
@@ -553,7 +557,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockRejectedValue(new Error('HTML clipboard not available'));
             mockJoplin.clipboard.readText.mockResolvedValue(plainText);
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.clipboard.readText).toHaveBeenCalled();
             expect(mockShowToast).toHaveBeenCalledWith('Pasted plain text (no HTML found)', ToastType.Info);
@@ -568,7 +572,7 @@ describe('pasteHandler', () => {
             mockJoplin.clipboard.readHtml.mockResolvedValue(null);
             mockJoplin.clipboard.readText.mockRejectedValue(new Error('Text clipboard not available'));
 
-            await expect(handlePasteAsMarkdown()).rejects.toThrow('Unable to access clipboard text');
+            await expect(handlePasteAsMarkdown(promptForOptions)).rejects.toThrow('Unable to access clipboard text');
         });
 
         test('HTML conversion fails and readText fails - returns failure with toast', async () => {
@@ -578,7 +582,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockRejectedValue(new Error('Conversion failed'));
             mockJoplin.clipboard.readText.mockRejectedValue(new Error('Text clipboard not available'));
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Paste failed: no HTML or plain text available',
@@ -599,7 +603,7 @@ describe('pasteHandler', () => {
             mockConvertHtmlToMarkdown.mockRejectedValue(new Error('Conversion failed'));
             mockJoplin.clipboard.readText.mockResolvedValue('');
 
-            const result = await handlePasteAsMarkdown();
+            const result = await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockShowToast).toHaveBeenCalledWith(
                 'Paste failed: no HTML or plain text available',
@@ -611,6 +615,146 @@ describe('pasteHandler', () => {
                 warnings: ['Conversion failed', 'No plain text available'],
                 plainTextFallback: false,
             });
+        });
+    });
+
+    describe('Paste options dialog', () => {
+        const html = '<p>Test</p>';
+
+        beforeEach(() => {
+            mockJoplin.clipboard.readHtml.mockResolvedValue(html);
+            mockConvertHtmlToMarkdown.mockResolvedValue({
+                markdown: 'Test',
+                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
+            });
+        });
+
+        test('does not prompt when the dialog setting is disabled', async () => {
+            await handlePasteAsMarkdown(promptForOptions);
+
+            expect(promptForOptions).not.toHaveBeenCalled();
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(
+                html,
+                pasteOptions({ includeImages: true, convertImagesToResources: false }),
+                { source: 'generic' }
+            );
+        });
+
+        test('prompts with saved settings and pastes with the chosen options', async () => {
+            mockJoplin.settings.values.mockResolvedValue({
+                [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true,
+                [SETTINGS.FORCE_TIGHT_LISTS]: false,
+            });
+            const chosen = pasteOptions({ includeImages: false, forceTightLists: true });
+            promptForOptions.mockResolvedValue(chosen);
+
+            await handlePasteAsMarkdown(promptForOptions);
+
+            expect(promptForOptions).toHaveBeenCalledExactlyOnceWith(pasteOptions());
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, chosen, { source: 'generic' });
+            expect(mockShowToast).toHaveBeenCalledWith('Pasted as Markdown (images excluded)', ToastType.Success);
+        });
+
+        test('detects the clipboard source before the dialog, so copying while it is open has no effect', async () => {
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true });
+            mockJoplin.clipboard.availableFormats.mockResolvedValue([
+                'application/x-vnd.google-docs-document-slice-clip+wrapped',
+            ]);
+            promptForOptions.mockImplementation((defaults) => {
+                // The user copies something else while the dialog is open.
+                mockJoplin.clipboard.availableFormats.mockResolvedValue(['text/html', 'text/plain']);
+                return Promise.resolve(defaults);
+            });
+
+            await handlePasteAsMarkdown(promptForOptions);
+
+            expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(html, expect.anything(), { source: 'google-docs' });
+        });
+
+        test.each(['conversion', 'HTML processing', 'insertion'])(
+            '%s failure uses text captured before the dialog',
+            async (failure) => {
+                mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true });
+                mockJoplin.clipboard.readText.mockResolvedValue('Original text');
+                promptForOptions.mockImplementation((defaults) => {
+                    mockJoplin.clipboard.readText.mockResolvedValue('Unrelated new clipboard content');
+                    return Promise.resolve(defaults);
+                });
+                if (failure === 'insertion') {
+                    mockJoplin.commands.execute
+                        .mockRejectedValueOnce(new Error('Editor command failed'))
+                        .mockRejectedValueOnce(new Error('insertText failed'));
+                } else {
+                    const error =
+                        failure === 'HTML processing'
+                            ? new HtmlProcessingError('pass-failed')
+                            : new Error('Conversion failed');
+                    mockConvertHtmlToMarkdown.mockRejectedValue(error);
+                }
+
+                const result = await handlePasteAsMarkdown(promptForOptions);
+
+                expect(result).toMatchObject({ markdown: 'Original text', success: false, plainTextFallback: true });
+                expect(mockJoplin.commands.execute).toHaveBeenLastCalledWith('editor.execCommand', {
+                    name: INSERT_MARKDOWN_COMMAND,
+                    args: ['Original text'],
+                });
+                expect(mockJoplin.clipboard.readText).toHaveBeenCalledOnce();
+            }
+        );
+
+        test.each(['empty', 'unreadable'])('does not retry an %s text snapshot after the dialog', async (snapshot) => {
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true });
+            if (snapshot === 'empty') {
+                mockJoplin.clipboard.readText.mockResolvedValue('');
+            } else {
+                mockJoplin.clipboard.readText.mockRejectedValue(new Error('Clipboard unavailable'));
+            }
+            promptForOptions.mockImplementation((defaults) => {
+                mockJoplin.clipboard.readText.mockResolvedValue('Unrelated new clipboard content');
+                return Promise.resolve(defaults);
+            });
+            mockConvertHtmlToMarkdown.mockRejectedValue(new Error('Conversion failed'));
+
+            const result = await handlePasteAsMarkdown(promptForOptions);
+
+            expect(result).toMatchObject({ markdown: '', success: false, plainTextFallback: false });
+            expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
+            expect(mockJoplin.clipboard.readText).toHaveBeenCalledOnce();
+        });
+
+        test('pastes HTML successfully when the fallback text cannot be read', async () => {
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true });
+            mockJoplin.clipboard.readText.mockRejectedValue(new Error('Clipboard unavailable'));
+            promptForOptions.mockResolvedValue(pasteOptions());
+
+            const result = await handlePasteAsMarkdown(promptForOptions);
+
+            expect(result).toMatchObject({ markdown: 'Test', success: true, plainTextFallback: false });
+            expect(mockJoplin.clipboard.readText).toHaveBeenCalledOnce();
+        });
+
+        test('cancelling the dialog pastes nothing and reports a cancel', async () => {
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true });
+            promptForOptions.mockResolvedValue(null);
+
+            const result = await handlePasteAsMarkdown(promptForOptions);
+
+            expect(result).toEqual({ cancelled: true });
+            expect(mockConvertHtmlToMarkdown).not.toHaveBeenCalled();
+            expect(mockJoplin.commands.execute).not.toHaveBeenCalled();
+            expect(mockShowToast).not.toHaveBeenCalled();
+        });
+
+        test('skips the dialog when the clipboard has no HTML', async () => {
+            mockJoplin.settings.values.mockResolvedValue({ [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: true });
+            mockJoplin.clipboard.readHtml.mockResolvedValue(null);
+            mockJoplin.clipboard.readText.mockResolvedValue('plain');
+
+            await handlePasteAsMarkdown(promptForOptions);
+
+            expect(promptForOptions).not.toHaveBeenCalled();
+            expect(mockShowToast).toHaveBeenCalledWith('Pasted plain text (no HTML found)', ToastType.Info);
         });
     });
 
@@ -630,7 +774,7 @@ describe('pasteHandler', () => {
                 resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
             });
 
-            await handlePasteAsMarkdown();
+            await handlePasteAsMarkdown(promptForOptions);
 
             expect(mockJoplin.settings.values).toHaveBeenCalledExactlyOnceWith(Object.values(SETTINGS));
             expect(mockConvertHtmlToMarkdown).toHaveBeenCalledWith(

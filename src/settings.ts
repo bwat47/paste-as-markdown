@@ -9,6 +9,7 @@ export const SETTINGS = {
     NORMALIZE_QUOTES: 'normalizeQuotes',
     FORCE_TIGHT_LISTS: 'forceTightLists',
     LIST_INDENTATION: 'listIndentation',
+    SHOW_PASTE_OPTIONS_DIALOG: 'showPasteOptionsDialog',
 } as const;
 
 type SettingKey = (typeof SETTINGS)[keyof typeof SETTINGS];
@@ -20,6 +21,28 @@ export const DEFAULT_PASTE_OPTIONS = {
     forceTightLists: false,
     listIndentation: LIST_INDENTATION.TABS,
 } as const satisfies PasteOptions;
+
+const DEFAULT_SHOW_PASTE_OPTIONS_DIALOG = false;
+
+/** Labels shared by the settings screen and the per-paste options dialog. */
+export const PASTE_OPTION_LABELS = {
+    includeImages: 'Include images',
+    convertImagesToResources: 'Convert images to Joplin resources',
+    normalizeQuotes: 'Normalize smart quotes',
+    forceTightLists: 'Force tight lists',
+    listIndentation: 'List indentation',
+} as const satisfies Record<keyof PasteOptions, string>;
+
+export const LIST_INDENTATION_LABELS = {
+    [LIST_INDENTATION.SPACES]: 'Spaces',
+    [LIST_INDENTATION.TABS]: 'Tabs',
+} as const satisfies Record<ListIndentation, string>;
+
+/** Everything the paste handler reads from settings on each paste. */
+export interface PasteSettings {
+    options: PasteOptions;
+    showPasteOptionsDialog: boolean;
+}
 
 const SETTINGS_SECTION = 'pasteAsMarkdown';
 
@@ -35,7 +58,7 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.Bool,
             section: SETTINGS_SECTION,
             public: true,
-            label: 'Include images',
+            label: PASTE_OPTION_LABELS.includeImages,
             description:
                 'If enabled, images will be included in the pasted markdown. If disabled, images will be removed entirely.',
         },
@@ -44,7 +67,7 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.Bool,
             section: SETTINGS_SECTION,
             public: true,
-            label: 'Convert images to Joplin resources',
+            label: PASTE_OPTION_LABELS.convertImagesToResources,
             description:
                 "If enabled, http(s) and base64 images are stored as Joplin resources (requires 'Include images').",
         },
@@ -53,7 +76,7 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.Bool,
             section: SETTINGS_SECTION,
             public: true,
-            label: 'Normalize smart quotes',
+            label: PASTE_OPTION_LABELS.normalizeQuotes,
             description: 'Convert Word/Office smart quotes to regular quotes for better markdown compatibility.',
         },
         [SETTINGS.FORCE_TIGHT_LISTS]: {
@@ -61,7 +84,7 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.Bool,
             section: SETTINGS_SECTION,
             public: true,
-            label: 'Force tight lists',
+            label: PASTE_OPTION_LABELS.forceTightLists,
             description:
                 'Prevent blank lines between list items in output Markdown, except for list items with multi-block content.',
         },
@@ -70,13 +93,19 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.String,
             section: SETTINGS_SECTION,
             public: true,
-            label: 'List indentation',
+            label: PASTE_OPTION_LABELS.listIndentation,
             description: 'Choose whether nested list items and continuation lines are indented with spaces or tabs.',
             isEnum: true,
-            options: {
-                [LIST_INDENTATION.SPACES]: 'Spaces',
-                [LIST_INDENTATION.TABS]: 'Tabs',
-            },
+            options: LIST_INDENTATION_LABELS,
+        },
+        [SETTINGS.SHOW_PASTE_OPTIONS_DIALOG]: {
+            value: DEFAULT_SHOW_PASTE_OPTIONS_DIALOG,
+            type: SettingItemType.Bool,
+            section: SETTINGS_SECTION,
+            public: true,
+            label: 'Show paste options dialog',
+            description:
+                'If enabled, Paste HTML as Markdown first shows a dialog for adjusting the options above for that paste only. The dialog starts from these settings.',
         },
     });
 }
@@ -101,10 +130,10 @@ function resolveListIndentationSetting(
     return defaultValue;
 }
 
-export async function loadPasteOptions(): Promise<PasteOptions> {
+export async function loadPasteSettings(): Promise<PasteSettings> {
     // One `values()` round-trip is much faster than a `value()` call per setting, and this runs on every paste.
     const values: Record<string, unknown> = (await joplin.settings.values(Object.values(SETTINGS))) ?? {};
-    return {
+    const options: PasteOptions = {
         includeImages: resolveBooleanSetting(
             SETTINGS.INCLUDE_IMAGES,
             values[SETTINGS.INCLUDE_IMAGES],
@@ -129,6 +158,14 @@ export async function loadPasteOptions(): Promise<PasteOptions> {
             SETTINGS.LIST_INDENTATION,
             values[SETTINGS.LIST_INDENTATION],
             DEFAULT_PASTE_OPTIONS.listIndentation
+        ),
+    };
+    return {
+        options,
+        showPasteOptionsDialog: resolveBooleanSetting(
+            SETTINGS.SHOW_PASTE_OPTIONS_DIALOG,
+            values[SETTINGS.SHOW_PASTE_OPTIONS_DIALOG],
+            DEFAULT_SHOW_PASTE_OPTIONS_DIALOG
         ),
     };
 }
