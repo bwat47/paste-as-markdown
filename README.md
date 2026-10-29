@@ -8,7 +8,7 @@ This is useful when the Web Clipper is not available, such as when copying from 
 
 This plugin was originally created when Joplin's markdown editor lacked a Paste as Markdown command (and the only options were using the web clipper or rich text editor).
 
-Joplin 3.6 introduced a built-in Paste as Markdown command. This plugin remains useful when the clipboard HTML needs more cleanup than the built-in conversion provides (e.g. pasting complex content from browsers, email, Office, Google Docs, spreadsheets and/or if you just want cleaner/more predictable Markdown output).
+Joplin 3.6 introduced a built-in Paste as Markdown command. This plugin remains useful when the clipboard HTML needs more cleanup than the built-in conversion provides (e.g. pasting complex content from browsers, email, Office, Google Docs, spreadsheets and/or if you just want cleaner/more predictable Markdown output). The plugin also allows you to adjust paste options per-paste if you enable the paste dialog (e.g. if you sometimes want to paste with images included, and other times want images removed).
 
 _examples comparing built-in paste as markdown feature with the plugin_
 
@@ -40,7 +40,7 @@ If the clipboard contains HTML, the plugin cleans it, converts it to Markdown, a
 - **Normalize smart quotes** — Convert Word and Office smart quotes to plain quotes for better Markdown compatibility. Enabled by default.
 - **Force tight lists** — Remove blank lines between ordinary list items while retaining the spacing required by multi-block items.
 - **List indentation** — Indent nested list items and continuation lines with tabs or spaces. Tabs are used by default to match the default behavior of Joplin's Markdown editor.
-- **Show paste options dialog** — Before each HTML paste, show a dialog to adjust the options above for that paste only. The dialog starts from your saved settings. Disabled by default.
+- **Show paste options dialog** — Before each HTML paste, show a dialog to adjust the options above for that paste only (e.g. whether or not to include images in the paste). The dialog starts from your saved settings. Disabled by default.
 
 ## Output format
 
