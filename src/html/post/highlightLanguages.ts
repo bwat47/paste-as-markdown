@@ -425,4 +425,3 @@ const HIGHLIGHT_LANGUAGES = new Set<string>(LANGUAGE_IDENTIFIERS);
 export function isHighlightLanguage(id: string): boolean {
     return HIGHLIGHT_LANGUAGES.has(id.toLowerCase());
 }
-

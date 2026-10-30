@@ -26,11 +26,7 @@ const EMPTY_RESOURCES: ResourceConversionMeta = {
 };
 
 type HtmlProcessingFailureReason =
-    | 'dom-unavailable'
-    | 'sanitize-failed'
-    | 'pass-failed'
-    | 'image-conversion-failed'
-    | 'unexpected';
+    'dom-unavailable' | 'sanitize-failed' | 'pass-failed' | 'image-conversion-failed' | 'unexpected';
 
 const FAILURE_MESSAGES: Record<HtmlProcessingFailureReason, string> = {
     'dom-unavailable': 'DOM APIs unavailable; cannot process HTML safely.',
