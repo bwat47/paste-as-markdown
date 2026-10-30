@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+import { assert, beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
 import { type SettingItem, SettingItemType } from 'api/types';
 import { DEFAULT_PASTE_OPTIONS, loadPasteSettings, registerPluginSettings, SETTINGS } from '../settings';
 import logger from '../logger';
@@ -32,7 +32,9 @@ describe('settings', () => {
         });
         expect(registerSettings).toHaveBeenCalledOnce();
 
-        const registered = registerSettings.mock.calls[0]![0]; // Single call asserted above.
+        const registerCall = registerSettings.mock.calls[0];
+        assert.isDefined(registerCall);
+        const registered = registerCall[0];
         expect(Object.keys(registered)).toEqual(Object.values(SETTINGS));
         expect(registered).toMatchObject({
             [SETTINGS.INCLUDE_IMAGES]: {
