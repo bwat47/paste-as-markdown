@@ -16,6 +16,7 @@ import type {
 import { DEFAULT_PASS_CONTEXT } from './html/passContext';
 import { loadPasteSettings } from './settings';
 import logger from './logger';
+import { getErrorMessage } from './errors';
 import { insertMarkdownAtCursor } from './editor/editorIntegration';
 
 async function readClipboardHtml(): Promise<string | null> {
@@ -154,7 +155,7 @@ async function handleConversionFailure(err: unknown, fallbackText: string): Prom
     }
 
     logger.error('Conversion failed, attempting plain text fallback', err);
-    const errorMessage = (err as Error)?.message || 'HTML conversion failed';
+    const errorMessage = getErrorMessage(err) || 'HTML conversion failed';
     return fallbackOrFailure(
         fallbackText,
         errorMessage,
@@ -207,7 +208,7 @@ export async function handlePasteAsMarkdown(promptForOptions: PasteOptionsPrompt
         } catch (insertErr) {
             // Conversion succeeded but insertion failed - try plain text fallback
             logger.error('Failed to insert converted markdown, attempting plain text fallback', insertErr);
-            const errorMessage = (insertErr as Error)?.message || 'Editor insertion failed';
+            const errorMessage = getErrorMessage(insertErr) || 'Editor insertion failed';
             return fallbackOrFailure(
                 fallbackText,
                 errorMessage,
