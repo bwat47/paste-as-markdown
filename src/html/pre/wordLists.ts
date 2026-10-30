@@ -30,9 +30,10 @@ interface ListFrame {
 /** Returns the marker's numbering text, or null when the marker is a bullet. */
 function readNumberText(marker: string): string | null {
     const legal = LEGAL_MARKER.exec(marker);
-    if (legal) return legal[1];
+    if (legal) return legal[1]!; // LEGAL_MARKER requires its numeric capture.
     const numbered = NUMBERED_MARKER.exec(marker);
-    return numbered ? (numbered[1] ?? numbered[2]).toLowerCase() : null;
+    // NUMBERED_MARKER requires one of its two alternative captures.
+    return numbered ? (numbered[1] ?? numbered[2])!.toLowerCase() : null;
 }
 
 function readListItem(paragraph: HTMLParagraphElement): WordListItem | null {
@@ -66,9 +67,10 @@ function nextContentSibling(node: ChildNode): ChildNode | null {
 }
 
 function romanNumber(text: string): number {
+    // readNumbers only selects Roman numbering after validating every marker's characters.
     return Array.from(text).reduce((total, letter, index) => {
-        const value = ROMAN_VALUES[letter];
-        const next = ROMAN_VALUES[text[index + 1]] ?? 0;
+        const value = ROMAN_VALUES[letter]!;
+        const next = ROMAN_VALUES[text.charAt(index + 1)] ?? 0;
         return total + (value < next ? -value : value);
     }, 0);
 }
@@ -122,13 +124,15 @@ function openListFrame(item: WordListItem, number: number | undefined, stack: Li
  * stays one list when it reaches a shallower item.
  */
 function unwindToLevel(stack: ListFrame[], level: number): void {
-    while (stack.length && stack[stack.length - 1].level > level) {
+    let frame = stack.at(-1);
+    while (frame && frame.level > level) {
         const parentLevel = stack[stack.length - 2]?.level ?? 0;
         if (parentLevel < level) {
-            stack[stack.length - 1].level = level;
+            frame.level = level;
             return;
         }
         stack.pop();
+        frame = stack.at(-1);
     }
 }
 

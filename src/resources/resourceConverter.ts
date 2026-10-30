@@ -139,9 +139,10 @@ export async function convertImagesToResources(
 async function parseBase64Image(dataUrl: string, maxImageBytes: number): Promise<ParsedImageData> {
     const match = /^data:([^;]+)(?:;charset=[^;]+)?;base64,(.+)$/i.exec(dataUrl);
     if (!match) throw new Error('Invalid data URL');
-    const declaredMime = match[1].toLowerCase();
+    // A successful data URL match requires both the MIME and payload captures.
+    const declaredMime = match[1]!.toLowerCase();
     if (!declaredMime.startsWith('image/')) throw new Error('Not image');
-    let b64 = match[2];
+    let b64 = match[2]!;
     b64 = b64.replace(/\s+/g, '');
     if (!STRICT_BASE64_PATTERN.test(b64)) throw new Error('Invalid base64 characters');
     // Mirror atob's rules: Buffer would silently drop a dangling data character (e.g. "QUJDA==")
@@ -171,7 +172,9 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
     try {
         const resp = await fetchWithRetry(url, { signal: controller.signal }, 2, 200);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        const contentType = (resp.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+        const contentTypeHeader = resp.headers.get('content-type') || '';
+        // Splitting always produces a first field, including for an empty header.
+        const contentType = contentTypeHeader.split(';')[0]!.trim().toLowerCase();
         if (!contentType.startsWith('image/') && !UNTYPED_CONTENT_TYPES.has(contentType)) throw new Error('Not image');
         const contentLengthHeader = resp.headers.get('content-length');
         if (contentLengthHeader) {

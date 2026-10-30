@@ -127,7 +127,7 @@ describe('paste options dialog webview script', () => {
 
         document.removeEventListener('submit', onSubmit);
         expect(onSubmit).toHaveBeenCalledOnce();
-        expect(onSubmit.mock.calls[0][0].defaultPrevented).toBe(true);
+        expect(onSubmit.mock.calls[0]?.[0].defaultPrevented).toBe(true);
     });
 
     test('prevents native form submission', () => {

@@ -7,7 +7,8 @@ const PX_LENGTH = /^([0-9.]+)px$/i;
 /** Parse a CSS px length into a positive integer, or null when it is not a positive px value. */
 function parsePxLength(value: string): number | null {
     const match = PX_LENGTH.exec(value.trim());
-    const parsed = match ? parseInt(match[1], 10) : NaN;
+    // A successful PX_LENGTH match always includes the numeric capture.
+    const parsed = match ? parseInt(match[1]!, 10) : NaN;
     return parsed > 0 ? parsed : null;
 }
 

@@ -73,13 +73,14 @@ function parseCandidate(url: string, descriptors: readonly string[]): SrcsetCand
     }
     if (descriptors.length !== 1) return null;
 
-    const widthMatch = WIDTH_DESCRIPTOR.exec(descriptors[0]);
+    const descriptor = descriptors[0]!; // Exactly one descriptor, checked above.
+    const widthMatch = WIDTH_DESCRIPTOR.exec(descriptor);
     if (widthMatch) {
         const width = Number(widthMatch[1]);
         return Number.isFinite(width) && width > 0 ? { url, kind: 'width', value: width } : null;
     }
 
-    const densityMatch = DENSITY_DESCRIPTOR.exec(descriptors[0]);
+    const densityMatch = DENSITY_DESCRIPTOR.exec(descriptor);
     if (!densityMatch) return null;
 
     const density = Number(densityMatch[1]);
@@ -88,13 +89,17 @@ function parseCandidate(url: string, descriptors: readonly string[]): SrcsetCand
 
 function skipCandidateSeparators(input: string, startPosition: number): number {
     let position = startPosition;
-    while (position < input.length && (isAsciiWhitespace(input[position]) || input[position] === ',')) position++;
+    while (position < input.length) {
+        const char = input.charAt(position);
+        if (!isAsciiWhitespace(char) && char !== ',') break;
+        position++;
+    }
     return position;
 }
 
 function findUrlEnd(input: string, startPosition: number): number {
     let position = startPosition;
-    while (position < input.length && !isAsciiWhitespace(input[position])) position++;
+    while (position < input.length && !isAsciiWhitespace(input.charAt(position))) position++;
     return position;
 }
 
@@ -150,9 +155,9 @@ function selectLargestComparableCandidate(srcset: string): SrcsetCandidate | nul
         : 'density';
     const comparable = candidates.filter((candidate) => candidate.kind === preferredKind);
 
-    return comparable.reduce(
-        (largest, candidate) => (candidate.value > largest.value ? candidate : largest),
-        comparable[0]
+    return comparable.reduce<SrcsetCandidate | null>(
+        (largest, candidate) => (!largest || candidate.value > largest.value ? candidate : largest),
+        null
     );
 }
 
