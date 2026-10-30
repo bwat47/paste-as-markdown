@@ -203,8 +203,8 @@ function collectSrcsetCandidatePool(image: HTMLImageElement): string[] {
 /**
  * Set src to the highest-resolution comparable srcset candidate when src is missing or blank.
  *
- * Covers both a bare <img srcset> and an <img> inside a <picture>, since the sanitizer keeps
- * <source> elements but strips their srcset, which would otherwise leave the image with no source
+ * Covers both a bare `<img srcset>` and an `<img>` inside a `<picture>`, since the sanitizer keeps
+ * `<source>` elements but strips their srcset, which would otherwise leave the image with no source
  * at all. Existing src values remain authoritative, and DOMPurify validates every promoted URL.
  */
 export function promoteLargestSrcsetCandidateToSrc(body: HTMLElement): void {

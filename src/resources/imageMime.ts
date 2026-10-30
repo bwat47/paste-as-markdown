@@ -41,7 +41,7 @@ async function detectImageType(bytes: Uint8Array): Promise<ImageType | null> {
  * content is well-formed XML with an SVG root in the SVG namespace.
  * This checks XML syntax, not SVG feature validity or sanitization. Declared SVG is inert when rendered through `<img>`.
  *
- * @param declaredMime Lowercase MIME type from a data URL or Content-Type header ('' when absent).
+ * @param declaredMime - Lowercase MIME type from a data URL or Content-Type header ('' when absent).
  * @returns The stored type, or null when the content is not a supported image.
  */
 export async function resolveImageType(bytes: Uint8Array, declaredMime: string): Promise<ImageType | null> {

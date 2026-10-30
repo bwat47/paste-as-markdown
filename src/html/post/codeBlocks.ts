@@ -26,7 +26,7 @@ const LABEL_COLON_CHARS = new Set([':', '：']);
  *
  * The `language-`/`lang-` names end on `[A-Za-z0-9+#]` rather than `\b` so punctuated languages survive:
  * `\b` cannot match after `+` or `#`, so `language-c++` would otherwise backtrack and truncate to `c`.
- * Requiring a token character last also keeps a trailing separator out of the capture (`language-js-` -> `js`).
+ * Requiring a token character last also keeps a trailing separator out of the capture (`language-js-` becomes `js`).
  */
 const LANGUAGE_CLASS_PATTERNS: readonly RegExp[] = [
     /\blanguage-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
@@ -401,7 +401,7 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
 }
 
 /**
- * Drops trailing colon characters, e.g. `js::` -> `js`.
+ * Drops trailing colon characters, e.g. `js::` becomes `js`.
  * Done with an index scan rather than a `/[:：]+$/` replace, which backtracks quadratically on long inputs.
  */
 function stripTrailingColons(text: string): string {
@@ -470,7 +470,7 @@ function collectClassSources(pre: HTMLElement, code: HTMLElement): string[] {
     return sources;
 }
 
-/** Returns the first match of `pattern` that maps to a known highlight language, e.g. `language-js` -> `javascript`. */
+/** Returns the first match of `pattern` that maps to a known highlight language, e.g. `language-js` becomes `javascript`. */
 function matchLanguageInClasses(classBlob: string, pattern: RegExp): string | null {
     for (const match of classBlob.matchAll(pattern)) {
         // Every LANGUAGE_CLASS_PATTERNS expression requires capture group 1.

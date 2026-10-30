@@ -89,8 +89,8 @@ function logConversionFailure(url: string, err: unknown): void {
  *  - src starts with data: (base64) OR http/https URL
  *  - src does NOT already start with :/ (already a resource)
  *
- * @param body Root element whose descendant <img> nodes are inspected/modified.
- * @param limitOverrides Resource limits to apply instead of {@link DEFAULT_RESOURCE_CONVERSION_LIMITS}.
+ * @param body - Root element whose descendant `<img>` nodes are inspected/modified.
+ * @param limitOverrides - Resource limits to apply instead of {@link DEFAULT_RESOURCE_CONVERSION_LIMITS}.
  * @returns ids (resource IDs created), attempted (count of images we tried to convert), failed (conversion failures).
  */
 export async function convertImagesToResources(

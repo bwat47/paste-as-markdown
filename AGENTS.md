@@ -28,7 +28,7 @@ ARCHITECTURE.md
 - Language: TypeScript; 4-space indentation; semicolons enforced.
 - **Module boundaries**: Add explicit return types to exported functions and public methods of exported classes. Prefer named exported types for non-trivial object shapes. Let TypeScript infer local implementation details, and avoid redundant primitive annotations.
 - Filenames: `camelCase.ts` for modules; tests in `__tests__/<name>.test.ts`.
-- Documentation: Use JSDoc for complex functions; document regex patterns with examples.
+- Documentation: Use TSDoc for complex functions; document regex patterns with examples.
 - Constants and configuration: No magic literals — extract to constants, enums, config objects, or dedicated types.
 - Structure and Testability: Keep non-trivial pure logic in small, focused units that can be tested independently. Avoid global state and hidden side effects; prefer explicit dependencies where practical. Helpers that do not depend on an enclosing function's state should generally live at module scope; keep a helper local when it intentionally captures or operates on that function's state.
 - Log messages should use `src\logger.ts`.

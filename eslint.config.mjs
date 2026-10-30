@@ -7,6 +7,7 @@ import importPlugin from 'eslint-plugin-import-x';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import sonarjs from 'eslint-plugin-sonarjs';
 import vitest from '@vitest/eslint-plugin';
+import tsdoc from 'eslint-plugin-tsdoc';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
@@ -30,6 +31,7 @@ export default defineConfig([
         },
         plugins: {
             'import-x': importPlugin,
+            tsdoc,
         },
         settings: {
             // Without these, import-x silently skips TS imports and rules like no-cycle never fire.
@@ -51,6 +53,7 @@ export default defineConfig([
             '@typescript-eslint/no-import-type-side-effects': 'error',
             '@typescript-eslint/no-inferrable-types': 'error',
             '@typescript-eslint/explicit-module-boundary-types': 'error',
+            'tsdoc/syntax': 'error',
         },
     },
 
