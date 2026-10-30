@@ -30,7 +30,6 @@ const tagTokenTestRe = new RegExp(TAG_TOKEN_SOURCE);
  */
 export function protectLiteralHtmlTagMentions(body: HTMLElement): void {
     const doc = body.ownerDocument;
-    if (!doc) return;
 
     const textNodes: Text[] = [];
 

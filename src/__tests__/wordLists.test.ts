@@ -42,7 +42,7 @@ describe('Desktop Word lists', () => {
             opening + wordItem('Parent') + wordItem('Child', 2, 'o') + closing,
             pasteOptions()
         );
-        expect(body.querySelector('ul > li > ul > li')?.textContent?.trim()).toBe('Child');
+        expect(body.querySelector('ul > li > ul > li')?.textContent.trim()).toBe('Child');
         expect(body.querySelectorAll('li')).toHaveLength(2);
     });
 
@@ -101,7 +101,7 @@ describe('Desktop Word lists', () => {
             wordItem('First list') + wordItem('Second list', 1, '·', 'lfo2', 'l1'),
             pasteOptions({ forceTightLists: false })
         );
-        expect(Array.from(body.querySelectorAll('ul')).map((list) => list.textContent?.trim())).toEqual([
+        expect(Array.from(body.querySelectorAll('ul')).map((list) => list.textContent.trim())).toEqual([
             'First list',
             'Second list',
         ]);

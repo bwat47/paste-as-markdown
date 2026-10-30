@@ -49,7 +49,7 @@ export function removeNonContentUi(body: HTMLElement): void {
         }
 
         const replacementText = extractInlineButtonText(btn as HTMLElement);
-        if (replacementText && doc) {
+        if (replacementText) {
             const textNode = doc.createTextNode(replacementText);
             btn.parentNode?.replaceChild(textNode, btn);
         } else {
@@ -102,7 +102,7 @@ function extractInlineButtonText(element: HTMLElement): string | null {
     if (parentTag === 'div') {
         const hasInlineSiblings = Array.from(parent.childNodes).some((node) => {
             if (node === element) return false;
-            if (isTextNode(node)) return !!node.textContent?.trim();
+            if (isTextNode(node)) return !!node.textContent.trim();
             if (isElement(node)) {
                 const tag = node.tagName.toLowerCase();
                 return tag !== 'br';

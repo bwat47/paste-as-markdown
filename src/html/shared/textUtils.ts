@@ -6,9 +6,8 @@
  * of whitespace into a single space and trims the result.
  */
 export function normalizeAltText(raw: string): string {
-    if (raw == null) return '';
     return (
-        String(raw)
+        raw
             // ASCII control characters (including CR/LF/TAB) and DEL
             // eslint-disable-next-line no-control-regex
             .replace(/[\u0000-\u001F\u007F]/g, ' ')

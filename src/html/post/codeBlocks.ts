@@ -235,7 +235,7 @@ function removeUIElements(pre: HTMLElement): void {
 
 function shouldRemoveUIElement(element: Element): boolean {
     if (element.tagName === 'SPAN') {
-        const text = element.textContent ?? '';
+        const text = element.textContent;
         if (text.replace(/[\s\u00A0]+/g, '') === '') {
             return true;
         }
@@ -290,7 +290,7 @@ function isUiToolbarWrapper(element: HTMLElement): boolean {
 }
 
 function trimCodeWhitespace(code: HTMLElement): void {
-    const text = code.textContent ?? '';
+    const text = code.textContent;
     if (!text) return;
     const lines = text.split(/\r?\n/);
     while (lines[0]?.trim() === '') {
@@ -332,8 +332,8 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
 }
 
 function consumeLanguageLabel(pre: HTMLElement): string | null {
-    let current: HTMLElement | null = pre;
-    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && current; depth++) {
+    let current = pre;
+    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH; depth++) {
         const scan = scanPreviousSiblingsForLabel(current);
         if (scan.status === 'found') return scan.language;
         if (scan.status === 'blocked') return null;
@@ -378,7 +378,7 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
     if (tag !== 'div' && tag !== 'span') {
         return null;
     }
-    const content = element.textContent ?? '';
+    const content = element.textContent;
     if (!content) {
         return null;
     }
@@ -413,25 +413,25 @@ function stripTrailingColons(text: string): string {
 }
 
 function hasMeaningfulText(element: HTMLElement): boolean {
-    const content = element.textContent ?? '';
+    const content = element.textContent;
     const text = normalizeNbsp(content).trim();
     return text.length > 0;
 }
 
 function removeEmptyAncestors(start: HTMLElement): void {
-    let current: HTMLElement | null = start;
-    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && current; depth++) {
+    let current = start;
+    for (let depth = 0; depth < MAX_ANCESTOR_DEPTH; depth++) {
         if (current.tagName === 'BODY' || current.tagName === 'HTML') {
             break;
         }
         if (current.children.length > 0) break;
-        const content = current.textContent ?? '';
+        const content = current.textContent;
         const text = normalizeNbsp(content).trim();
         if (text) break;
-        const parent: HTMLElement | null = current.parentElement;
+        const parent = current.parentElement;
         current.remove();
+        if (!parent) break;
         current = parent;
-        if (!current) break;
     }
 }
 

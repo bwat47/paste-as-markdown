@@ -129,9 +129,7 @@ function buildSuccessMessage(options: PasteOptions, resources: ResourceConversio
     if (!options.convertImagesToResources) {
         return base;
     }
-    const created = resources.resourcesCreated;
-    const attempted = resources.attempted ?? created;
-    const failed = resources.failed ?? 0;
+    const { resourcesCreated: created, attempted, failed } = resources;
     if (failed > 0 && attempted > 0) {
         return `${base} (converted ${created} of ${attempted} image${pluralSuffix(attempted)})`;
     }

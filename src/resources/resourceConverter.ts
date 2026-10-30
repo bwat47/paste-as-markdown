@@ -191,11 +191,9 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            if (value) {
-                chunks.push(value);
-                received += value.length;
-                if (received > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
-            }
+            chunks.push(value);
+            received += value.length;
+            if (received > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
         }
         const merged = concatChunks(chunks, received);
         return await toParsedImage(merged, contentType, deriveFilenameStem(url));

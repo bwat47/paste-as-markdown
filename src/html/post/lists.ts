@@ -48,7 +48,6 @@ export function fixOrphanNestedLists(body: HTMLElement): void {
         }
 
         const ownerDocument = list.ownerDocument;
-        if (!ownerDocument) return;
         const wrapper = ownerDocument.createElement('li');
         parent.insertBefore(wrapper, list);
         wrapper.appendChild(list);
@@ -208,7 +207,6 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
         if (LIST_TAGS.has(parent.tagName)) return;
 
         const ownerDocument = li.ownerDocument;
-        if (!ownerDocument) return;
 
         const wrapper = ownerDocument.createElement(DEFAULT_ORPHAN_LIST_TAG);
         parent.insertBefore(wrapper, li);
