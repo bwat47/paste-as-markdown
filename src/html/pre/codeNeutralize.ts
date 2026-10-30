@@ -30,7 +30,6 @@ export function neutralizeCodeBlocksPreSanitize(body: HTMLElement): void {
         }
         const code = pre.querySelector('code');
         const target = code || pre;
-        if (!target) return;
         const text = collectTextWithLineBreaks(target);
         if (!text.trim()) return;
         target.textContent = text;

@@ -56,13 +56,7 @@ export class HtmlProcessingError extends Error {
 /** Parse HTML string into a DOM body element. Returns null on failure. */
 function parseHtmlToBody(html: string): HTMLElement | null {
     try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        if (!doc.body) {
-            logger.warn('Raw HTML parse: Parsed document missing <body>');
-            return null;
-        }
-        return doc.body;
+        return new DOMParser().parseFromString(html, 'text/html').body;
     } catch (err) {
         logger.warn('Raw HTML parse: Failed to parse HTML', err);
         return null;

@@ -132,7 +132,7 @@ function resolveListIndentationSetting(
 
 export async function loadPasteSettings(): Promise<PasteSettings> {
     // One `values()` round-trip is much faster than a `value()` call per setting, and this runs on every paste.
-    const values: Record<string, unknown> = (await joplin.settings.values(Object.values(SETTINGS))) ?? {};
+    const values: Record<string, unknown> = await joplin.settings.values(Object.values(SETTINGS));
     const options: PasteOptions = {
         includeImages: resolveBooleanSetting(
             SETTINGS.INCLUDE_IMAGES,

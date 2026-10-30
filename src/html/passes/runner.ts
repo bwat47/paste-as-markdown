@@ -1,7 +1,6 @@
 import type { PassContext, PasteOptions } from '../../types';
 import type { ProcessingPass } from './types';
-
-const describeCause = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause));
+import { getErrorMessage } from '../../errors';
 
 /** Identifies the pass that made the HTML pipeline unsafe to continue. */
 export class PassExecutionError extends Error {
@@ -10,7 +9,7 @@ export class PassExecutionError extends Error {
     constructor(passName: string, cause: unknown) {
         // `cause` is the native ES2022 Error option. Do not redeclare it as a class field:
         // under `useDefineForClassFields` that would shadow the native property with undefined.
-        super(`${passName} failed: ${describeCause(cause)}`, { cause });
+        super(`${passName} failed: ${getErrorMessage(cause)}`, { cause });
         this.name = 'PassExecutionError';
         this.passName = passName;
     }

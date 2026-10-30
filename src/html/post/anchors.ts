@@ -122,7 +122,7 @@ function hasMeaningfulDescendant(element: Element, options: PasteOptions): boole
 export function removeEmptyAnchors(body: HTMLElement, options: PasteOptions): void {
     const anchors = body.querySelectorAll('a[href]');
     anchors.forEach((anchor) => {
-        const textContent = anchor.textContent?.trim() || '';
+        const textContent = anchor.textContent.trim();
         if (textContent.length > 0) return;
 
         if (!anchor.firstChild) {

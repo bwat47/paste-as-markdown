@@ -3,7 +3,7 @@
  * Ignores whitespace-only text nodes when counting children.
  */
 export function onlyContains(wrapper: Element, child: Element): boolean {
-    const kids = Array.from(wrapper.childNodes).filter((n) => !(isTextNode(n) && !n.textContent?.trim()));
+    const kids = Array.from(wrapper.childNodes).filter((n) => !(isTextNode(n) && !n.textContent.trim()));
     return kids.length === 1 && kids[0] === child;
 }
 
@@ -14,7 +14,7 @@ export function onlyContains(wrapper: Element, child: Element): boolean {
 export function isInCode(el: Element): boolean {
     const tag = el.tagName.toLowerCase();
     if (tag === 'code' || tag === 'pre') return true;
-    return !!el.closest && !!el.closest('code, pre');
+    return !!el.closest('code, pre');
 }
 
 /**
@@ -36,7 +36,7 @@ export function isTextNode(node: Node): node is Text {
  */
 export function isHtmlElement(node: Node): node is HTMLElement {
     const view = node.ownerDocument?.defaultView;
-    if (view && view.HTMLElement) {
+    if (view) {
         return node instanceof view.HTMLElement;
     }
     if (typeof HTMLElement !== 'undefined') {
@@ -50,10 +50,7 @@ export function isHtmlElement(node: Node): node is HTMLElement {
  * Useful for bulk text transformations that should preserve code literals.
  */
 export function walkTextNodes(root: HTMLElement, callback: (node: Text) => void, skipCode = true): void {
-    const doc = root.ownerDocument;
-    if (!doc) return;
-
-    const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
     let node: Node | null;
 
     while ((node = walker.nextNode())) {

@@ -50,7 +50,7 @@ function readListItem(paragraph: HTMLParagraphElement): WordListItem | null {
         marker,
         listId: `${metadata[1]}:${metadata[3]}`.toLowerCase(),
         level: Number(metadata[2]),
-        numberText: readNumberText((marker.textContent ?? '').trim()),
+        numberText: readNumberText(marker.textContent.trim()),
     };
 }
 

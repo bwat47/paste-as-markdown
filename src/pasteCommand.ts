@@ -2,6 +2,7 @@ import { ToastType } from 'api/types';
 import { isMarkdownEditorMode } from './editor/editorIntegration';
 import { handlePasteAsMarkdown } from './pasteHandler';
 import logger from './logger';
+import { getErrorMessage } from './errors';
 import { showToast } from './utils';
 import type { PasteOptionsPrompt } from './types';
 
@@ -21,8 +22,7 @@ export async function executePasteAsMarkdownCommand(promptForOptions: PasteOptio
             logger.warn('Paste reported warnings:', result.warnings);
         }
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
         logger.error('Error handling paste command', err);
-        await showToast('Paste HTML as Markdown failed: ' + message, ToastType.Error);
+        await showToast('Paste HTML as Markdown failed: ' + getErrorMessage(err), ToastType.Error);
     }
 }

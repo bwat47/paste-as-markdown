@@ -19,6 +19,7 @@ import * as path from 'path';
 import type Joplin from '../../api/Joplin';
 import type { ParsedImageData } from '../types';
 import logger from '../logger';
+import { getErrorMessage } from '../errors';
 import { resolveImageType } from './imageMime';
 import {
     parseImageSource,
@@ -73,6 +74,14 @@ function isRemoteSource(source: ImageSource): source is RemoteImageSource {
     return source.kind === 'remote';
 }
 
+function logConversionFailure(url: string, err: unknown): void {
+    logger.warn('Failed to convert image to resource', {
+        src: truncateForLog(url),
+        error: getErrorMessage(err),
+        type: err instanceof Error ? err.name : typeof err,
+    });
+}
+
 /**
  * Convert eligible <img> tags to Joplin resources.
  *
@@ -93,7 +102,7 @@ export async function convertImagesToResources(
     try {
         fs = joplin.require('fs-extra') as FileSystem;
     } catch (err) {
-        logger.info('fs-extra unavailable; skipping resource conversion', (err as Error)?.message);
+        logger.info('fs-extra unavailable; skipping resource conversion', getErrorMessage(err));
         return { ids: [], attempted: 0, failed: 0 };
     }
     const imgs = Array.from(body.querySelectorAll('img[src]'));
@@ -121,12 +130,7 @@ export async function convertImagesToResources(
             ids.push(id);
         } catch (e) {
             failed++;
-            const error = e as Error;
-            logger.warn('Failed to convert image to resource', {
-                src: truncateForLog(source.url),
-                error: error?.message || 'Unknown error',
-                type: error?.name || 'Error',
-            });
+            logConversionFailure(source.url, e);
         }
     }
     return { ids, attempted, failed };
@@ -187,11 +191,9 @@ async function downloadExternalImage(url: string, limits: ResourceConversionLimi
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            if (value) {
-                chunks.push(value);
-                received += value.length;
-                if (received > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
-            }
+            chunks.push(value);
+            received += value.length;
+            if (received > limits.maxImageBytes) throw new Error('Image exceeds maximum size');
         }
         const merged = concatChunks(chunks, received);
         return await toParsedImage(merged, contentType, deriveFilenameStem(url));
@@ -250,7 +252,7 @@ function deriveFilenameStem(url: string): string | null {
         return path.parse(sanitized).name || null;
     } catch (err) {
         // Expected: malformed URLs will fail to parse, use fallback filename
-        logger.debug('Failed to parse URL for filename extraction:', truncateForLog(url), (err as Error)?.message);
+        logger.debug('Failed to parse URL for filename extraction:', truncateForLog(url), getErrorMessage(err));
         return null;
     }
 }
