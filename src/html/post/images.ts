@@ -33,9 +33,8 @@ function deriveAltFromSrc(src: string): string {
         const segments = url.pathname.split('/').filter(Boolean);
         const last = segments.pop() || '';
 
-        // Remove query/hash fragments and extension
-        const cleaned = last.split('?')[0].split('#')[0];
-        const withoutExt = cleaned.replace(/\.[a-z0-9]{2,5}$/i, '');
+        // URL.pathname already excludes query/hash fragments; remove the extension.
+        const withoutExt = last.replace(/\.[a-z0-9]{2,5}$/i, '');
 
         // Sanitize: keep only safe characters, replace separators with spaces
         const readable = withoutExt

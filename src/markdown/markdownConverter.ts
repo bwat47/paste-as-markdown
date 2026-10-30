@@ -121,8 +121,10 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
             const taskMatch = /^(\[[ xX]\])([\s\S]*)$/.exec(content);
             if (taskMatch) {
-                const [, marker, remainder] = taskMatch;
-                const [firstLine, ...otherLines] = remainder.split('\n');
+                // Both captures always participate, including an empty remainder.
+                const marker = taskMatch[1]!;
+                const remainder = taskMatch[2]!;
+                const [firstLine = '', ...otherLines] = remainder.split('\n');
                 const trimmedFirstLine = firstLine.replace(/^\s+/, '');
                 const inlineText = trimmedFirstLine.length > 0 ? ` ${trimmedFirstLine}` : '';
                 const trailingLines = otherLines.length > 0 ? `\n${otherLines.join('\n')}` : '';

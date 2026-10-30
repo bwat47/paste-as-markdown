@@ -293,10 +293,10 @@ function trimCodeWhitespace(code: HTMLElement): void {
     const text = code.textContent ?? '';
     if (!text) return;
     const lines = text.split(/\r?\n/);
-    while (lines.length > 0 && lines[0].trim() === '') {
+    while (lines[0]?.trim() === '') {
         lines.shift();
     }
-    while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+    while (lines.at(-1)?.trim() === '') {
         lines.pop();
     }
     const trimmed = lines.join('\n');
@@ -406,7 +406,7 @@ function extractLanguageFromLabelElement(element: HTMLElement): string | null {
  */
 function stripTrailingColons(text: string): string {
     let end = text.length;
-    while (end > 0 && LABEL_COLON_CHARS.has(text[end - 1])) {
+    while (end > 0 && LABEL_COLON_CHARS.has(text.charAt(end - 1))) {
         end -= 1;
     }
     return text.slice(0, end);
@@ -473,7 +473,8 @@ function collectClassSources(pre: HTMLElement, code: HTMLElement): string[] {
 /** Returns the first match of `pattern` that maps to a known highlight language, e.g. `language-js` -> `javascript`. */
 function matchLanguageInClasses(classBlob: string, pattern: RegExp): string | null {
     for (const match of classBlob.matchAll(pattern)) {
-        const normalized = normalizeLangAlias(match[1]);
+        // Every LANGUAGE_CLASS_PATTERNS expression requires capture group 1.
+        const normalized = normalizeLangAlias(match[1]!);
         if (normalized && isHighlightLanguage(normalized)) {
             return normalized;
         }
@@ -484,7 +485,7 @@ function matchLanguageInClasses(classBlob: string, pattern: RegExp): string | nu
 function normalizeLangAlias(raw: string): string | null {
     const l = raw.toLowerCase();
     if (Object.hasOwn(LANGUAGE_ALIASES, l)) {
-        return LANGUAGE_ALIASES[l];
+        return LANGUAGE_ALIASES[l] ?? null;
     }
     if (!/^[a-z0-9+#_.-]{1,40}$/.test(l)) {
         return null;
