@@ -132,7 +132,7 @@ describe('code block normalization & language inference', () => {
         expect(md).toMatch(/```javascript[\s\S]*console\.log/);
         // Should not retain multiple language markers inside fence line
         const fenceLine = md.split(/\n/)[0];
-        expect(fenceLine.match(/javascript/g)?.length).toBe(1);
+        expect(fenceLine?.match(/javascript/g)?.length).toBe(1);
     });
 
     test('fallback: no language classes yields fence without language', async () => {
@@ -204,9 +204,9 @@ describe('code block normalization & language inference', () => {
 </div>`;
         const { markdown } = await convertHtmlToMarkdown(html);
         const lines = markdown.split('\n');
-        expect(lines[0].startsWith('```')).toBe(true);
-        expect(lines[1].trim().startsWith('function greet')).toBe(true);
-        expect(lines[lines.length - 2].includes('greet("World");')).toBe(true);
+        expect(lines[0]).toMatch(/^```/);
+        expect(lines[1]).toMatch(/^\s*function greet/);
+        expect(lines[lines.length - 2]).toContain('greet("World");');
         expect(lines[lines.length - 1]).toBe('```');
     });
 });

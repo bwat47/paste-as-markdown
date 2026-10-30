@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
+import { describe, test, expect, assert, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import * as path from 'path';
 import { convertImagesToResources } from '../resources/resourceConverter';
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
@@ -168,7 +168,7 @@ describe('resourceConverter edge cases', () => {
             { title: `image.${ext}`, mime: `image/${ext}` },
             [{ path: expect.stringMatching(new RegExp(`\\.${ext}$`)) }]
         );
-        expect(fsExtraMock.writeFileSync.mock.calls[0][1]).toEqual(Uint8Array.from(bytes));
+        expect(fsExtraMock.writeFileSync.mock.calls[0]?.[1]).toEqual(Uint8Array.from(bytes));
         expect(body.querySelector('img')?.getAttribute('src')).toBe(':/res-ok');
     });
 
@@ -230,7 +230,9 @@ describe('resourceConverter edge cases', () => {
         const body = makeBody(`<img src="data:image/gif;base64,${unpadded}">`);
         const result = await convertImagesToResources(body);
         expect(result.failed).toBe(0);
-        const written = fsExtraMock.writeFileSync.mock.calls[0][1];
+        const writeCall = fsExtraMock.writeFileSync.mock.calls[0];
+        assert.isDefined(writeCall);
+        const written = writeCall[1];
         expect(Array.from(written)).toEqual(Array.from(gif));
     });
 
@@ -283,10 +285,13 @@ describe('resourceConverter edge cases', () => {
     test('small base64 image writes exactly its decoded bytes', async () => {
         // Small Buffers are views into a shared pool; writing the backing ArrayBuffer would leak extra bytes
         const b64 = PNG_DATA_URL.split(',')[1];
+        assert.isDefined(b64);
         const expected = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
         const body = makeBody(`<img src="${PNG_DATA_URL}">`);
         await convertImagesToResources(body);
-        const written = fsExtraMock.writeFileSync.mock.calls[0][1];
+        const writeCall = fsExtraMock.writeFileSync.mock.calls[0];
+        assert.isDefined(writeCall);
+        const written = writeCall[1];
         expect(written.byteLength).toBe(expected.byteLength);
         expect(Array.from(written)).toEqual(Array.from(expected));
     });

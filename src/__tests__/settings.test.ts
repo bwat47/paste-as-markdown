@@ -32,7 +32,7 @@ describe('settings', () => {
         });
         expect(registerSettings).toHaveBeenCalledOnce();
 
-        const registered = registerSettings.mock.calls[0][0];
+        const registered = registerSettings.mock.calls[0]![0]; // Single call asserted above.
         expect(Object.keys(registered)).toEqual(Object.values(SETTINGS));
         expect(registered).toMatchObject({
             [SETTINGS.INCLUDE_IMAGES]: {

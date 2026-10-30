@@ -87,11 +87,7 @@ describe('normalizeHeadingLevels', () => {
         normalizeHeadingLevels(body);
 
         const headings = body.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        expect(headings).toHaveLength(4);
-        expect(headings[0].tagName).toBe('H2');
-        expect(headings[1].tagName).toBe('H3');
-        expect(headings[2].tagName).toBe('H2');
-        expect(headings[3].tagName).toBe('H3');
+        expect(Array.from(headings, (heading) => heading.tagName)).toEqual(['H2', 'H3', 'H2', 'H3']);
     });
 
     it('should do nothing if no headings present', () => {
@@ -122,12 +118,7 @@ describe('normalizeHeadingLevels', () => {
         normalizeHeadingLevels(body);
 
         const headings = body.querySelectorAll('h1, h2, h3, h4, h5, h6');
-        expect(headings).toHaveLength(5);
-        expect(headings[0].tagName).toBe('H2'); // Example Unit Tests
-        expect(headings[1].tagName).toBe('H3'); // You said: (was h4)
-        expect(headings[2].tagName).toBe('H4'); // ChatGPT said: (was h5)
-        expect(headings[3].tagName).toBe('H2'); // What You Did Well
-        expect(headings[4].tagName).toBe('H3'); // Structure
+        expect(Array.from(headings, (heading) => heading.tagName)).toEqual(['H2', 'H3', 'H4', 'H2', 'H3']);
 
         expect(body.innerHTML).not.toContain('<h5>');
     });
