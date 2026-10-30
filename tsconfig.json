@@ -5,6 +5,7 @@
         "moduleResolution": "bundler",
         "target": "es2022",
         "allowJs": true,
+        "strict": true,
         "esModuleInterop": true,
         "skipLibCheck": true,
         "isolatedModules": true,
