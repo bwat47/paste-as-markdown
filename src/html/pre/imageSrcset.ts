@@ -89,8 +89,11 @@ function parseCandidate(url: string, descriptors: readonly string[]): SrcsetCand
 
 function skipCandidateSeparators(input: string, startPosition: number): number {
     let position = startPosition;
-    while (position < input.length && (isAsciiWhitespace(input.charAt(position)) || input[position] === ','))
+    while (position < input.length) {
+        const char = input.charAt(position);
+        if (!isAsciiWhitespace(char) && char !== ',') break;
         position++;
+    }
     return position;
 }
 
