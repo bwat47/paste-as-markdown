@@ -1,23 +1,23 @@
 import joplin from 'api';
-import { convertHtmlToMarkdown } from './pasteConversion';
-import { HtmlProcessingError } from './html/processHtml';
-import { showToast } from './utils';
 import { ToastType } from 'api/types';
+import { insertMarkdownAtCursor } from './editor/editorIntegration';
+import { getErrorMessage } from './errors';
+import { DEFAULT_PASS_CONTEXT } from './html/passContext';
+import { HtmlProcessingError } from './html/processHtml';
+import logger from './logger';
+import { convertHtmlToMarkdown } from './pasteConversion';
+import { loadPasteSettings } from './settings';
 import type {
     ClipboardSource,
-    ConversionSuccess,
     ConversionFailure,
+    ConversionSuccess,
     PassContext,
     PasteOptions,
     PasteOptionsPrompt,
     PasteResult,
     ResourceConversionMeta,
 } from './types';
-import { DEFAULT_PASS_CONTEXT } from './html/passContext';
-import { loadPasteSettings } from './settings';
-import logger from './logger';
-import { getErrorMessage } from './errors';
-import { insertMarkdownAtCursor } from './editor/editorIntegration';
+import { showToast } from './utils';
 
 async function readClipboardHtml(): Promise<string | null> {
     try {

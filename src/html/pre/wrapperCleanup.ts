@@ -1,5 +1,5 @@
-import { unwrapElement } from '../shared/dom';
 import logger from '../../logger';
+import { unwrapElement } from '../shared/dom';
 
 /**
  * Remove Google Docs wrapper elements that cause unwanted markdown artifacts.

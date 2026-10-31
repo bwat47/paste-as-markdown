@@ -1,10 +1,10 @@
 import joplin from 'api';
-import { registerPluginSettings } from './settings';
 import { ContentScriptType, MenuItemLocation } from 'api/types';
-import logger from './logger';
-import { isMarkdownEditorContextMenuOrigin } from './editor/editorIntegration';
-import { executePasteAsMarkdownCommand } from './pasteCommand';
 import { createPasteOptionsDialog } from './dialog/pasteOptionsDialog';
+import { isMarkdownEditorContextMenuOrigin } from './editor/editorIntegration';
+import logger from './logger';
+import { executePasteAsMarkdownCommand } from './pasteCommand';
+import { registerPluginSettings } from './settings';
 import type { PasteOptionsPrompt } from './types';
 
 const PASTE_AS_MARKDOWN_COMMAND = 'pasteHtmlAsMarkdown';

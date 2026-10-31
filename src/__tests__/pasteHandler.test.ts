@@ -1,12 +1,13 @@
-import { describe, test, expect, vi, beforeEach, type Mock, type MockedFunction } from 'vitest';
-import { handlePasteAsMarkdown } from '../pasteHandler';
-import { convertHtmlToMarkdown } from '../pasteConversion';
-import { HtmlProcessingError } from '../html/processHtml';
-import { showToast } from '../utils';
+import { beforeEach, describe, expect, test, vi, type Mock, type MockedFunction } from 'vitest';
+
 import { ToastType } from 'api/types';
+import { INSERT_MARKDOWN_COMMAND } from '../editor/editorCommands';
+import { HtmlProcessingError } from '../html/processHtml';
+import { convertHtmlToMarkdown } from '../pasteConversion';
+import { handlePasteAsMarkdown } from '../pasteHandler';
 import { SETTINGS } from '../settings';
 import { LIST_INDENTATION, type PasteOptionsPrompt } from '../types';
-import { INSERT_MARKDOWN_COMMAND } from '../editor/editorCommands';
+import { showToast } from '../utils';
 import { pasteOptions } from './helpers/pasteOptions';
 
 // Mock dependencies

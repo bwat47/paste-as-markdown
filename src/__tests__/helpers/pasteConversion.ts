@@ -1,7 +1,7 @@
 import { DEFAULT_PASS_CONTEXT } from '../../html/passContext';
 import { convertHtmlToMarkdown as convertHtmlToMarkdownWithOptions } from '../../pasteConversion';
-import { pasteOptions } from './pasteOptions';
 import type { HtmlToMarkdownResult, PassContext, PasteOptions } from '../../types';
+import { pasteOptions } from './pasteOptions';
 
 /**
  * Test-only wrapper around the production converter. It intentionally shares the production

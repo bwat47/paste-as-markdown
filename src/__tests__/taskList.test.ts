@@ -1,7 +1,8 @@
-import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from './helpers/pasteConversion';
+import { describe, expect, test } from 'vitest';
+
 import { unwrapCheckboxContainers } from '../html/post/lists';
 import { LIST_INDENTATION } from '../types';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 
 /**
  * Task list conversion (built-in GFM rule).

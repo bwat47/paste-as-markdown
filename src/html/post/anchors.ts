@@ -1,5 +1,5 @@
-import { onlyContains, unwrapElement, isTextNode, isElement } from '../shared/dom';
 import type { PasteOptions } from '../../types';
+import { isElement, isTextNode, onlyContains, unwrapElement } from '../shared/dom';
 
 const DECORATIVE_SVG_TAGS = new Set(['path', 'g', 'defs', 'use', 'symbol', 'clipPath', 'mask', 'pattern']);
 /**

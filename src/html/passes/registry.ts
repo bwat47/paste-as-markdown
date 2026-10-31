@@ -1,15 +1,8 @@
-import { normalizeTextCharacters } from '../pre/normalizeText';
-import { removeNonContentUi } from '../pre/uiCleanup';
-import { promoteLargestSrcsetCandidateToSrc } from '../pre/imageSrcset';
-import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
-import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
-import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
-import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
-import { liftTableCaptions } from '../pre/tableCaptions';
-import { normalizeWordLists } from '../pre/wordLists';
-import { removeEmptyAnchors, normalizeAnchors } from '../post/anchors';
-import { stripHeadingFormatting, normalizeHeadingLevels } from '../post/headings';
-import { protectLiteralHtmlTagMentions } from '../post/literals';
+import { normalizeAnchors, removeEmptyAnchors } from '../post/anchors';
+import { normalizeCodeBlocks } from '../post/codeBlocks';
+import { normalizeHeadingLevels, stripHeadingFormatting } from '../post/headings';
+import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
+import { normalizeImageAltAttributes, removeUnrenderableImages } from '../post/images';
 import {
     fixOrphanNestedLists,
     mergeAdjacentLists,
@@ -17,10 +10,16 @@ import {
     unwrapInvalidListWrappers,
     unwrapTightListItemParagraphs,
 } from '../post/lists';
-import { normalizeCodeBlocks } from '../post/codeBlocks';
-import { normalizeImageAltAttributes, removeUnrenderableImages } from '../post/images';
-import { unwrapAllConvertedImageLinks } from '../post/imageLinks';
-
+import { protectLiteralHtmlTagMentions } from '../post/literals';
+import { neutralizeCodeBlocksPreSanitize } from '../pre/codeNeutralize';
+import { pruneNonImageAnchorChildren } from '../pre/imageAnchorCleanup';
+import { promoteImageSizingStylesToAttributes } from '../pre/imageSizing';
+import { promoteLargestSrcsetCandidateToSrc } from '../pre/imageSrcset';
+import { normalizeTextCharacters } from '../pre/normalizeText';
+import { liftTableCaptions } from '../pre/tableCaptions';
+import { removeNonContentUi } from '../pre/uiCleanup';
+import { normalizeWordLists } from '../pre/wordLists';
+import { removeGoogleDocsWrappers } from '../pre/wrapperCleanup';
 import type { ProcessingPass } from './types';
 
 interface PassCollections {

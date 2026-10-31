@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+
 import {
     buildPasteOptionsDialogHtml,
     createPasteOptionsDialog,

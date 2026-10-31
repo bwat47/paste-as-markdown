@@ -1,6 +1,7 @@
-import { describe, test, expect } from 'vitest';
-import { convertHtmlToMarkdown } from './helpers/pasteConversion';
+import { describe, expect, test } from 'vitest';
+
 import type { PasteOptions } from '../types';
+import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 
 /** Resource conversion stays off so the assertions below see the original `src` values. */
 const IMAGE_OPTIONS: Partial<PasteOptions> = { includeImages: true, convertImagesToResources: false };

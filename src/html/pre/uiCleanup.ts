@@ -1,4 +1,4 @@
-import { isInCode, isTextNode, isElement, unwrapElement } from '../shared/dom';
+import { isElement, isInCode, isTextNode, unwrapElement } from '../shared/dom';
 
 const MEDIA_SELECTOR = 'img, picture, source, video, audio, canvas';
 

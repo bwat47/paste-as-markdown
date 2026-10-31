@@ -1,4 +1,5 @@
-import { describe, test, expect } from 'vitest';
+import { describe, expect, test } from 'vitest';
+
 import { formatFallbackStem, formatFilenameTimestamp } from '../resources/resourceTitles';
 
 describe('formatFilenameTimestamp', () => {

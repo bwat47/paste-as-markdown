@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
-import { processHtml } from '../html/processHtml';
+
 import { normalizeAnchors } from '../html/post/anchors';
+import { processHtml } from '../html/processHtml';
 import { inertPasteOptions } from './helpers/pasteOptions';
 
 function normalizeAnchorHtml(html: string): HTMLAnchorElement {

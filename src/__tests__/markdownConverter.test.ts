@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { domToMarkdown } from '../markdown/markdownConverter';
 import { LIST_INDENTATION } from '../types';
 

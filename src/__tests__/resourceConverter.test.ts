@@ -1,7 +1,8 @@
-import { describe, test, expect, assert, beforeEach, afterEach, vi, type Mock } from 'vitest';
 import * as path from 'path';
-import { convertImagesToResources } from '../resources/resourceConverter';
+import { afterEach, assert, beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+
 import { unwrapAllConvertedImageLinks } from '../html/post/imageLinks';
+import { convertImagesToResources } from '../resources/resourceConverter';
 import { apng, jpeg, png, pngExceeding, tiff } from './helpers/imageBytes';
 
 const TEST_MAX_IMAGE_BYTES = 64;

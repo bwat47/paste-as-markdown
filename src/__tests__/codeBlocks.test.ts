@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { normalizeCodeBlocks } from '../html/post/codeBlocks';
 import { neutralizeCodeBlocksPreSanitize } from '../html/pre/codeNeutralize';
 

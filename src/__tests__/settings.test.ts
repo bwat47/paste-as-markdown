@@ -1,7 +1,8 @@
 import { assert, beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
-import { type SettingItem, SettingItemType } from 'api/types';
-import { DEFAULT_PASTE_OPTIONS, loadPasteSettings, registerPluginSettings, SETTINGS } from '../settings';
+
+import { SettingItemType, type SettingItem } from 'api/types';
 import logger from '../logger';
+import { DEFAULT_PASTE_OPTIONS, loadPasteSettings, registerPluginSettings, SETTINGS } from '../settings';
 import { LIST_INDENTATION } from '../types';
 
 vi.mock('api');

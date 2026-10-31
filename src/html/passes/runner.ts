@@ -1,6 +1,6 @@
+import { getErrorMessage } from '../../errors';
 import type { PassContext, PasteOptions } from '../../types';
 import type { ProcessingPass } from './types';
-import { getErrorMessage } from '../../errors';
 
 /** Identifies the pass that made the HTML pipeline unsafe to continue. */
 export class PassExecutionError extends Error {

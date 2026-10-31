@@ -1,7 +1,8 @@
-import { describe, test, expect } from 'vitest';
-import { processHtml } from '../html/processHtml';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { describe, expect, test } from 'vitest';
+
+import { processHtml } from '../html/processHtml';
 import { inertPasteOptions } from './helpers/pasteOptions';
 
 describe('smart quotes normalization with large code block present', () => {

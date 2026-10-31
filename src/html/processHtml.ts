@@ -4,14 +4,14 @@
  * Throws HtmlProcessingError on failure; callers should catch and attempt plain text fallback.
  */
 
+import logger from '../logger';
+import { convertImagesToResources } from '../resources/resourceConverter';
 import type { PassContext, PasteOptions, ResourceConversionMeta } from '../types';
 import { DEFAULT_PASS_CONTEXT } from './passContext';
-import { convertImagesToResources } from '../resources/resourceConverter';
 import { PROCESSING_PASSES } from './passes/registry';
 import { PassExecutionError, runPasses } from './passes/runner';
 import { sanitizeHtml } from './sanitize';
 import { wrapOrphanedTableElements } from './wrapOrphanedTableElements';
-import logger from '../logger';
 
 export interface ProcessHtmlResult {
     readonly body: HTMLElement;

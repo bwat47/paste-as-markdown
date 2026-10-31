@@ -1,4 +1,4 @@
-import { isTextNode, isElement } from '../shared/dom';
+import { isElement, isTextNode } from '../shared/dom';
 
 /**
  * Flatten a code block subtree to plain text, mapping <br> to a newline.

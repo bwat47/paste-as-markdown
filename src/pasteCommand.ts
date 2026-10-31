@@ -1,10 +1,10 @@
 import { ToastType } from 'api/types';
 import { isMarkdownEditorMode } from './editor/editorIntegration';
-import { handlePasteAsMarkdown } from './pasteHandler';
-import logger from './logger';
 import { getErrorMessage } from './errors';
-import { showToast } from './utils';
+import logger from './logger';
+import { handlePasteAsMarkdown } from './pasteHandler';
 import type { PasteOptionsPrompt } from './types';
+import { showToast } from './utils';
 
 const RICH_TEXT_UNSUPPORTED_MESSAGE = 'Paste HTML as Markdown is not supported in the rich text editor';
 

@@ -1,4 +1,5 @@
-import { describe, test, expect, vi, beforeEach, type Mock } from 'vitest';
+import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+
 import { convertImagesToResources } from '../resources/resourceConverter';
 import { pngExceeding } from './helpers/imageBytes';
 

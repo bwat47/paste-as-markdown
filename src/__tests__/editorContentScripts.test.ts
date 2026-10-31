@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import type { CodeMirrorControl } from 'api/types';
 import codeMirror5ContentScript from '../editor/contentScripts/codeMirror5';
 import codeMirror6ContentScript from '../editor/contentScripts/codeMirror6';

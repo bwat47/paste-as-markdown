@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { resolveImageType } from '../resources/imageMime';
 import { apng, jpeg, png, tiff } from './helpers/imageBytes';
 

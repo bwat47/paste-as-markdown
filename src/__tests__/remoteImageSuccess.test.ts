@@ -1,7 +1,8 @@
-import { describe, test, expect, beforeEach, vi, type Mock } from 'vitest';
+import { beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
+
 import { processHtml } from '../html/processHtml';
-import { pasteOptions } from './helpers/pasteOptions';
 import { png } from './helpers/imageBytes';
+import { pasteOptions } from './helpers/pasteOptions';
 
 interface JoplinMock {
     plugins: { dataDir: Mock };

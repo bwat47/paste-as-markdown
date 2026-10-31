@@ -9,7 +9,7 @@
  *  - Infer language from common class patterns and apply a normalized class="language-xxx" (aliases mapped)
  */
 
-import { onlyContains, unwrapElement, isHtmlElement, isTextNode, isElement } from '../shared/dom';
+import { isElement, isHtmlElement, isTextNode, onlyContains, unwrapElement } from '../shared/dom';
 import { isHighlightLanguage } from './highlightLanguages';
 
 /** Attribute used to carry a collapsed wrapper's classes onto the <pre> for later language inference. */

@@ -1,10 +1,11 @@
-import { describe, expect, test, afterEach, vi } from 'vitest';
-import { HtmlProcessingError, processHtml } from '../html/processHtml';
-import * as passRunner from '../html/passes/runner';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
 import { PROCESSING_PASSES } from '../html/passes/registry';
-import * as resourceConverter from '../resources/resourceConverter';
-import logger from '../logger';
+import * as passRunner from '../html/passes/runner';
 import type { ProcessingPass } from '../html/passes/types';
+import { HtmlProcessingError, processHtml } from '../html/processHtml';
+import logger from '../logger';
+import * as resourceConverter from '../resources/resourceConverter';
 import { inertPasteOptions } from './helpers/pasteOptions';
 
 const inertOptions = inertPasteOptions();

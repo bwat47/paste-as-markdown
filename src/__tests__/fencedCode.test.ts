@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { transformMarkdownOutsideFencedCode } from '../markdown/fencedCode';
 
 const collapseBlankLines = (segment: string): string => segment.replace(/\n{3,}/g, '\n\n');

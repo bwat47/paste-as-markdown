@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest';
+
 import { PassExecutionError, runPasses } from '../html/passes/runner';
 import type { ProcessingPass } from '../html/passes/types';
-import { pasteOptions } from './helpers/pasteOptions';
 import type { PassContext } from '../types';
+import { pasteOptions } from './helpers/pasteOptions';
 
 describe('runPasses', () => {
     const options = pasteOptions();

@@ -1,4 +1,5 @@
 import createDOMPurify from 'dompurify';
+
 import { buildSanitizerConfig } from './sanitizerConfig';
 import { isHtmlElement } from './shared/dom';
 

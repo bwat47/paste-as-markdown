@@ -16,17 +16,18 @@
  */
 
 import * as path from 'path';
+
 import type Joplin from '../../api/Joplin';
-import type { ParsedImageData } from '../types';
-import logger from '../logger';
 import { getErrorMessage } from '../errors';
-import { resolveImageType } from './imageMime';
 import {
     parseImageSource,
     type DataImageSource,
     type ImageSource,
     type RemoteImageSource,
 } from '../html/shared/imageSource';
+import logger from '../logger';
+import type { ParsedImageData } from '../types';
+import { resolveImageType } from './imageMime';
 import { formatFallbackStem } from './resourceTitles';
 
 export interface ResourceConversionLimits {

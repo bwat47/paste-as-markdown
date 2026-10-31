@@ -10,8 +10,8 @@
  *
  * Note: Attribute whitelisting is handled by DOMPurify configuration.
  */
-import { normalizeAltText } from '../shared/textUtils';
 import { parseImageSource } from '../shared/imageSource';
+import { normalizeAltText } from '../shared/textUtils';
 
 const MAX_ALT_TEXT_LENGTH = 120;
 
