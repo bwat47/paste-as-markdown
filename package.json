@@ -2,19 +2,23 @@
     "name": "joplin-plugin-paste-as-markdown",
     "version": "1.6.0",
     "scripts": {
-        "dist": "webpack --env joplin-plugin-config=buildMain && webpack --env joplin-plugin-config=buildExtraScripts && webpack --env joplin-plugin-config=createArchive",
+        "dist": "npm run typecheck && joplin-plugin-scripts build",
         "prepare": "npm run dist",
-        "updateVersion": "webpack --env joplin-plugin-config=updateVersion",
-        "update": "npm install -g generator-joplin && yo joplin --node-package-manager npm --update --force",
-        "lint": "eslint src/",
-        "lint:fix": "eslint src/ --fix",
+        "updateVersion": "joplin-plugin-scripts update-version",
+        "updateApi": "joplin-plugin-scripts update-api",
+        "lint": "eslint src/ test/",
+        "lint:fix": "eslint src/ test/ --fix",
         "format": "prettier --write \"src/**/*.{ts,js,css}\"",
-        "test": "vitest run",
+        "test": "vitest run && node --test test/*.test.mjs",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
-        "knip": "knip"
+        "knip": "knip",
+        "typecheck": "tsc --noEmit"
     },
     "license": "MIT",
+    "engines": {
+        "node": ">=22"
+    },
     "keywords": [
         "joplin-plugin"
     ],
@@ -22,33 +26,27 @@
         "publish"
     ],
     "devDependencies": {
+        "@bwat47/joplin-plugin-scripts": "^1.1.0",
         "@eslint/js": "^10.0.1",
         "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
         "@types/node": "^25.9.4",
         "@types/turndown": "^5.0.6",
         "@vitest/coverage-v8": "^5.0.5",
         "@vitest/eslint-plugin": "^1.6.28",
-        "chalk": "^4.1.0",
-        "copy-webpack-plugin": "^14.0.0",
+        "esbuild": "^0.28.2",
         "eslint": "^10.14.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-import-resolver-typescript": "^4.4.5",
         "eslint-plugin-import-x": "^4.18.0",
         "eslint-plugin-sonarjs": "^4.2.2",
         "eslint-plugin-tsdoc": "^0.5.4",
-        "fs-extra": "^11.3.2",
-        "glob": "^8.0.3",
         "globals": "^14.0.0",
         "jsdom": "^31.0.0",
         "knip": "^6.44.1",
         "prettier": "^3.9.10",
-        "tar": "^7.5.7",
-        "ts-loader": "^9.5.4",
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.72.1",
-        "vitest": "^5.1.0",
-        "webpack": "^5.106.2",
-        "webpack-cli": "^6.0.1"
+        "vitest": "^5.1.0"
     },
     "dependencies": {
         "@bwat47/turndown-plugin-gfm": "1.1.2",

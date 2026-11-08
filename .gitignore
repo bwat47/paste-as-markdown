@@ -12,3 +12,4 @@ publish/
 prompt/
 coverage/
 .fallowrc.json
+.api-staging-*/

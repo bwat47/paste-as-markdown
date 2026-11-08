@@ -13,7 +13,7 @@ import tseslint from 'typescript-eslint';
 
 export default defineConfig([
     {
-        ignores: ['api/**', 'dist/**', 'webpack.config.js', '.prettierrc.js', 'scripts/updateHighlightLanguages.js'],
+        ignores: ['api/**', '.api-staging-*/**', 'dist/**', '.prettierrc.js', 'scripts/updateHighlightLanguages.js'],
     },
 
     js.configs.recommended,
