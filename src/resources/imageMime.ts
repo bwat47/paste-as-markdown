@@ -1,4 +1,4 @@
-import { fileTypeFromBuffer } from 'file-type/core';
+import { fileTypeFromBuffer } from 'file-type';
 
 /** MIME type and file extension an image resource is stored with. */
 export interface ImageType {
