@@ -1,6 +1,4 @@
 {
-	"extraScripts": [
-		"editor/contentScripts/codeMirror6.ts",
-		"editor/contentScripts/codeMirror5.ts"
-	]
+    "extraScripts": ["editor/contentScripts/codeMirror6.ts", "editor/contentScripts/codeMirror5.ts"],
+    "buildOptions": { "target": "es2022" }
 }
