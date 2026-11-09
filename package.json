@@ -53,6 +53,6 @@
         "@lezer/markdown": "^1.7.2",
         "dompurify": "^3.4.17",
         "file-type": "^22.3.0",
-        "turndown": "7.2.4"
+        "turndown": "7.2.5"
     }
 }
