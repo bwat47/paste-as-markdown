@@ -13,3 +13,6 @@ prompt/
 coverage/
 .fallowrc.json
 .api-staging-*/
+.codex/
+.claude/
+.agents/
