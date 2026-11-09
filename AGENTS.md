@@ -2,7 +2,7 @@
 
 ## Internal Project Documentation
 
-ARCHITECTURE.md
+docs/ARCHITECTURE.md
 
 - Keep up to date with architecture changes when applicable.
 - Keep this document concise, it's meant for LLMs to reference.
