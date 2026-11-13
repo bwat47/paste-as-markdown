@@ -34,12 +34,10 @@ export default defineConfig([
             tsdoc,
         },
         settings: {
-            // Without these, import-x silently skips TS imports and rules like no-cycle never fire.
-            // Resolve imports the way tsc does (.ts extensions, tsconfig paths)...
+            // Resolve imports the way tsc does (.ts extensions, tsconfig paths).
             'import-x/resolver-next': [createTypeScriptImportResolver({ project: './tsconfig.json' })],
-            // ...and parse resolved .ts files when following the import graph.
+            // Include TypeScript files when following the import graph; use the configured TS parser.
             'import-x/extensions': ['.ts', '.tsx', '.js'],
-            'import-x/parsers': { '@typescript-eslint/parser': ['.ts', '.tsx'] },
         },
         rules: {
             'no-useless-escape': 'off',
