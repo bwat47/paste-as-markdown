@@ -12,11 +12,12 @@ docs/ARCHITECTURE.md
 - `npm test` Run the Vitest suite (JSDOM environment).
 - `npm run dist` Typecheck, bundle with esbuild, and create archive at `publish/*.jpl`.
 - `npm run typecheck` Check TypeScript without producing output.
-- `npm run lint` Lint application sources with Oxlint.
+- `npm run lint` Lint application sources with Oxlint, then run the fallow dead-code and complexity checks.
+- `npm run lint:dead-code` Find unused files, exports, and dependencies with fallow (`.fallowrc.json`).
+- `npm run lint:complexity` Check cognitive/cyclomatic complexity limits with fallow (`health` in `.fallowrc.json`).
 - `npm run lint:fix` Auto-fix linting issues.
 - `npm run format` Format source code with Oxfmt.
 - `npm run format:check` Check source formatting without writing files.
-- `npm run knip` Find unused dependencies, exports and files.
 - `npm run updateVersion` Increment the patch version in package.json, src/manifest.json, and package-lock.json together.
 - `npm run updateApi` Update api/ from generator-joplin without regenerating the project.
 

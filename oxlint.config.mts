@@ -13,7 +13,7 @@ const regexpRecommendedRules = Object.fromEntries(
 
 export default defineConfig({
     plugins: ['typescript', 'import', 'vitest', 'unicorn'],
-    jsPlugins: ['oxlint-plugin-complexity', 'eslint-plugin-regexp'],
+    jsPlugins: ['eslint-plugin-regexp'],
     categories: {
         correctness: 'error',
         suspicious: 'error',
@@ -33,15 +33,6 @@ export default defineConfig({
         'import/no-cycle': 'error',
         'import/no-self-import': 'error',
         'import/no-duplicates': ['error', { preferInline: true }],
-        'complexity/complexity': [
-            'error',
-            {
-                cognitive: 15,
-                cyclomatic: 20,
-                minLines: 0,
-                enableExtraction: false,
-            },
-        ],
         ...regexpRecommendedRules,
         // The `i` flag applies to the whole pattern; keep explicit case ranges in allowlists.
         'regexp/use-ignore-case': 'off',

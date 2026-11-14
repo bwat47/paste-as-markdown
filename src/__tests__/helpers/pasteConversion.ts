@@ -1,3 +1,4 @@
+// fallow-ignore-file duplicate-export -- intentionally mirrors the production export name with test defaults.
 import { DEFAULT_PASS_CONTEXT } from '../../html/passContext';
 import { convertHtmlToMarkdown as convertHtmlToMarkdownWithOptions } from '../../pasteConversion';
 import type { HtmlToMarkdownResult, PassContext, PasteOptions } from '../../types';

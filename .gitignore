@@ -11,7 +11,6 @@ publish/
 *.diff
 prompt/
 coverage/
-.fallowrc.json
 .fallow/
 .api-staging-*/
 .codex/
