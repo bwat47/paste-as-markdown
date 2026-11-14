@@ -1,4 +1,4 @@
-import regexp from 'eslint-plugin-regexp';
+import { configs } from 'eslint-plugin-regexp';
 import { defineConfig } from 'oxlint';
 
 const REGEXP_RULE_PREFIX = 'regexp/';
@@ -8,7 +8,7 @@ const REGEXP_RULE_PREFIX = 'regexp/';
  * core rules (e.g. `no-invalid-regexp`), which oxlint's categories already cover.
  */
 const regexpRecommendedRules = Object.fromEntries(
-    Object.entries(regexp.configs['flat/recommended'].rules).filter(([name]) => name.startsWith(REGEXP_RULE_PREFIX))
+    Object.entries(configs['flat/recommended'].rules).filter(([name]) => name.startsWith(REGEXP_RULE_PREFIX))
 );
 
 export default defineConfig({
