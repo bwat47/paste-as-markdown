@@ -46,6 +46,17 @@ If the clipboard contains HTML, the plugin cleans it, converts it to Markdown, a
 
 The plugin favors portable Markdown. It retains inline HTML only when needed for explicitly sized images, superscript (`<sup>`), subscript (`<sub>`), inserted text (`<ins>`), or intentional `<br>` elements whose replacement would break a table cell or inline-code structure.
 
+## Building from source
+
+Requires Node 22 or later. Install dependencies and build the plugin.
+
+```sh
+npm ci
+npm run dist
+```
+
+The build checks TypeScript, bundles with esbuild, and creates `publish/com.bwat47.paste-as-markdown.jpl` and its publish metadata `.json`. Each build clears `dist/` and `publish/` before generating the bundles, runtime assets, and package.
+
 ## Development note
 
 This plugin was created entirely with AI tools.

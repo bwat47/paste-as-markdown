@@ -85,6 +85,11 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - `src/utils.ts` contains shared helpers such as toast notifications.
 - `src/types.ts` defines the main data shapes shared across the pipeline.
 
+## Build and Packaging
+
+- `npm run dist` checks TypeScript, then delegates bundling and packaging to `@bwat47/joplin-plugin-scripts`. The shared package uses esbuild and produces `dist/` and the installable `.jpl` with publish metadata in `publish/`. Tests and fixtures are excluded from `dist/`.
+- `plugin.config.json` registers the CodeMirror 6 and CodeMirror 5 content scripts as `extraScripts`. The dialog's plain JavaScript and CSS in `src/dialog/webview/` are copied into `dist/` as-is.
+
 ## Design Priorities
 
 - Security first: HTML is sanitized before conversion output is trusted.
