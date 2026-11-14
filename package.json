@@ -31,6 +31,7 @@
         "@types/node": "^25.9.4",
         "@types/turndown": "^5.0.6",
         "@vitest/coverage-v8": "^5.0.5",
+        "eslint-plugin-regexp": "^3.3.3",
         "jsdom": "^31.0.0",
         "knip": "^6.45.1",
         "oxfmt": "^0.78.0",

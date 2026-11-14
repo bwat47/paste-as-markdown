@@ -37,8 +37,8 @@ const LABEL_COLON_CHARS = new Set([':', '：']);
  * Requiring a token character last also keeps a trailing separator out of the capture (`language-js-` becomes `js`).
  */
 const LANGUAGE_CLASS_PATTERNS: readonly RegExp[] = [
-    /\blanguage-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
-    /\blang-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
+    /\blanguage-([\w+#.-]*[A-Za-z0-9+#])/g,
+    /\blang-([\w+#.-]*[A-Za-z0-9+#])/g,
     /\bhighlight-source-([a-z0-9]+)\b/gi,
     /\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/gi,
     /\bbrush:\s*([a-z0-9]+)\b/gi,
@@ -260,7 +260,7 @@ function removeUIElements(pre: HTMLElement): void {
 function shouldRemoveUIElement(element: Element): boolean {
     if (element.tagName === 'SPAN') {
         const text = element.textContent;
-        if (text.replace(/[\s\u00A0]+/g, '') === '') {
+        if (text.replace(/\s+/g, '') === '') {
             return true;
         }
     }
@@ -294,7 +294,7 @@ function isUiToolbarWrapper(element: HTMLElement): boolean {
     }
     const className = element.className || '';
     if (
-        /\b(copy|clipboard|code[-_]?header|code[-_]?toolbar|snippet-controls|code-actions|toolbar)\b/i.test(className)
+        /\b(?:copy|clipboard|code[-_]?header|code[-_]?toolbar|snippet-controls|code-actions|toolbar)\b/i.test(className)
     ) {
         return true;
     }
@@ -342,7 +342,7 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
     // Remove existing language markers regardless of inference result so we don't leak invalid fences
     const cleaned = code.className
         .split(/\s+/)
-        .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c));
+        .filter((c) => c && !/^lang(?:uage)?-/i.test(c) && !/^highlight-source-/i.test(c));
     const cleanedClass = cleaned.join(' ');
     if (cleanedClass) {
         code.className = cleanedClass;

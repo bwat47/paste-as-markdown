@@ -225,7 +225,7 @@ function deriveFilenameStem(url: string): string | null {
         const last = new URL(url).pathname.split('/').filter(Boolean).pop() || '';
         if (!/\.[a-z0-9]{2,5}$/i.test(last)) return null;
         // Sanitize: remove path traversal and dangerous characters
-        const sanitized = last.replace(/[^a-zA-Z0-9._-]/g, '');
+        const sanitized = last.replace(/[^\w.-]/g, '');
         return path.parse(sanitized).name || null;
     } catch (err) {
         // Expected: malformed URLs will fail to parse, use fallback filename
