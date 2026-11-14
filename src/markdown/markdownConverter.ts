@@ -10,6 +10,14 @@ export type MarkdownConversionOptions = Pick<PasteOptions, 'listIndentation'>;
 const MARKDOWN_RAW_HTML_ATTRIBUTE_WHITESPACE = /\s+/g;
 const MARKDOWN_TAB_WIDTH = 4;
 const MINIMUM_LIST_INDENT_WIDTH = 4;
+const ORDERED_LIST_NODE_NAME = 'OL';
+const ORDERED_LIST_START_ATTRIBUTE = 'start';
+const DEFAULT_ORDERED_LIST_START = 1;
+const DEFAULT_BULLET_MARKER = '-';
+
+/** Task item content: checkbox marker in group 1, the rest in group 2 (e.g. `[x]  Done` gives `[x]` and `  Done`). */
+const TASK_ITEM_PATTERN = /^(\[[ xX]\])([\s\S]*)$/;
+const LEADING_WHITESPACE_PATTERN = /^\s+/;
 
 const TURNDOWN_OPTIONS = {
     headingStyle: 'atx',
@@ -45,6 +53,42 @@ function createListIndent(prefixWidth: number, listIndentation: ListIndentation)
         return '\t'.repeat(Math.ceil(indentWidth / MARKDOWN_TAB_WIDTH));
     }
     return ' '.repeat(indentWidth);
+}
+
+/**
+ * Returns the Markdown marker for a list item, including its trailing space.
+ * Ordered items honor the parent's `start` attribute, falling back to 1 when it is missing
+ * and to plain 1-based numbering when it is not numeric.
+ */
+function getListItemPrefix(element: HTMLElement, bulletMarker: string): string {
+    const parent = element.parentElement;
+    if (parent?.nodeName !== ORDERED_LIST_NODE_NAME) return `${bulletMarker} `;
+
+    const index = Array.prototype.indexOf.call(parent.children, element);
+    const startAttr = parent.getAttribute(ORDERED_LIST_START_ATTRIBUTE);
+    const startIndex = startAttr ? Number(startAttr) : DEFAULT_ORDERED_LIST_START;
+    const ordinal = Number.isNaN(startIndex) ? index + DEFAULT_ORDERED_LIST_START : startIndex + index;
+    return `${ordinal}. `;
+}
+
+/**
+ * Normalizes task list content to exactly one space between the checkbox and its text.
+ * Content that does not start with a checkbox marker is returned unchanged.
+ *
+ * @example `[x]   Done\nmore` becomes `[x] Done\nmore`; `[ ]` stays `[ ]`.
+ */
+function normalizeTaskItemContent(content: string): string {
+    const taskMatch = TASK_ITEM_PATTERN.exec(content);
+    if (!taskMatch) return content;
+
+    // Both captures always participate, including an empty remainder.
+    const marker = taskMatch[1]!;
+    const remainder = taskMatch[2]!;
+    const [firstLine = '', ...otherLines] = remainder.split('\n');
+    const trimmedFirstLine = firstLine.replace(LEADING_WHITESPACE_PATTERN, '');
+    const inlineText = trimmedFirstLine.length > 0 ? ` ${trimmedFirstLine}` : '';
+    const trailingLines = otherLines.length > 0 ? `\n${otherLines.join('\n')}` : '';
+    return `${marker}${inlineText}${trailingLines}`;
 }
 
 function createTurndownService({ listIndentation }: MarkdownConversionOptions): TurndownService {
@@ -102,35 +146,14 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
         filter: 'li',
         replacement: (content, node, options: TurndownService.Options) => {
             const element = node;
-            const parent = element.parentElement;
-            let prefix: string;
-            if (parent && parent.nodeName === 'OL') {
-                const startAttr = parent.getAttribute('start');
-                const startIndex = startAttr ? Number(startAttr) : 1;
-                const index = Array.prototype.indexOf.call(parent.children, element);
-                const ordinal = Number.isNaN(startIndex) ? index + 1 : startIndex + index;
-                prefix = `${ordinal}. `;
-            } else {
-                const bulletMarker = options.bulletListMarker ?? '-';
-                prefix = `${bulletMarker} `;
-            }
+            const prefix = getListItemPrefix(element, options.bulletListMarker ?? DEFAULT_BULLET_MARKER);
 
             const indent = createListIndent(prefix.length, listIndentation);
             content = collapseTrailingNewlines(content.replace(/^\n+/, '')) // trim leading newlines, collapse trailing ones
                 .replace(/\n/g, `\n${indent}`); // indent child lines while preserving Markdown nesting
 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
-            const taskMatch = /^(\[[ xX]\])([\s\S]*)$/.exec(content);
-            if (taskMatch) {
-                // Both captures always participate, including an empty remainder.
-                const marker = taskMatch[1]!;
-                const remainder = taskMatch[2]!;
-                const [firstLine = '', ...otherLines] = remainder.split('\n');
-                const trimmedFirstLine = firstLine.replace(/^\s+/, '');
-                const inlineText = trimmedFirstLine.length > 0 ? ` ${trimmedFirstLine}` : '';
-                const trailingLines = otherLines.length > 0 ? `\n${otherLines.join('\n')}` : '';
-                content = `${marker}${inlineText}${trailingLines}`;
-            }
+            content = normalizeTaskItemContent(content);
 
             const needsTrailingNewline = element.nextSibling && !/\n$/.test(content);
             return prefix + content + (needsTrailingNewline ? '\n' : '');

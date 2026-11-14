@@ -198,28 +198,37 @@ function flattenLineBreakingElementsInAnchor(anchor: HTMLElement): void {
  * Clean GitHub-style permalink anchors, heading links, and block-wrapping anchors.
  */
 export function normalizeAnchors(body: HTMLElement): void {
-    const anchors = body.querySelectorAll('a');
-    anchors.forEach((anchor) => {
-        const { isPermalink, wrapsHeading } = analyzeAnchor(anchor);
-        if (isPermalink) {
-            anchor.remove();
-        } else if (wrapsHeading) {
-            const heading = anchor.firstElementChild as HTMLElement | null;
-            if (heading) {
-                const anchorId = anchor.getAttribute('id');
-                if (anchorId && !heading.getAttribute('id')) {
-                    heading.setAttribute('id', anchorId);
-                }
-                const parent = anchor.parentNode;
-                if (parent) {
-                    parent.insertBefore(heading, anchor);
-                    parent.removeChild(anchor);
-                }
-            } else {
-                unwrapElement(anchor);
-            }
-        } else if (anchor.getAttribute('href')) {
-            flattenLineBreakingElementsInAnchor(anchor);
-        }
-    });
+    body.querySelectorAll('a').forEach(normalizeAnchor);
+}
+
+function normalizeAnchor(anchor: HTMLAnchorElement): void {
+    const { isPermalink, wrapsHeading } = analyzeAnchor(anchor);
+    if (isPermalink) {
+        anchor.remove();
+    } else if (wrapsHeading) {
+        promoteHeadingFromAnchor(anchor);
+    } else if (anchor.getAttribute('href')) {
+        flattenLineBreakingElementsInAnchor(anchor);
+    }
+}
+
+/**
+ * Replace a heading-wrapping anchor with its heading, carrying the anchor's id over when the
+ * heading has none. Falls back to unwrapping when the anchor has no element child.
+ */
+function promoteHeadingFromAnchor(anchor: HTMLElement): void {
+    const heading = anchor.firstElementChild as HTMLElement | null;
+    if (!heading) {
+        unwrapElement(anchor);
+        return;
+    }
+    const anchorId = anchor.getAttribute('id');
+    if (anchorId && !heading.getAttribute('id')) {
+        heading.setAttribute('id', anchorId);
+    }
+    const parent = anchor.parentNode;
+    if (parent) {
+        parent.insertBefore(heading, anchor);
+        parent.removeChild(anchor);
+    }
 }

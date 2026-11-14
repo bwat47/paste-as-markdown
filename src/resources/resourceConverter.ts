@@ -27,6 +27,7 @@ import {
 } from '../html/shared/imageSource';
 import logger from '../logger';
 import type { ParsedImageData } from '../types';
+import { fetchWithRetry } from './fetchWithRetry';
 import { resolveImageType } from './imageMime';
 import { formatFallbackStem } from './resourceTitles';
 
@@ -213,31 +214,6 @@ async function toParsedImage(bytes: Uint8Array, declaredMime: string, stem: stri
     const type = await resolveImageType(bytes, declaredMime);
     if (!type) throw new Error('Unsupported image type');
     return { bytes, mime: type.mime, extension: type.extension, stem, size: bytes.byteLength };
-}
-
-/**
- * Lightweight retry wrapper around fetch for transient errors.
- * Retries on network errors and HTTP 408/429/5xx with exponential backoff.
- */
-async function fetchWithRetry(url: string, init: RequestInit, retries: number, baseDelayMs: number): Promise<Response> {
-    let attempt = 0;
-    while (true) {
-        const signal = (init as { signal?: AbortSignal } | undefined)?.signal;
-        if (signal?.aborted) throw new Error('abort');
-        try {
-            const resp = await fetch(url, init);
-            if (resp.ok) return resp;
-            const status = resp.status;
-            const retryable = status === 408 || status === 429 || (status >= 500 && status < 600);
-            if (!retryable || attempt >= retries) return resp; // return last response; caller will handle !ok
-        } catch (e) {
-            // Network or abort errors: retry if not exceeded
-            if (signal?.aborted || attempt >= retries) throw e;
-        }
-        const delay = baseDelayMs * Math.pow(2, attempt);
-        await new Promise((r) => setTimeout(r, delay));
-        attempt++;
-    }
 }
 
 /**
