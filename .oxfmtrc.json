@@ -21,5 +21,5 @@
         "sortSideEffects": false
     },
     "sortPackageJson": false,
-    "ignorePatterns": ["api/", ".api-staging-*/", "package-lock.json"]
+    "ignorePatterns": ["api/", ".api-staging-*/", "package-lock.json", "src/__tests__/*.html"]
 }
