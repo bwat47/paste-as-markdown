@@ -12,6 +12,7 @@ publish/
 prompt/
 coverage/
 .fallowrc.json
+.fallow/
 .api-staging-*/
 .codex/
 .claude/
