@@ -155,7 +155,7 @@ function createTurndownService({ listIndentation }: MarkdownConversionOptions): 
             // Normalize checkbox spacing inline so post-processing doesn't need to regex task lines again.
             content = normalizeTaskItemContent(content);
 
-            const needsTrailingNewline = element.nextSibling && !/\n$/.test(content);
+            const needsTrailingNewline = element.nextSibling && !content.endsWith('\n');
             return prefix + content + (needsTrailingNewline ? '\n' : '');
         },
     });

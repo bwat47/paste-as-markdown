@@ -13,6 +13,9 @@ const PASTE_AS_MARKDOWN_MENU = 'pasteAsMarkdownMenu';
 const CODE_MIRROR_6_CONTENT_SCRIPT_ID = 'pasteAsMarkdownCodeMirror6';
 const CODE_MIRROR_5_CONTENT_SCRIPT_ID = 'pasteAsMarkdownCodeMirror5';
 
+/** Fallback when the dialog can't be created: pastes still work using the saved settings. */
+const useSavedPasteOptions: PasteOptionsPrompt = (options) => Promise.resolve(options);
+
 void joplin.plugins.register({
     onStart: async () => {
         // A failed registration only costs the content script's features, so keep starting up.
@@ -31,8 +34,7 @@ void joplin.plugins.register({
             logger.error('Failed to register editor content scripts', err);
         }
 
-        // Without the dialog, pastes still work using the saved settings.
-        let promptForPasteOptions: PasteOptionsPrompt = (options) => Promise.resolve(options);
+        let promptForPasteOptions = useSavedPasteOptions;
         try {
             promptForPasteOptions = await createPasteOptionsDialog();
         } catch (err) {

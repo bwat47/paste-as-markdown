@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { normalizeHeadingLevels } from '../html/post/headings';
 
-describe('normalizeHeadingLevels', () => {
-    const parse = (html: string): HTMLElement => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        return doc.body;
-    };
+const parse = (html: string): HTMLElement => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    return doc.body;
+};
 
+describe('normalizeHeadingLevels', () => {
     it('should normalize skipped levels (h2 -> h5 => h2 -> h3)', () => {
         const body = parse(`
             <h2>Title</h2>

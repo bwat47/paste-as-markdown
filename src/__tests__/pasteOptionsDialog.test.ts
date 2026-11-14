@@ -192,7 +192,7 @@ describe('createPasteOptionsDialog', () => {
     });
 
     test('skips an overlapping prompt without opening the dialog twice', async () => {
-        let closeDialog: (result: unknown) => void = () => {};
+        let closeDialog!: (result: unknown) => void;
         dialogs.open.mockReturnValueOnce(new Promise((resolve) => (closeDialog = resolve)));
 
         const prompt = await createPasteOptionsDialog();

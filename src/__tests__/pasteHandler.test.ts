@@ -34,6 +34,15 @@ describe('pasteHandler', () => {
     let mockConvertHtmlToMarkdown: MockedFunction<typeof convertHtmlToMarkdown>;
     let mockShowToast: MockedFunction<typeof showToast>;
 
+    const insertionSetup = (markdown: string, plainText = ''): void => {
+        mockJoplin.clipboard.readHtml.mockResolvedValue('<p>Test</p>');
+        mockJoplin.clipboard.readText.mockResolvedValue(plainText);
+        mockConvertHtmlToMarkdown.mockResolvedValue({
+            markdown,
+            resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
+        });
+    };
+
     beforeEach(async () => {
         vi.clearAllMocks();
 
@@ -466,15 +475,6 @@ describe('pasteHandler', () => {
     });
 
     describe('Editor insertion scenarios', () => {
-        const insertionSetup = (markdown: string, plainText = ''): void => {
-            mockJoplin.clipboard.readHtml.mockResolvedValue('<p>Test</p>');
-            mockJoplin.clipboard.readText.mockResolvedValue(plainText);
-            mockConvertHtmlToMarkdown.mockResolvedValue({
-                markdown,
-                resources: { resourcesCreated: 0, resourceIds: [], attempted: 0, failed: 0 },
-            });
-        };
-
         test('a rejected editor command falls back to insertText', async () => {
             const markdown = 'Test';
             insertionSetup(markdown);

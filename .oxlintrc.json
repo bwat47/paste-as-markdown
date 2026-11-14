@@ -1,6 +1,6 @@
 {
     "$schema": "./node_modules/oxlint/configuration_schema.json",
-    "plugins": ["typescript", "import", "vitest"],
+    "plugins": ["typescript", "import", "vitest", "unicorn"],
     "jsPlugins": ["oxlint-plugin-complexity"],
     "categories": {
         "correctness": "error",
