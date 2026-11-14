@@ -15,6 +15,7 @@
     "rules": {
         "eqeqeq": ["error", "always", { "null": "ignore" }],
         "no-useless-escape": "off",
+        "vitest/require-mock-type-parameters": "off",
         "import/no-cycle": "error",
         "import/no-self-import": "error",
         "import/no-duplicates": ["error", { "preferInline": true }],
