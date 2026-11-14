@@ -20,7 +20,7 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
             '<p><img src="https://example.com/x.png" alt="Alt" height="90" style="width: 120px; height: 50px;"></p>';
         const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
         expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" height="90">');
-        expect(markdown).not.toMatch(/width=\"120\"/); // width not copied from style
+        expect(markdown).not.toMatch(/width="120"/); // width not copied from style
         expect(markdown).not.toMatch(/style=/); // style removed
         expect(markdown).not.toMatch(/!\[Alt\]\(x\.png\)/);
     });
@@ -30,7 +30,7 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
             '<p><img src="https://example.com/x.png" alt="Alt" width="120" style="width: 120px; height: 50px;"></p>';
         const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
         expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" width="120">');
-        expect(markdown).not.toMatch(/height=\"50\"/); // height not copied from style
+        expect(markdown).not.toMatch(/height="50"/); // height not copied from style
         expect(markdown).not.toMatch(/style=/); // style removed
     });
 
@@ -38,7 +38,7 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
         const html = '<p><img src="https://example.com/x.png" alt="Alt" style="width: 200px;"></p>';
         const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
         expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" width="200">');
-        expect(markdown).not.toMatch(/height=\"/);
+        expect(markdown).not.toMatch(/height="/);
         expect(markdown).not.toMatch(/!\[Alt\]\(x\.png\)/);
         expect(markdown).not.toMatch(/style=/);
     });
@@ -47,7 +47,7 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
         const html = '<p><img src="https://example.com/x.png" alt="Alt" style="height: 75px;"></p>';
         const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
         expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" height="75">');
-        expect(markdown).not.toMatch(/width=\"/);
+        expect(markdown).not.toMatch(/width="/);
         expect(markdown).not.toMatch(/!\[Alt\]\(x\.png\)/);
         expect(markdown).not.toMatch(/style=/);
     });
@@ -56,8 +56,8 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
         const html = '<p><img src="https://example.com/x.png" alt="Alt" style="width: 0px; height: 328px;"></p>';
         const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
         expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" height="328">');
-        expect(markdown).not.toMatch(/width=\"0\"/);
-        expect(markdown).not.toMatch(/width=\"/);
+        expect(markdown).not.toMatch(/width="0"/);
+        expect(markdown).not.toMatch(/width="/);
         expect(markdown).not.toMatch(/style=/);
     });
 
@@ -67,7 +67,7 @@ describe('image sizing: promote style to attributes (pre-sanitize)', () => {
             'max-width: 500px; line-height: 20px; max-height: 300px; width: 1288px; height: auto !important;"></p>';
         const { markdown } = await convertHtmlToMarkdown(html, IMAGE_OPTIONS);
         expect(markdown).toContain('<img src="https://example.com/x.png" alt="Alt" width="1288">');
-        expect(markdown).not.toMatch(/height=\"/);
+        expect(markdown).not.toMatch(/height="/);
         expect(markdown).not.toMatch(/style=/);
     });
 });

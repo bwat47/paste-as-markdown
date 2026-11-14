@@ -77,7 +77,7 @@ describe('code block normalization & language inference', () => {
             '<div class="highlight-zzz"><pre><code>highlight(code, {language, ignoreIllegals})</code></pre></div>';
         const { markdown } = await convertHtmlToMarkdown(html);
         const md = markdown.trim();
-        expect(md).toMatch(/^```\nhighlight\(code, {language, ignoreIllegals}\)/);
+        expect(md).toMatch(/^```\nhighlight\(code, \{language, ignoreIllegals\}\)/);
     });
 
     test('wrapper highlight-text-html-basic still yields html', async () => {

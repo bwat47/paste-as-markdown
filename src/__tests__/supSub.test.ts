@@ -2,12 +2,12 @@ import { describe, expect, test } from 'vitest';
 
 import { convertHtmlToMarkdown } from './helpers/pasteConversion';
 
-describe('sup/sub preservation', () => {
-    async function run(input: string) {
-        const { markdown } = await convertHtmlToMarkdown(input);
-        return markdown.trim();
-    }
+async function run(input: string): Promise<string> {
+    const { markdown } = await convertHtmlToMarkdown(input);
+    return markdown.trim();
+}
 
+describe('sup/sub preservation', () => {
     test('simple sup', async () => {
         expect(await run('E=mc<sup>2</sup>')).toBe('E=mc<sup>2</sup>');
     });

@@ -27,6 +27,7 @@ import {
 } from '../html/shared/imageSource';
 import logger from '../logger';
 import type { ParsedImageData } from '../types';
+import { fetchWithRetry } from './fetchWithRetry';
 import { resolveImageType } from './imageMime';
 import { formatFallbackStem } from './resourceTitles';
 
@@ -216,31 +217,6 @@ async function toParsedImage(bytes: Uint8Array, declaredMime: string, stem: stri
 }
 
 /**
- * Lightweight retry wrapper around fetch for transient errors.
- * Retries on network errors and HTTP 408/429/5xx with exponential backoff.
- */
-async function fetchWithRetry(url: string, init: RequestInit, retries: number, baseDelayMs: number): Promise<Response> {
-    let attempt = 0;
-    while (true) {
-        const signal = (init as { signal?: AbortSignal } | undefined)?.signal;
-        if (signal?.aborted) throw new Error('abort');
-        try {
-            const resp = await fetch(url, init);
-            if (resp.ok) return resp;
-            const status = resp.status;
-            const retryable = status === 408 || status === 429 || (status >= 500 && status < 600);
-            if (!retryable || attempt >= retries) return resp; // return last response; caller will handle !ok
-        } catch (e) {
-            // Network or abort errors: retry if not exceeded
-            if (signal?.aborted || attempt >= retries) throw e;
-        }
-        const delay = baseDelayMs * Math.pow(2, attempt);
-        await new Promise((r) => setTimeout(r, delay));
-        attempt++;
-    }
-}
-
-/**
  * Filename stem from the URL's last path segment when it looks like a filename, else null.
  * The detected image type always supplies the extension, which the URL may contradict.
  */
@@ -249,7 +225,7 @@ function deriveFilenameStem(url: string): string | null {
         const last = new URL(url).pathname.split('/').filter(Boolean).pop() || '';
         if (!/\.[a-z0-9]{2,5}$/i.test(last)) return null;
         // Sanitize: remove path traversal and dangerous characters
-        const sanitized = last.replace(/[^a-zA-Z0-9._-]/g, '');
+        const sanitized = last.replace(/[^\w.-]/g, '');
         return path.parse(sanitized).name || null;
     } catch (err) {
         // Expected: malformed URLs will fail to parse, use fallback filename

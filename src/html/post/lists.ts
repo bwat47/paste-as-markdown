@@ -199,40 +199,42 @@ export function unwrapInvalidListWrappers(body: HTMLElement): void {
     // After unwrapping invalid lists, we may have orphaned <li> elements that are no longer
     // inside a list. Preserve their list semantics by wrapping consecutive orphaned items.
     const orphanedListItems = Array.from(body.querySelectorAll<HTMLElement>('li'));
-    orphanedListItems.forEach((li) => {
-        const parent = li.parentElement;
-        if (!parent) return;
+    orphanedListItems.forEach(wrapOrphanedListItem);
+}
 
-        // If the <li> is inside a <ul> or <ol>, it's not orphaned
-        if (LIST_TAGS.has(parent.tagName)) return;
+/** Whitespace-only text and comments, which may sit between consecutive orphaned items. */
+function isSkippableNode(node: ChildNode): boolean {
+    if (node.nodeType === Node.COMMENT_NODE) return true;
+    return node.nodeType === Node.TEXT_NODE && (node.textContent?.trim() ?? '') === '';
+}
 
-        const ownerDocument = li.ownerDocument;
+function isSiblingListItem(node: ChildNode, parent: HTMLElement): node is HTMLElement {
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    const element = node as HTMLElement;
+    return element.tagName === LI_TAG && element.parentElement === parent;
+}
 
-        const wrapper = ownerDocument.createElement(DEFAULT_ORPHAN_LIST_TAG);
-        parent.insertBefore(wrapper, li);
+/**
+ * Wrap an <li> outside any list, plus the consecutive sibling <li>s after it, in a new list.
+ * Items already inside a <ul>/<ol> (including ones collected by an earlier call) are left alone.
+ */
+function wrapOrphanedListItem(li: HTMLElement): void {
+    const parent = li.parentElement;
+    if (!parent) return;
 
-        let current: ChildNode | null = li;
-        while (current) {
-            const next: ChildNode | null = current.nextSibling;
-            const isIgnorableWhitespace =
-                current.nodeType === Node.TEXT_NODE && (current.textContent?.trim() ?? '') === '';
-            const isComment = current.nodeType === Node.COMMENT_NODE;
+    // If the <li> is inside a <ul> or <ol>, it's not orphaned
+    if (LIST_TAGS.has(parent.tagName)) return;
 
-            if (isIgnorableWhitespace || isComment) {
-                current = next;
-                continue;
-            }
+    const wrapper = li.ownerDocument.createElement(DEFAULT_ORPHAN_LIST_TAG);
+    parent.insertBefore(wrapper, li);
 
-            if (current.nodeType === Node.ELEMENT_NODE) {
-                const element = current as HTMLElement;
-                if (element.tagName === LI_TAG && element.parentElement === parent) {
-                    wrapper.appendChild(element);
-                    current = next;
-                    continue;
-                }
-            }
-
-            break;
+    let current: ChildNode | null = li;
+    while (current) {
+        const next: ChildNode | null = current.nextSibling;
+        if (!isSkippableNode(current)) {
+            if (!isSiblingListItem(current, parent)) break;
+            wrapper.appendChild(current);
         }
-    });
+        current = next;
+    }
 }

@@ -70,6 +70,7 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 ### Resource Conversion
 
 - `src/resources/resourceConverter.ts` handles optional image conversion into Joplin resources.
+- `src/resources/fetchWithRetry.ts` retries transient remote image fetch failures (network errors, 408/429/5xx) with exponential backoff.
 - This runs as part of HTML processing so Markdown output can reference Joplin-managed images instead of raw external data when that option is enabled.
 - Size and timeout limits default to `DEFAULT_RESOURCE_CONVERSION_LIMITS` and are injectable per call, so the caps stay explicit dependencies rather than module-level globals.
 - The remote download timeout is a total deadline covering retries, headers and the full body stream.
@@ -83,6 +84,11 @@ This plugin turns clipboard HTML into clean Markdown for Joplin. It favors predi
 - `src/logger.ts` centralizes logging.
 - `src/utils.ts` contains shared helpers such as toast notifications.
 - `src/types.ts` defines the main data shapes shared across the pipeline.
+
+## Build and Packaging
+
+- `npm run dist` checks TypeScript, then delegates bundling and packaging to `@bwat47/joplin-plugin-scripts`. The shared package uses esbuild and produces `dist/` and the installable `.jpl` with publish metadata in `publish/`. Tests and fixtures are excluded from `dist/`.
+- `plugin.config.json` registers the CodeMirror 6 and CodeMirror 5 content scripts as `extraScripts`. The dialog's plain JavaScript and CSS in `src/dialog/webview/` are copied into `dist/` as-is.
 
 ## Design Priorities
 

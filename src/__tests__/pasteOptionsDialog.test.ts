@@ -8,6 +8,7 @@ import {
 import { LIST_INDENTATION } from '../types';
 import { inertPasteOptions, pasteOptions } from './helpers/pasteOptions';
 // Registers the webview script's document listeners, as loading it into the dialog would.
+// oxlint-disable-next-line import/no-unassigned-import -- intentional side-effect import
 import '../dialog/webview/pasteOptionsDialog.js';
 
 vi.mock('api');
@@ -191,7 +192,7 @@ describe('createPasteOptionsDialog', () => {
     });
 
     test('skips an overlapping prompt without opening the dialog twice', async () => {
-        let closeDialog: (result: unknown) => void = () => {};
+        let closeDialog!: (result: unknown) => void;
         dialogs.open.mockReturnValueOnce(new Promise((resolve) => (closeDialog = resolve)));
 
         const prompt = await createPasteOptionsDialog();

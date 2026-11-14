@@ -53,4 +53,23 @@ describe('domToMarkdown with trusted, processed DOMs', () => {
 
         expect(domToMarkdown(body, OPTIONS)).toBe('# Example\n\n```\nfirst\n   \n\n\nlast\n```');
     });
+
+    test.each([
+        ['a numeric start', ' start="3"', '3. A\n4. B'],
+        ['an empty start', ' start=""', '1. A\n2. B'],
+        ['a non-numeric start', ' start="abc"', '1. A\n2. B'],
+        ['no start', '', '1. A\n2. B'],
+    ])('numbers ordered items from %s', (_label, startAttribute, expected) => {
+        const body = document.createElement('body');
+        body.innerHTML = `<ol${startAttribute}><li>A</li><li>B</li></ol>`;
+
+        expect(domToMarkdown(body, OPTIONS)).toBe(expected);
+    });
+
+    test('normalizes task checkbox spacing and keeps an empty task marker', () => {
+        const body = document.createElement('body');
+        body.innerHTML = '<ul><li><input type="checkbox" checked>   Done</li><li><input type="checkbox"></li></ul>';
+
+        expect(domToMarkdown(body, OPTIONS)).toBe('- [x] Done\n- [ ]');
+    });
 });

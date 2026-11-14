@@ -35,10 +35,10 @@ function findFencedCodeRanges(markdown: string): SourceRange[] {
 
     markdownParser.parse(markdown).iterate({
         enter: (node) => {
-            if (node.name !== FENCED_CODE_NODE_NAME) return;
-
-            ranges.push({ start: lineStartAt(markdown, node.from), end: node.to });
-            return false;
+            const isFence = node.name === FENCED_CODE_NODE_NAME;
+            if (isFence) ranges.push({ start: lineStartAt(markdown, node.from), end: node.to });
+            // Returning false skips the node's children; a fence's contents need no further visits.
+            return !isFence;
         },
     });
 

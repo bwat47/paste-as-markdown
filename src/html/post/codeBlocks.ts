@@ -15,6 +15,14 @@ import { isHighlightLanguage } from './highlightLanguages';
 /** Attribute used to carry a collapsed wrapper's classes onto the <pre> for later language inference. */
 const WRAPPER_CLASSES_ATTR = 'data-pam-wrapper-classes';
 
+/** A `highlight` or `highlight-*` class anywhere in a class list (e.g. `foo highlight-source-js`). */
+const HIGHLIGHT_CLASS_IN_LIST = /\bhighlight(?:-|$)/i;
+
+/** A single class token that is `highlight` or `highlight-*` (matches `highlight-js`, not `highlighter`). */
+const HIGHLIGHT_CLASS = /^highlight(?:-|$)/i;
+
+const CLASS_SEPARATOR = /\s+/;
+
 /** How many ancestors to walk when looking for language labels / wrapper class hints. */
 const MAX_ANCESTOR_DEPTH = 3;
 
@@ -29,8 +37,8 @@ const LABEL_COLON_CHARS = new Set([':', '：']);
  * Requiring a token character last also keeps a trailing separator out of the capture (`language-js-` becomes `js`).
  */
 const LANGUAGE_CLASS_PATTERNS: readonly RegExp[] = [
-    /\blanguage-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
-    /\blang-([A-Za-z0-9+#_.-]*[A-Za-z0-9+#])/g,
+    /\blanguage-([\w+#.-]*[A-Za-z0-9+#])/g,
+    /\blang-([\w+#.-]*[A-Za-z0-9+#])/g,
     /\bhighlight-source-([a-z0-9]+)\b/gi,
     /\bhighlight-(?:text-)?([a-z0-9]+)(?:-basic)?\b/gi,
     /\bbrush:\s*([a-z0-9]+)\b/gi,
@@ -162,30 +170,46 @@ function findAndUnwrapCodeBlocks(body: HTMLElement): HTMLElement[] {
     ];
     const wrappers = Array.from(body.querySelectorAll<HTMLElement>(selectors.join(', ')));
     const pres: HTMLElement[] = [];
-    wrappers.forEach((wrapperEl) => {
-        const pre =
-            wrapperEl.tagName.toLowerCase() === 'pre'
-                ? wrapperEl
-                : (wrapperEl.querySelector('pre') as HTMLElement | null);
-        if (!pre) return;
-        const wrapperClasses = wrapperEl.getAttribute('class');
-        if (wrapperClasses) {
-            const existing = pre.getAttribute(WRAPPER_CLASSES_ATTR);
-            pre.setAttribute(WRAPPER_CLASSES_ATTR, existing ? `${existing} ${wrapperClasses}` : wrapperClasses);
-        }
-        if (pre !== wrapperEl) {
-            if (wrapperEl.parentElement && onlyContains(wrapperEl, pre)) {
-                wrapperEl.parentElement.replaceChild(pre, wrapperEl);
-            } else if (/\bhighlight(?:-|$)/i.test(wrapperEl.className)) {
-                wrapperEl.className = wrapperEl.className
-                    .split(/\s+/)
-                    .filter((cls) => cls && !/^highlight(?:-|$)/i.test(cls))
-                    .join(' ');
-            }
-        }
-        pres.push(pre);
-    });
+    for (const wrapperEl of wrappers) {
+        const pre = unwrapCodeBlock(wrapperEl);
+        if (pre) pres.push(pre);
+    }
     return pres;
+}
+
+/**
+ * Resolve a matched wrapper (or bare <pre>) to its <pre>, recording the wrapper's classes on it
+ * and collapsing the wrapper when it holds nothing else. Returns null when there is no <pre>.
+ */
+function unwrapCodeBlock(wrapperEl: HTMLElement): HTMLElement | null {
+    const pre =
+        wrapperEl.tagName.toLowerCase() === 'pre' ? wrapperEl : (wrapperEl.querySelector('pre') as HTMLElement | null);
+    if (!pre) return null;
+    const wrapperClasses = wrapperEl.getAttribute('class');
+    if (wrapperClasses) appendWrapperClasses(pre, wrapperClasses);
+    if (pre !== wrapperEl) detachPreFromWrapper(wrapperEl, pre);
+    return pre;
+}
+
+function appendWrapperClasses(pre: HTMLElement, wrapperClasses: string): void {
+    const existing = pre.getAttribute(WRAPPER_CLASSES_ATTR);
+    pre.setAttribute(WRAPPER_CLASSES_ATTR, existing ? `${existing} ${wrapperClasses}` : wrapperClasses);
+}
+
+/**
+ * Replace a wrapper with its <pre> when the wrapper contains only that block. Otherwise keep the
+ * wrapper (it holds other content) but drop its highlight classes so it is not treated as code.
+ */
+function detachPreFromWrapper(wrapperEl: HTMLElement, pre: HTMLElement): void {
+    const parent = wrapperEl.parentElement;
+    if (parent && onlyContains(wrapperEl, pre)) {
+        parent.replaceChild(pre, wrapperEl);
+    } else if (HIGHLIGHT_CLASS_IN_LIST.test(wrapperEl.className)) {
+        wrapperEl.className = wrapperEl.className
+            .split(CLASS_SEPARATOR)
+            .filter((cls) => cls && !HIGHLIGHT_CLASS.test(cls))
+            .join(' ');
+    }
 }
 
 // Some sources (e.g. claude web chat) wrap tables in pre tags
@@ -236,7 +260,7 @@ function removeUIElements(pre: HTMLElement): void {
 function shouldRemoveUIElement(element: Element): boolean {
     if (element.tagName === 'SPAN') {
         const text = element.textContent;
-        if (text.replace(/[\s\u00A0]+/g, '') === '') {
+        if (text.replace(/\s+/g, '') === '') {
             return true;
         }
     }
@@ -270,7 +294,7 @@ function isUiToolbarWrapper(element: HTMLElement): boolean {
     }
     const className = element.className || '';
     if (
-        /\b(copy|clipboard|code[-_]?header|code[-_]?toolbar|snippet-controls|code-actions|toolbar)\b/i.test(className)
+        /\b(?:copy|clipboard|code[-_]?header|code[-_]?toolbar|snippet-controls|code-actions|toolbar)\b/i.test(className)
     ) {
         return true;
     }
@@ -318,7 +342,7 @@ function normalizeLanguageClass(pre: HTMLElement, code: HTMLElement): void {
     // Remove existing language markers regardless of inference result so we don't leak invalid fences
     const cleaned = code.className
         .split(/\s+/)
-        .filter((c) => c && !/^lang(uage)?-/i.test(c) && !/^highlight-source-/i.test(c));
+        .filter((c) => c && !/^lang(?:uage)?-/i.test(c) && !/^highlight-source-/i.test(c));
     const cleanedClass = cleaned.join(' ');
     if (cleanedClass) {
         code.className = cleanedClass;
