@@ -8,6 +8,7 @@ import {
 import { LIST_INDENTATION } from '../types';
 import { inertPasteOptions, pasteOptions } from './helpers/pasteOptions';
 // Registers the webview script's document listeners, as loading it into the dialog would.
+// oxlint-disable-next-line import/no-unassigned-import -- intentional side-effect import
 import '../dialog/webview/pasteOptionsDialog.js';
 
 vi.mock('api');

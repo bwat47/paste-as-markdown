@@ -99,7 +99,7 @@ let dataPostMock: Mock;
 let fsExtraMock: { writeFileSync: Mock<(path: string, data: Uint8Array) => void>; existsSync: Mock; unlink: Mock };
 let fetchMock: Mock | undefined;
 
-function setGlobal<T>(key: string, value: T) {
+function setGlobal(key: string, value: unknown) {
     (globalThis as unknown as Record<string, unknown>)[key] = value;
 }
 

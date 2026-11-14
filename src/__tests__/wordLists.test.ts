@@ -187,7 +187,7 @@ describe('Desktop Word lists', () => {
 
     test('does not change existing semantic lists or code examples', () => {
         const body = new DOMParser().parseFromString(
-            '<ul><li>' + wordItem('Existing') + '</li></ul>' + '<pre><code>' + wordItem('Example') + '</code></pre>',
+            '<ul><li>' + wordItem('Existing') + '</li></ul><pre><code>' + wordItem('Example') + '</code></pre>',
             'text/html'
         ).body;
         const original = body.innerHTML;

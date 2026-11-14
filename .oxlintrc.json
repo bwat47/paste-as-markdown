@@ -3,7 +3,8 @@
     "plugins": ["typescript", "import", "vitest"],
     "jsPlugins": ["oxlint-plugin-complexity"],
     "categories": {
-        "correctness": "error"
+        "correctness": "error",
+        "suspicious": "error"
     },
     "options": {
         "typeAware": true
@@ -15,6 +16,7 @@
     "rules": {
         "eqeqeq": ["error", "always", { "null": "ignore" }],
         "no-useless-escape": "off",
+        "typescript/no-unsafe-type-assertion": "off",
         "vitest/require-mock-type-parameters": "off",
         "import/no-cycle": "error",
         "import/no-self-import": "error",
