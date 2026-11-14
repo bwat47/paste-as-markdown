@@ -14,7 +14,8 @@ docs/ARCHITECTURE.md
 - `npm run typecheck` Check TypeScript without producing output.
 - `npm run lint` Lint application sources with Oxlint.
 - `npm run lint:fix` Auto-fix linting issues.
-- `npm run format` Format code with Prettier.
+- `npm run format` Format source code with Oxfmt.
+- `npm run format:check` Check source formatting without writing files.
 - `npm run knip` Find unused dependencies, exports and files.
 - `npm run updateVersion` Increment the patch version in package.json, src/manifest.json, and package-lock.json together.
 - `npm run updateApi` Update api/ from generator-joplin without regenerating the project.
@@ -41,7 +42,7 @@ See docs/BUILDING.md for build and maintenance details.
 
 - All text files use LF. If you must fall back to a Python script for file editing, write LF explicitly
   (Python: `open(path, 'w', newline='\n')` or `write_text(..., newline='\n')`).
-- Don't manually repair incidental CRLF changes. Git normalizes text to LF when staging; Prettier also normalizes files when formatting.
+- Don't manually repair incidental CRLF changes. Git normalizes text to LF when staging; Oxfmt also normalizes files when formatting.
 
 ## HTML Processing & Security Guidelines
 

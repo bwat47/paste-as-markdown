@@ -37,6 +37,8 @@ there and update the dependency here, rather than adding local build scripts.
 - `npm test`: run the Vitest suite (JSDOM environment).
 - `npm run typecheck`: check TypeScript without producing output.
 - `npm run lint`: lint application sources.
+- `npm run format`: format `src/**/*.{ts,js,css}` with Oxfmt.
+- `npm run format:check`: check the same source files without writing changes.
 - `npm run knip`: check for unused dependencies, exports, and files.
 - `npm run dist`: build and package the plugin.
 
