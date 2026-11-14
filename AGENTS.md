@@ -12,7 +12,7 @@ docs/ARCHITECTURE.md
 - `npm test` Run the Vitest suite (JSDOM environment).
 - `npm run dist` Typecheck, bundle with esbuild, and create archive at `publish/*.jpl`.
 - `npm run typecheck` Check TypeScript without producing output.
-- `npm run lint` Lint application sources with ESLint.
+- `npm run lint` Lint application sources with Oxlint.
 - `npm run lint:fix` Auto-fix linting issues.
 - `npm run format` Format code with Prettier.
 - `npm run knip` Find unused dependencies, exports and files.

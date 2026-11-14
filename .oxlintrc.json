@@ -1,0 +1,65 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["typescript", "import", "vitest"],
+    "jsPlugins": ["oxlint-plugin-complexity"],
+    "categories": {
+        "correctness": "error"
+    },
+    "options": {
+        "typeAware": true
+    },
+    "env": {
+        "node": true
+    },
+    "ignorePatterns": ["api/**", ".api-staging-*/**", "dist/**", "coverage/**"],
+    "rules": {
+        "eqeqeq": ["error", "always", { "null": "ignore" }],
+        "no-useless-escape": "off",
+        "import/no-cycle": "error",
+        "import/no-self-import": "error",
+        "import/no-duplicates": ["error", { "preferInline": true }],
+        "complexity/complexity": [
+            "error",
+            {
+                "cognitive": 15,
+                "cyclomatic": 20,
+                "minLines": 0,
+                "enableExtraction": false
+            }
+        ]
+    },
+    "overrides": [
+        {
+            "files": ["**/*.ts", "**/*.tsx"],
+            "rules": {
+                "typescript/no-explicit-any": "error",
+                "typescript/explicit-module-boundary-types": "error",
+                "typescript/no-inferrable-types": "error",
+                "typescript/consistent-type-imports": ["error", { "fixStyle": "inline-type-imports" }],
+                "typescript/no-import-type-side-effects": "error",
+                "typescript/consistent-type-exports": ["error", { "fixMixedExportsWithInlineTypeSpecifier": true }],
+                "typescript/no-unnecessary-condition": [
+                    "error",
+                    { "allowConstantLoopConditions": "only-allowed-literals" }
+                ]
+            }
+        },
+        {
+            "files": ["src/**/__tests__/**/*.ts", "src/**/*.test.ts"],
+            "rules": {
+                "typescript/no-unsafe-assignment": "off",
+                "typescript/unbound-method": "off",
+                "vitest/no-disabled-tests": "warn"
+            }
+        },
+        {
+            "files": ["src/**/webview/**/*.js"],
+            "env": {
+                "browser": true
+            },
+            "rules": {
+                "no-undef": "error"
+            }
+        }
+    ]
+}
